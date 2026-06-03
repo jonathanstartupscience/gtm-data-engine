@@ -20,6 +20,7 @@ export function App() {
         <NavLink to="/companies" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Companies</NavLink>
         <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Contacts</NavLink>
         <NavLink to="/runs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Workflows</NavLink>
+        <NavLink to="/sync" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Sync to HubSpot</NavLink>
         <NavLink to="/logs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Logs &amp; Health</NavLink>
         <button className="help-btn" onClick={() => setHelpOpen(true)}>
           <span>?</span> Help &amp; how it works

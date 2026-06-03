@@ -11,6 +11,7 @@ import { Runs } from './pages/Runs.js';
 import { Import } from './pages/Import.js';
 import { Discover } from './pages/Discover.js';
 import { Logs } from './pages/Logs.js';
+import { Sync } from './pages/Sync.js';
 import { setTokenGetter } from './api.js';
 import './styles.css';
 
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: 'import', element: <Import /> },
       { path: 'discover', element: <Discover /> },
       { path: 'logs', element: <Logs /> },
+      { path: 'sync', element: <Sync /> },
     ],
   },
 ]);

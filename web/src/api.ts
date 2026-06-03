@@ -57,6 +57,7 @@ export const api = {
   runs: () => get<{ rows: Run[] }>('/api/runs'),
   run: (id: number) => get<{ run: Run }>(`/api/runs/${id}`),
   logs: () => get<{ events: LogEvent[]; integrations: Record<string, boolean> }>('/api/logs'),
+  pushPreview: (limit: number) => post<PushPreview>('/api/push/preview', { limit }),
   importPreview: (csv: string, entityType: string) =>
     post<ImportPreview>('/api/import/preview', { csv, entityType }),
   taxonomy: () => get<{ types: TaxonomyType[] }>('/api/taxonomy'),
@@ -73,6 +74,16 @@ export interface TaxonomyType {
 export interface LogEvent {
   id: number; kind: string; status: string;
   level: 'error' | 'warn' | 'info'; message: string; at: string;
+}
+
+export interface FieldChange { field: string; from: string; to: string }
+export interface CompanyChange {
+  storeId: number; name: string; domain: string; action: 'create' | 'update';
+  hubspotId?: string; changes: FieldChange[];
+}
+export interface PushPreview {
+  total: number; toCreate: number; toUpdate: number; unchanged: number;
+  changes: CompanyChange[]; truncated: boolean;
 }
 
 export interface ImportPreview {

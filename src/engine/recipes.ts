@@ -9,6 +9,36 @@ import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
 import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js';
 import { discoverLookalikes } from './stages/discover.js';
 import { pullCompanies, pullContacts } from './stages/pull.js';
+import { previewPush, executePush, type PushPreview } from './stages/push.js';
+
+/** push-preview: compute what pushing to HubSpot WOULD change (no writes). */
+export async function runPushPreview(
+  opts: { limit?: number } = {},
+  log: (m: string) => void = console.log,
+): Promise<PushPreview> {
+  return previewPush(opts, log);
+}
+
+/** push-execute: write to HubSpot. Caller must have shown + confirmed the preview. */
+export async function runPushExecute(
+  opts: { limit?: number } = {},
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('push-hubspot-companies');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Pushing companies to HubSpot (confirmed)' });
+    const r = await executePush(opts, log);
+    rec.step({ provider: 'HubSpot', status: 'ok', label: 'Wrote to HubSpot',
+      detail: `${r.created} created, ${r.updated} updated, ${r.unchanged} unchanged${r.errors ? `, ${r.errors} errors` : ''}` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'push-hubspot-companies', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'HubSpot', status: 'error', label: 'Push failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
 
 export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list'
   | 'enrich-companies' | 'discover-lookalikes' | 'pull-hubspot-companies' | 'pull-hubspot-contacts';
