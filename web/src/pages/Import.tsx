@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, postStream, type ImportPreview } from '../api.js';
 
 type EntityType = 'company' | 'contact';
@@ -12,6 +13,7 @@ export function Import() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [runId, setRunId] = useState<number | null>(null);
   const [err, setErr] = useState('');
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -33,7 +35,7 @@ export function Import() {
         { csv, entityType, mapping, sourceName: fileName || 'CSV upload' },
         (ev, data) => {
           if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
-          else if (ev === 'done') { setResult((data as { stats: Record<string, unknown> }).stats); setLog((l) => [...l, '✓ import complete']); }
+          else if (ev === 'done') { const d = data as { stats: Record<string, unknown>; runId: number }; setResult(d.stats); setRunId(d.runId); setLog((l) => [...l, '✓ import complete']); }
           else if (ev === 'error') setErr((data as { message: string }).message);
         });
     } catch (e) { setErr(String(e)); }
@@ -108,11 +110,18 @@ export function Import() {
             {log.map((l, i) => <div key={i}>{l}</div>)}
           </div>
           {result && (
-            <div className="cards" style={{ marginTop: 16, marginBottom: 0 }}>
-              <div className="card"><div className="num">{String(result.resolved ?? 0)}</div><div className="label">Records resolved</div></div>
-              <div className="card"><div className="num">{String((result.companies as number) || (result.contacts as number) || 0)}</div><div className="label">Into the store</div></div>
-              <div className="card"><div className="num">{String(result.errors ?? 0)}</div><div className="label">Skipped/errors</div></div>
-            </div>
+            <>
+              <div className="cards" style={{ marginTop: 16, marginBottom: 0 }}>
+                <div className="card"><div className="num">{String(result.total ?? 0)}</div><div className="label">Rows in file</div></div>
+                <div className="card"><div className="num">{String(result.resolved ?? 0)}</div><div className="label">Resolved into store</div></div>
+                <div className="card"><div className="num">{String((result.companies as number) || (result.contacts as number) || 0)}</div><div className="label">{entityType === 'company' ? 'Companies' : 'Contacts'}</div></div>
+                <div className="card"><div className="num">{String(result.errors ?? 0)}</div><div className="label">Skipped (missing fields)</div></div>
+              </div>
+              <p className="muted" style={{ marginTop: 14 }}>
+                Records were deduped against the store — existing ones updated, new ones created.
+                {runId != null && <> <Link to="/runs">View the full step-by-step breakdown →</Link></>}
+              </p>
+            </>
           )}
         </div>
       )}
