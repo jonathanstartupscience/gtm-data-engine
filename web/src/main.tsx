@@ -58,9 +58,24 @@ function SignInScreen() {
   );
 }
 
+function ConfigError() {
+  return (
+    <div className="auth-screen">
+      <div className="auth-card" style={{ maxWidth: 420 }}>
+        <img src="/brand/logo-white.svg" alt="Startup Science" />
+        <p style={{ color: '#f7f6f2' }}>
+          Login is enabled on the server, but the front-end is missing its Clerk key.
+          Set <code>VITE_CLERK_PUBLISHABLE_KEY</code> in Railway and redeploy.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 if (PUBLISHABLE_KEY) {
+  // Clerk configured at build → gate the app behind sign-in.
   root.render(
     <React.StrictMode>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} appearance={brandAppearance}>
@@ -70,10 +85,18 @@ if (PUBLISHABLE_KEY) {
     </React.StrictMode>,
   );
 } else {
-  // No Clerk key configured → run open (pre-keys / local dev).
-  root.render(
-    <React.StrictMode>
-      <RouterProvider router={router} />
-    </React.StrictMode>,
-  );
+  // No build-time Clerk key. Check whether the SERVER expects auth — if so, the
+  // VITE var didn't bake in; show a clear fix message instead of silently failing.
+  fetch('/api/config')
+    .then((r) => r.json())
+    .then((cfg: { authRequired?: boolean }) => {
+      root.render(
+        <React.StrictMode>
+          {cfg.authRequired ? <ConfigError /> : <RouterProvider router={router} />}
+        </React.StrictMode>,
+      );
+    })
+    .catch(() => {
+      root.render(<React.StrictMode><RouterProvider router={router} /></React.StrictMode>);
+    });
 }

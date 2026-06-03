@@ -10,6 +10,7 @@ import { runsRouter } from './routes/runs.js';
 import { requireAuth, authConfigured } from './auth.js';
 
 const app = express();
+app.set('trust proxy', 1); // behind Railway's proxy (and Cloudflare) — correct protocol/IP
 app.use(express.json({ limit: '25mb' }));
 
 // Public: health + whether the client must authenticate.
