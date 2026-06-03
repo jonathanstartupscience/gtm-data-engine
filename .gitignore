@@ -1,0 +1,20 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Deps
+node_modules/
+
+# Data (may contain PII; regenerable)
+data/*.csv
+data/*.xlsx
+!data/.gitkeep
+
+# Logs / OS
+*.log
+.DS_Store
