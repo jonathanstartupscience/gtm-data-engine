@@ -18,3 +18,5 @@ data/*.xlsx
 # Logs / OS
 *.log
 .DS_Store
+_pp.ts
+*.tmp.ts
