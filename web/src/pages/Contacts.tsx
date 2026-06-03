@@ -63,6 +63,7 @@ export function Contacts() {
             <th>Company</th>
             <th>Company site</th>
             <SortHeader label="Email" col="email" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+            <th>LinkedIn</th>
             <SortHeader label="Persona" col="persona" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Email status" col="emailStatus" sort={sort.sort} dir={sort.dir} onSort={onSort} />
           </tr></thead>
@@ -81,6 +82,11 @@ export function Contacts() {
                 </td>
                 <td><DomainLink domain={c.companyDomain ?? c.companyWebsite} /></td>
                 <td className="muted">{c.email}</td>
+                <td>
+                  {c.linkedinUrl
+                    ? <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{c.linkedinUrl.replace(/^https?:\/\/(www\.)?(.*?)\/?$/, '$2')}</a>
+                    : <span className="muted">—</span>}
+                </td>
                 <td>{c.persona && <span className="tag persona">{c.persona}</span>}</td>
                 <td>{c.emailStatus && <span className={`tag ${c.emailStatus}`}>{emailStatusLabel(c.emailStatus)}</span>}</td>
               </tr>

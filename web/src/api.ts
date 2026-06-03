@@ -67,7 +67,22 @@ export const api = {
   bisonCampaigns: () => get<{ campaigns: { id: number; name: string; status?: string }[] }>('/api/bison/campaigns'),
   bisonSegmentCount: (persona: string, subType: string) =>
     get<{ count: number }>(`/api/bison/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
+  scope: (recipe: string) => get<Scope>(`/api/runs/scope/${recipe}`),
+  connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
+  hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
 };
+
+export interface Scope {
+  recipe: string; candidates: number; unit: string; estCostUsd: number;
+  vendor: string; what: string; free?: boolean;
+}
+export interface Connector { id: string; name: string; role: string; connected: boolean }
+export interface HubspotSync {
+  connected: boolean;
+  companies: { total: number; synced: number; coverage: number };
+  contacts: { total: number; synced: number; coverage: number };
+  lastSync: { pullCompanies: string | null; pullContacts: string | null; push: string | null };
+}
 
 export interface TaxonomyType {
   value: string; label: string; count: number;

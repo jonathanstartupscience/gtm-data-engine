@@ -13,6 +13,8 @@ import { Discover } from './pages/Discover.js';
 import { Logs } from './pages/Logs.js';
 import { Sync } from './pages/Sync.js';
 import { Campaigns } from './pages/Campaigns.js';
+import { Connectors } from './pages/Connectors.js';
+import { HubspotConnector } from './pages/HubspotConnector.js';
 import { setTokenGetter } from './api.js';
 import './styles.css';
 
@@ -31,6 +33,8 @@ const router = createBrowserRouter([
       { path: 'logs', element: <Logs /> },
       { path: 'sync', element: <Sync /> },
       { path: 'campaigns', element: <Campaigns /> },
+      { path: 'connectors', element: <Connectors /> },
+      { path: 'connectors/hubspot', element: <HubspotConnector /> },
     ],
   },
 ]);

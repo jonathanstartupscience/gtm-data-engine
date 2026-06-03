@@ -36,6 +36,14 @@ export const providers = {
   verifyEmails: 'bouncer', // LOCKED
 } as const;
 
+/** Approximate per-record vendor costs (USD), for scope/cost previews. Adjust to real rates. */
+export const costs = {
+  oceanEnrichPerCompany: 0.02,   // Ocean enrich ~1 credit/company
+  bouncerPerEmail: 0.0008,       // Bouncer ~ fraction of a cent per verification
+  oceanLookalikePerCompany: 0.02,
+  airscaleEmailPerLookup: 0.0075,
+};
+
 /** Throw early if a required secret for a given capability is missing. */
 export function assertKeys(keys: (keyof typeof config)[]): void {
   const missing = keys.filter((k) => !config[k]);

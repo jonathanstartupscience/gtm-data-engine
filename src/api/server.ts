@@ -14,6 +14,7 @@ import { taxonomyRouter } from './routes/taxonomy.js';
 import { logsRouter } from './routes/logs.js';
 import { pushRouter } from './routes/push.js';
 import { bisonRouter } from './routes/bison.js';
+import { connectorsRouter } from './routes/connectors.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -53,6 +54,7 @@ app.use('/api/taxonomy', requireAuth, taxonomyRouter);
 app.use('/api/logs', requireAuth, logsRouter);
 app.use('/api/push', requireAuth, pushRouter);
 app.use('/api/bison', requireAuth, bisonRouter);
+app.use('/api/connectors', requireAuth, connectorsRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

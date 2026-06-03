@@ -73,6 +73,43 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
   );
 }
 
+function ScopeDialog({ scope, onCancel, onConfirm }:
+  { scope: import('../api.js').Scope; onCancel: () => void; onConfirm: () => void }) {
+  const cost = scope.estCostUsd;
+  const big = cost >= 25;
+  return (
+    <>
+      <div className="help-overlay" onClick={onCancel} />
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 51,
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+        padding: 28, width: 480, maxWidth: '92vw', boxShadow: '0 12px 48px rgba(0,0,0,0.2)' }}>
+        <h2 style={{ fontFamily: '"DM Serif Display", serif', fontWeight: 400, fontSize: 22, margin: '0 0 4px' }}>Before you run this</h2>
+        <p className="muted" style={{ marginTop: 0 }}>{scope.what}</p>
+        <div className="cards" style={{ margin: '16px 0', gridTemplateColumns: '1fr 1fr' }}>
+          <div className="card">
+            <div className="num">{scope.candidates < 0 ? '—' : scope.candidates.toLocaleString()}</div>
+            <div className="label">{scope.candidates < 0 ? 'All records' : `${scope.unit} to process`}</div>
+          </div>
+          <div className="card">
+            <div className="num" style={{ color: big ? 'var(--coral)' : undefined }}>
+              {scope.free ? 'Free' : `$${cost < 1 ? cost.toFixed(2) : Math.round(cost).toLocaleString()}`}
+            </div>
+            <div className="label">{scope.free ? 'No vendor cost' : `Est. cost · ${scope.vendor}`}</div>
+          </div>
+        </div>
+        {big && <p style={{ color: 'var(--coral)', fontSize: 13 }}>This is a larger spend — double-check before confirming.</p>}
+        {scope.candidates === 0 && <p className="muted">Nothing to do — everything is already up to date.</p>}
+        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+          <button className="btn btn-primary" disabled={scope.candidates === 0} onClick={onConfirm}>
+            {scope.free ? 'Run' : `Confirm & spend ~$${scope.free ? 0 : (cost < 1 ? cost.toFixed(2) : Math.round(cost))}`}
+          </button>
+          <button className="btn" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 interface Recipe { id: string; name: string; desc: string; testLimit?: number; testLabel?: string; }
 const RECIPES: Recipe[] = [
   {
@@ -105,8 +142,16 @@ export function Runs() {
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [detail, setDetail] = useState<Run | null>(null);
+  const [scope, setScope] = useState<import('../api.js').Scope | null>(null);
+  const [scopeLoading, setScopeLoading] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const logEnd = useRef<HTMLDivElement>(null);
+
+  // Open the scope/cost preview before running a credit-spending recipe.
+  async function openScope(recipe: string) {
+    setScopeLoading(recipe); setScope(null);
+    try { setScope(await api.scope(recipe)); } finally { setScopeLoading(null); }
+  }
 
   const loadHistory = () => api.runs().then((d) => setHistory(d.rows));
   const openRun = (id: number) => api.run(id).then((d) => setDetail(d.run));
@@ -152,16 +197,23 @@ export function Runs() {
                     onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Full pull'}</button>
                 </>
               ) : (
-                <>
-                  <button className="btn" disabled={!!running} onClick={() => run(r.id, true)}>Dry run</button>
-                  <button className="btn btn-primary" disabled={!!running}
-                    onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Run'}</button>
-                </>
+                <button className="btn btn-primary" disabled={!!running || scopeLoading === r.id}
+                  onClick={() => openScope(r.id)}>
+                  {scopeLoading === r.id ? 'Checking…' : running === r.id ? 'Running…' : 'Review & run'}
+                </button>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      {scope && (
+        <ScopeDialog
+          scope={scope}
+          onCancel={() => setScope(null)}
+          onConfirm={() => { const r = scope.recipe; setScope(null); run(r, false); }}
+        />
+      )}
 
       {running && (
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>

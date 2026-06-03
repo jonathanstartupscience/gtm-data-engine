@@ -4,6 +4,7 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { runs } from '../../db/schema.js';
 import { runVerifyStale, runEnrichCompanies, runPullCompanies, runPullContacts } from '../../engine/recipes.js';
+import { scopeFor } from '../../engine/scope.js';
 import { asyncHandler } from '../middleware.js';
 import { rateLimit } from '../validate.js';
 
@@ -15,6 +16,13 @@ const KNOWN_RECIPES = new Set(['verify-stale', 'enrich-companies', 'pull-hubspot
 runsRouter.get('/', asyncHandler(async (_req, res) => {
   const rows = await db.select().from(runs).orderBy(desc(runs.id)).limit(50);
   res.json({ rows });
+}));
+
+/** Scope + cost estimate for a recipe (how many records, est. spend, what it targets). */
+runsRouter.get('/scope/:recipe', rateLimit(30, 60_000), asyncHandler(async (req, res) => {
+  const recipe = String(req.params.recipe);
+  if (!KNOWN_RECIPES.has(recipe)) { res.status(404).json({ error: 'Unknown recipe' }); return; }
+  res.json(await scopeFor(recipe));
 }));
 
 /** Single run detail — includes the step waterfall (stats._steps). */

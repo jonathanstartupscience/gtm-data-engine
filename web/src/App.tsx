@@ -20,8 +20,13 @@ export function App() {
         <NavLink to="/companies" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Companies</NavLink>
         <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Contacts</NavLink>
         <NavLink to="/runs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Workflows</NavLink>
-        <NavLink to="/sync" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Sync to HubSpot</NavLink>
-        <NavLink to="/campaigns" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Email Bison</NavLink>
+        <NavLink to="/connectors" className={() => 'navlink' + (pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync' ? ' active' : '')}>Connectors</NavLink>
+        {(pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync') && (
+          <div style={{ marginLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 6 }}>
+            <NavLink to="/connectors/hubspot" className={({ isActive }) => 'navlink' + (isActive || pathname === '/sync' ? ' active' : '')}>HubSpot</NavLink>
+            <NavLink to="/campaigns" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Email Bison</NavLink>
+          </div>
+        )}
         <NavLink to="/logs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Logs &amp; Health</NavLink>
         <button className="help-btn" onClick={() => setHelpOpen(true)}>
           <span>?</span> Help &amp; how it works
