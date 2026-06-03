@@ -5,8 +5,32 @@
 import { startRun, finishRun } from './runs.js';
 import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
 import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
+import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js';
 
-export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list';
+export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list' | 'enrich-companies';
+
+/** enrich-companies: fill firmographic gaps via Ocean for companies missing them. */
+export async function runEnrichCompanies(
+  opts: { limit?: number; dryRun?: boolean } = {},
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('enrich-companies');
+  try {
+    const targets = await companiesNeedingEnrichment(opts.limit ?? 1000);
+    log(`enrich-companies: ${targets.length} companies missing firmographics`);
+    if (opts.dryRun) {
+      const stats = { candidates: targets.length, dryRun: true };
+      await finishRun(runId, 'done', stats);
+      return { runId, kind: 'enrich-companies', stats };
+    }
+    const r = await enrichCompanies(targets, log);
+    await finishRun(runId, 'done', r);
+    return { runId, kind: 'enrich-companies', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    await finishRun(runId, 'error', { error: (err as Error).message });
+    throw err;
+  }
+}
 
 /** import-list: ingest parsed CSV rows → dedupe → resolve into the store. */
 export async function runImportList(

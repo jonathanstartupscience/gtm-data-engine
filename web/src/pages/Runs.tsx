@@ -8,6 +8,11 @@ const RECIPES: Recipe[] = [
     name: 'Verify stale emails',
     desc: 'Find every email in the store missing or past its 90-day verification and re-check it through Bouncer. The continuous-hygiene workhorse.',
   },
+  {
+    id: 'enrich-companies',
+    name: 'Enrich companies',
+    desc: 'Fill in missing firmographics (employee size, founded year, industry) for companies that have a domain but incomplete data, using Ocean.io. Only fills gaps — never overwrites.',
+  },
 ];
 
 export function Runs() {

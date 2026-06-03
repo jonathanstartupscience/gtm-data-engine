@@ -61,6 +61,7 @@ const PAGES: Record<string, PageHelp> = {
     sections: [
       { heading: 'Dry run vs Run', body: '“Dry run” shows you what WOULD happen (and how much it would cost) without spending anything. “Run” does it for real. Always safe to dry-run first.' },
       { heading: 'Verify stale emails', body: 'Finds every email that has never been verified — or whose check is older than 90 days — and re-checks deliverability through Bouncer. Anything still fresh is skipped, so you never pay to re-verify good data.' },
+      { heading: 'Enrich companies', body: 'For companies that have a website but are missing details (employee size, founded year, industry), this looks them up via Ocean.io and fills the gaps. It only fills what is empty — it never overwrites data you already have.' },
       { heading: 'Run history', body: 'Every run is logged with its result, so there is always a record of what the engine did and when.' },
     ],
     steps: [
