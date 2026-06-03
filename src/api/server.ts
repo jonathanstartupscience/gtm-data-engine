@@ -39,4 +39,5 @@ if (webDist) {
 
 app.listen(config.port, () => {
   console.log(`gtm-data-engine listening on :${config.port} (${config.nodeEnv})`);
+  console.log(`[auth] CLERK_JWKS_URL ${authConfigured() ? 'SET → auth ON' : 'NOT set → auth OPEN'}`);
 });
