@@ -31,6 +31,10 @@ export function Contacts() {
     const params = new URLSearchParams({ q, persona, emailStatus, sort: sort.sort, dir: sort.dir });
     downloadCsv(`/api/export/contacts?${params}`, 'contacts.csv').catch((e) => alert('Export failed: ' + e));
   };
+  const exportAdAudience = () => {
+    const params = new URLSearchParams({ persona });
+    downloadCsv(`/api/export/ad-audience?${params}`, 'ad_audience.csv').catch((e) => alert('Export failed: ' + e));
+  };
 
   return (
     <>
@@ -47,7 +51,8 @@ export function Contacts() {
           {STATUSES.map((s) => <option key={s} value={s}>{s ? emailStatusLabel(s) : 'All email statuses'}</option>)}
         </select>
         {active && <button className="btn" onClick={() => { setQ(''); setPersona(''); setEmailStatus(''); setOffset(0); }}>Clear</button>}
-        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export {total.toLocaleString()} → CSV</button>
+        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export → CSV</button>
+        <button className="btn" disabled={total === 0} onClick={exportAdAudience} title="Hashed-email file for Meta / LinkedIn custom audiences">Ad audience → CSV</button>
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (

@@ -1,8 +1,9 @@
 /** Export API: stream the filtered Companies/Contacts set as CSV (same filters as the list views). */
+import { createHash } from 'node:crypto';
 import { Router } from 'express';
-import { and, asc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, contacts } from '../../db/schema.js';
+import { companies, contacts, contactCompany } from '../../db/schema.js';
 import { asyncHandler } from '../middleware.js';
 
 export const exportRouter = Router();
@@ -57,4 +58,42 @@ exportRouter.get('/contacts', asyncHandler(async (req, res) => {
   const where = conds.length ? and(...conds) : undefined;
   const rows = await db.select().from(contacts).where(where).orderBy(asc(contacts.lastName)).limit(100000);
   send(res, 'contacts.csv', toCsv(CONTACT_COLS, rows as unknown as Record<string, unknown>[]));
+}));
+
+const sha256 = (s: string) => createHash('sha256').update(s.trim().toLowerCase()).digest('hex');
+const SENDABLE_AD = ['deliverable', 'risky_catchall', 'role_based']; // ads tolerate role inboxes
+
+/**
+ * Ad-audience export — for Meta / LinkedIn custom audiences. Includes a SHA-256-hashed
+ * (lowercased) email column (what the platforms ingest) plus plaintext fields. Filterable
+ * by persona / sub_type. Only contactable addresses (excludes undeliverable/unknown/no-email).
+ */
+exportRouter.get('/ad-audience', asyncHandler(async (req, res) => {
+  const persona = String(req.query.persona ?? '').trim().slice(0, 64);
+  const subType = String(req.query.subType ?? '').trim().slice(0, 64);
+  const conds = [
+    inArray(contacts.emailStatus, SENDABLE_AD),
+    persona ? eq(contacts.persona, persona) : undefined,
+  ].filter(Boolean);
+  let rows = await db
+    .select({
+      email: contacts.email, firstName: contacts.firstName, lastName: contacts.lastName,
+      companyName: companies.name, country: companies.country, subType: companies.subType,
+    })
+    .from(contacts)
+    .leftJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
+    .leftJoin(companies, eq(companies.id, contactCompany.companyId))
+    .where(and(...conds))
+    .limit(100000);
+  if (subType) rows = rows.filter((r) => r.subType === subType);
+  const seen = new Set<string>();
+  const out = rows
+    .filter((r) => r.email && !seen.has(r.email) && seen.add(r.email))
+    .map((r) => ({
+      email: r.email, email_sha256: sha256(r.email!),
+      first_name: r.firstName, last_name: r.lastName,
+      company_name: r.companyName, country: r.country,
+    }));
+  send(res, 'ad_audience.csv',
+    toCsv(['email', 'email_sha256', 'first_name', 'last_name', 'company_name', 'country'], out));
 }));
