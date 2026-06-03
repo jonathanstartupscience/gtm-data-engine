@@ -3,13 +3,13 @@ import { Router } from 'express';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { runs } from '../../db/schema.js';
-import { runVerifyStale, runEnrichCompanies } from '../../engine/recipes.js';
+import { runVerifyStale, runEnrichCompanies, runPullCompanies } from '../../engine/recipes.js';
 import { asyncHandler } from '../middleware.js';
 import { rateLimit } from '../validate.js';
 
 export const runsRouter = Router();
 
-const KNOWN_RECIPES = new Set(['verify-stale', 'enrich-companies']);
+const KNOWN_RECIPES = new Set(['verify-stale', 'enrich-companies', 'pull-hubspot-companies']);
 
 /** List recent runs (history table). */
 runsRouter.get('/', asyncHandler(async (_req, res) => {
@@ -54,7 +54,9 @@ runsRouter.get('/stream/:recipe', rateLimit(10, 60_000), async (req, res) => {
   try {
     const result = recipe === 'enrich-companies'
       ? await runEnrichCompanies({ dryRun, limit }, log)
-      : await runVerifyStale({ dryRun, limit }, log);
+      : recipe === 'pull-hubspot-companies'
+        ? await runPullCompanies({ limit }, log)
+        : await runVerifyStale({ dryRun, limit }, log);
     send('done', result);
   } catch (err) {
     console.error('[runs/stream] error:', (err as Error).stack ?? err);

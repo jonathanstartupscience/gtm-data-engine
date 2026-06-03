@@ -10,6 +10,22 @@ const BASE = 'https://api.hubapi.com';
 const limiter = new RateLimiter(100, 10_000);
 const headers = () => ({ Authorization: `Bearer ${config.hubspotToken}`, 'Content-Type': 'application/json' });
 
+export interface HsPage<T> { results: T[]; after?: string }
+
+/** Page through ALL companies (or contacts). Returns one page; pass `after` to continue. */
+export async function listObjects(
+  object: 'companies' | 'contacts',
+  properties: string[],
+  after?: string,
+  limit = 100,
+): Promise<HsPage<{ id: string; properties: Record<string, string> }>> {
+  const params = new URLSearchParams({ limit: String(limit), properties: properties.join(',') });
+  if (after) params.set('after', after);
+  const j = await requestJson<{ results: { id: string; properties: Record<string, string> }[]; paging?: { next?: { after: string } } }>(
+    `${BASE}/crm/v3/objects/${object}?${params}`, { headers: headers(), limiter });
+  return { results: j.results ?? [], after: j.paging?.next?.after };
+}
+
 export async function searchCompanyByDomain(domain: string, properties = ['domain', 'name', 'type', 'sub_type']) {
   const body = {
     filterGroups: [{ filters: [{ propertyName: 'domain', operator: 'EQ', value: domain }] }],

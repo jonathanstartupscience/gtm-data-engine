@@ -73,8 +73,14 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
   );
 }
 
-interface Recipe { id: string; name: string; desc: string; }
+interface Recipe { id: string; name: string; desc: string; testLimit?: number; testLabel?: string; }
 const RECIPES: Recipe[] = [
+  {
+    id: 'pull-hubspot-companies',
+    name: 'Pull companies from HubSpot',
+    desc: 'Import companies from HubSpot into the store — every Type and Sub-type. This is what makes the engine cover your whole CRM (not just ESO). Deduped against what you already have. Run the test first, then the full pull.',
+    testLimit: 500, testLabel: 'Test (500)',
+  },
   {
     id: 'verify-stale',
     name: 'Verify stale emails',
@@ -101,10 +107,11 @@ export function Runs() {
   useEffect(() => { loadHistory(); }, []);
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
-  async function run(recipe: string, dryRun: boolean) {
+  async function run(recipe: string, dryRun: boolean, limit?: number) {
     setRunning(recipe); setLog([]); setResult(null);
     const token = await authToken();
-    const qs = `dryRun=${dryRun ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    let qs = `dryRun=${dryRun ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    if (limit) qs += `&limit=${limit}`;
     const es = new EventSource(`/api/runs/stream/${recipe}?${qs}`);
     esRef.current = es;
     es.addEventListener('log', (e) => setLog((l) => [...l, JSON.parse(e.data).message]));
@@ -133,9 +140,19 @@ export function Runs() {
               <div className="muted" style={{ marginTop: 4, maxWidth: 640 }}>{r.desc}</div>
             </div>
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              <button className="btn" disabled={!!running} onClick={() => run(r.id, true)}>Dry run</button>
-              <button className="btn btn-primary" disabled={!!running}
-                onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Run'}</button>
+              {r.testLimit ? (
+                <>
+                  <button className="btn" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>
+                  <button className="btn btn-primary" disabled={!!running}
+                    onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Full pull'}</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn" disabled={!!running} onClick={() => run(r.id, true)}>Dry run</button>
+                  <button className="btn btn-primary" disabled={!!running}
+                    onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Run'}</button>
+                </>
+              )}
             </div>
           </div>
         ))}

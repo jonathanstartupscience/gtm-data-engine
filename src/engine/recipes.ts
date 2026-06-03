@@ -8,9 +8,34 @@ import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
 import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
 import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js';
 import { discoverLookalikes } from './stages/discover.js';
+import { pullCompanies } from './stages/pull.js';
 
 export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list'
-  | 'enrich-companies' | 'discover-lookalikes';
+  | 'enrich-companies' | 'discover-lookalikes' | 'pull-hubspot-companies';
+
+/** pull-hubspot-companies: import companies from HubSpot (all Types/Sub-types) → store. */
+export async function runPullCompanies(
+  opts: { limit?: number } = {},
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('pull-hubspot-companies');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'HubSpot', status: 'info', label: 'Pulling companies from HubSpot',
+      detail: opts.limit ? `capped at ${opts.limit}` : 'all companies' });
+    const r = await pullCompanies(opts, log);
+    rec.step({ provider: 'HubSpot', status: 'ok', label: 'Pulled companies', count: r.pulled, detail: `${r.pages} pages` });
+    rec.step({ provider: 'Engine', status: 'ok', label: 'Resolved into store', count: r.resolved,
+      detail: `${r.resolved} golden records${r.errors ? `, ${r.errors} errors` : ''}` });
+    if (r.capped) rec.step({ provider: 'Engine', status: 'warn', label: 'Stopped at cap', detail: 'more remain in HubSpot' });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'pull-hubspot-companies', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'HubSpot', status: 'error', label: 'Pull failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
 
 export interface RecipeResult {
   runId: number;

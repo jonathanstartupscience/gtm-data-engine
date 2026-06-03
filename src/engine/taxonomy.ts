@@ -10,11 +10,17 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { companies } from '../db/schema.js';
 
-/** HubSpot internal type value → human label. Extend as new types come online. */
+/** HubSpot internal type value → human label. (HubSpot's standard 'type' picklist values
+ *  are uppercase internal codes; CUSTOMER is repurposed as our "ESO" label.) */
 export const TYPE_LABELS: Record<string, string> = {
   CUSTOMER: 'ESO',
-  // Future types (examples — fill in real HubSpot internal values as we add them):
-  // PARTNER: 'Partner', VENDOR: 'Vendor', INVESTOR: 'Investor',
+  PARTNER: 'Partner',
+  STARTUP: 'Startup',
+  VENDOR: 'Vendor',
+  COMPETITOR: 'Competitor',
+  RESELLER: 'Reseller',
+  INTEGRATOR: 'Integrator',
+  // (Title-case values like 'Provider', 'Investor' already read fine; passthrough.)
 };
 
 export function typeLabel(value: string | null | undefined): string {
