@@ -26,8 +26,9 @@ export function Dashboard() {
 
   return (
     <>
-      <h1 className="page-title">Dashboard</h1>
-      <p className="page-sub">Canonical store — the single source of truth for GTM data.</p>
+      <div className="eyebrow">Overview</div>
+      <h1 className="page-title">Your <em>clean</em> GTM data</h1>
+      <p className="page-sub">The canonical store — one source of truth for every company and contact.</p>
 
       <div className="cards">
         <div className="card"><div className="num">{stats.companies.toLocaleString()}</div><div className="label">Companies</div></div>

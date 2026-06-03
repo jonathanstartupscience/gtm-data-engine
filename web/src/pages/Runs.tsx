@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type Run } from '../api.js';
+import { api, authToken, type Run } from '../api.js';
 
 interface Recipe { id: string; name: string; desc: string; }
 const RECIPES: Recipe[] = [
@@ -22,9 +22,11 @@ export function Runs() {
   useEffect(() => { loadHistory(); }, []);
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
-  function run(recipe: string, dryRun: boolean) {
+  async function run(recipe: string, dryRun: boolean) {
     setRunning(recipe); setLog([]); setResult(null);
-    const es = new EventSource(`/api/runs/stream/${recipe}?dryRun=${dryRun ? 1 : 0}`);
+    const token = await authToken();
+    const qs = `dryRun=${dryRun ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    const es = new EventSource(`/api/runs/stream/${recipe}?${qs}`);
     esRef.current = es;
     es.addEventListener('log', (e) => setLog((l) => [...l, JSON.parse(e.data).message]));
     es.addEventListener('done', (e) => {
@@ -40,8 +42,9 @@ export function Runs() {
 
   return (
     <>
-      <h1 className="page-title">Runs</h1>
-      <p className="page-sub">Run data flows against the store. Each run is logged with stats.</p>
+      <div className="eyebrow">Operate</div>
+      <h1 className="page-title">Run a <em>flow</em></h1>
+      <p className="page-sub">Pick a recipe and let the engine work. Dry-run first to preview — it’s always safe.</p>
 
       <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
         {RECIPES.map((r) => (
@@ -52,7 +55,7 @@ export function Runs() {
             </div>
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <button className="btn" disabled={!!running} onClick={() => run(r.id, true)}>Dry run</button>
-              <button className="btn" disabled={!!running} style={{ background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }}
+              <button className="btn btn-primary" disabled={!!running}
                 onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Run'}</button>
             </div>
           </div>

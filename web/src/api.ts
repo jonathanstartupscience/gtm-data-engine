@@ -20,8 +20,20 @@ export interface Contact {
   emailStatus: string | null; hubspotId: string | null;
 }
 
+/** Set by the app once Clerk is ready; returns a session token or null. */
+let tokenGetter: (() => Promise<string | null>) | null = null;
+export function setTokenGetter(fn: () => Promise<string | null>) { tokenGetter = fn; }
+
+/** A session token for SSE/EventSource URLs (which can't send headers). */
+export async function authToken(): Promise<string | null> {
+  return tokenGetter ? tokenGetter() : null;
+}
+
 async function get<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const headers: Record<string, string> = {};
+  const token = tokenGetter ? await tokenGetter() : null;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const r = await fetch(url, { headers });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json() as Promise<T>;
 }

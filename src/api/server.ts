@@ -7,13 +7,18 @@ import { config } from '../lib/config.js';
 import { health } from './routes/health.js';
 import { store } from './routes/store.js';
 import { runsRouter } from './routes/runs.js';
+import { requireAuth, authConfigured } from './auth.js';
 
 const app = express();
 app.use(express.json({ limit: '25mb' }));
 
+// Public: health + whether the client must authenticate.
 app.use('/api/health', health);
-app.use('/api/store', store);
-app.use('/api/runs', runsRouter);
+app.get('/api/config', (_req, res) => res.json({ authRequired: authConfigured() }));
+
+// Protected: data + recipe execution (open if CLERK_JWKS_URL unset).
+app.use('/api/store', requireAuth, store);
+app.use('/api/runs', requireAuth, runsRouter);
 
 // Serve the built React app (web/dist) if present; SPA fallback to index.html.
 // Resolve robustly: in dev (tsx) the file is src/api/, in prod (tsc) it's dist/src/api/,
