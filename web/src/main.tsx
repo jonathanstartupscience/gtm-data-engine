@@ -12,6 +12,7 @@ import { Import } from './pages/Import.js';
 import { Discover } from './pages/Discover.js';
 import { Logs } from './pages/Logs.js';
 import { Sync } from './pages/Sync.js';
+import { Campaigns } from './pages/Campaigns.js';
 import { setTokenGetter } from './api.js';
 import './styles.css';
 
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { path: 'discover', element: <Discover /> },
       { path: 'logs', element: <Logs /> },
       { path: 'sync', element: <Sync /> },
+      { path: 'campaigns', element: <Campaigns /> },
     ],
   },
 ]);

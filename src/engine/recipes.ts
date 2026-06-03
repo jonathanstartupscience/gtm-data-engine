@@ -10,6 +10,30 @@ import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js'
 import { discoverLookalikes } from './stages/discover.js';
 import { pullCompanies, pullContacts } from './stages/pull.js';
 import { previewPush, executePush, type PushPreview } from './stages/push.js';
+import { pushToBison, type SegmentFilter } from './stages/activate.js';
+
+/** push-email-bison: send a filtered campaign-ready segment to an Email Bison campaign. */
+export async function runPushToBison(
+  campaignId: number,
+  filter: SegmentFilter,
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('push-email-bison');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Selected campaign-ready segment',
+      detail: [filter.persona, filter.subType].filter(Boolean).join(' · ') || 'all personas' });
+    const r = await pushToBison(campaignId, filter, log);
+    rec.step({ provider: 'Email Bison', status: 'ok', label: 'Pushed to campaign', count: r.created,
+      detail: `${r.created} leads created, ${r.attached} attached${r.failed ? `, ${r.failed} failed` : ''}` });
+    await finishRun(runId, 'done', { campaignId, ...r }, rec.steps);
+    return { runId, kind: 'push-email-bison', stats: { campaignId, ...r } };
+  } catch (err) {
+    rec.step({ provider: 'Email Bison', status: 'error', label: 'Push failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
 
 /** push-preview: compute what pushing to HubSpot WOULD change (no writes). */
 export async function runPushPreview(

@@ -64,6 +64,9 @@ export const api = {
   seeds: (type: string, subType: string) =>
     get<{ seeds: { domain: string; name: string }[] }>(
       `/api/discover/seeds?type=${encodeURIComponent(type)}&subType=${encodeURIComponent(subType)}`),
+  bisonCampaigns: () => get<{ campaigns: { id: number; name: string; status?: string }[] }>('/api/bison/campaigns'),
+  bisonSegmentCount: (persona: string, subType: string) =>
+    get<{ count: number }>(`/api/bison/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
 };
 
 export interface TaxonomyType {
