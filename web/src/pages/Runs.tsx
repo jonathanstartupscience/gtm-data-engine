@@ -82,6 +82,12 @@ const RECIPES: Recipe[] = [
     testLimit: 500, testLabel: 'Test (500)',
   },
   {
+    id: 'pull-hubspot-contacts',
+    name: 'Pull contacts from HubSpot',
+    desc: 'Import people from HubSpot into the store, associated to their company. Run the company pull first so contacts can link up. Deduped by email. Run the test first, then the full pull.',
+    testLimit: 500, testLabel: 'Test (500)',
+  },
+  {
     id: 'verify-stale',
     name: 'Verify stale emails',
     desc: 'Find every email in the store missing or past its 90-day verification and re-check it through Bouncer. The continuous-hygiene workhorse.',

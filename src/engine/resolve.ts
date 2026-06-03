@@ -112,13 +112,20 @@ export async function resolveContact(input: ContactInput, source: string): Promi
     const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
     if (Object.keys(patch).length > 1) await db.update(contacts).set(patch).where(eq(contacts.id, id));
   } else if (values.email) {
-    // Race-safe insert: if a concurrent import already created this email, update instead
-    // of throwing on the unique index. Then read back the id.
-    const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
-    await db.insert(contacts).values(values)
-      .onConflictDoUpdate({ target: contacts.email, set: patch });
-    const r = await db.select({ id: contacts.id }).from(contacts).where(eq(contacts.email, values.email)).limit(1);
-    id = r[0].id;
+    // Race-safe insert by email. We can't use ON CONFLICT against a PARTIAL unique index
+    // (target predicate wouldn't match), so try-insert and fall back to update-by-email if a
+    // concurrent writer already created it.
+    try {
+      const [ins] = await db.insert(contacts).values(values).returning({ id: contacts.id });
+      id = ins.id;
+    } catch {
+      const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
+      const r = await db.select({ id: contacts.id }).from(contacts).where(eq(contacts.email, values.email)).limit(1);
+      if (r.length) {
+        id = r[0].id;
+        if (Object.keys(patch).length > 1) await db.update(contacts).set(patch).where(eq(contacts.id, id));
+      } else { throw new Error('contact insert failed and no existing email match'); }
+    }
   } else {
     const [ins] = await db.insert(contacts).values(values).returning({ id: contacts.id });
     id = ins.id;
