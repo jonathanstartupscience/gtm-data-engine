@@ -2,6 +2,10 @@
  * Ocean.io adapter — account discovery (lookalikes + ICP filter) and company enrich.
  * Verified against docs + live key (see VENDOR_API_REFERENCE.md).
  * Base https://api.ocean.io  ·  auth header x-api-token  ·  60 req/min default.
+ *
+ * Live-verified notes: pagination `from` is 1-indexed (>=1). Lookalike SEARCH is
+ * plan-gated (current tier returns 400 "Plan version not supported"); ENRICH works
+ * and its body is wrapped: {company:{domain}}.
  */
 import { config } from '../../lib/config.js';
 import { request, requestJson, RateLimiter } from '../../lib/http.js';
@@ -54,7 +58,7 @@ export async function searchCompanies(opts: {
 
   const body = {
     size: opts.size ?? 25,
-    from: opts.from ?? 0,
+    from: opts.from ?? 1, // Ocean pagination is 1-indexed (from >= 1), confirmed via live 422
     ...(opts.searchAfter ? { searchAfter: opts.searchAfter } : {}),
     companiesFilters,
   };
@@ -67,9 +71,13 @@ export async function searchCompanies(opts: {
   return { companies: json.companies ?? [], raw: json };
 }
 
-/** Enrich a company by domain (1 credit WITH domain, 5 without — always pass domain). */
+/**
+ * Enrich a company by domain (1 credit WITH domain, 5 without — always pass domain).
+ * Body is wrapped: {company:{domain}} (confirmed via live call; docs showed it flat).
+ */
 export async function enrichCompany(domain: string, fields?: string[]): Promise<OceanCompany> {
-  const body: Record<string, unknown> = { domain };
+  const company: Record<string, unknown> = { domain };
+  const body: Record<string, unknown> = { company };
   if (fields?.length) body.fields = fields;
   return requestJson(`${BASE}/v2/enrich/company`, {
     method: 'POST', headers: headers(), body: JSON.stringify(body), limiter,
