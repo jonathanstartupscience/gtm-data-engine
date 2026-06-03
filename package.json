@@ -20,6 +20,7 @@
     "seed:eso": "tsx scripts/seed-eso.ts"
   },
   "dependencies": {
+    "csv-parse": "^6.2.1",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.0",
     "express": "^4.21.0",
