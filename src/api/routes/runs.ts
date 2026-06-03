@@ -4,49 +4,51 @@ import { desc } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { runs } from '../../db/schema.js';
 import { runVerifyStale } from '../../engine/recipes.js';
+import { asyncHandler } from '../middleware.js';
+import { rateLimit } from '../validate.js';
 
 export const runsRouter = Router();
 
+const KNOWN_RECIPES = new Set(['verify-stale']);
+
 /** List recent runs (history table). */
-runsRouter.get('/', async (_req, res) => {
+runsRouter.get('/', asyncHandler(async (_req, res) => {
   const rows = await db.select().from(runs).orderBy(desc(runs.id)).limit(50);
   res.json({ rows });
-});
+}));
 
 /**
  * Trigger a recipe and stream progress as Server-Sent Events.
  * GET /api/runs/stream/:recipe?dryRun=1  (EventSource-friendly; GET so the browser can stream)
  */
-runsRouter.get('/stream/:recipe', async (req, res) => {
-  const recipe = req.params.recipe;
+runsRouter.get('/stream/:recipe', rateLimit(10, 60_000), async (req, res) => {
+  const recipe = String(req.params.recipe);
   const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
-  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+  const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit) || 0, 0), 500_000) : undefined;
+
+  if (!KNOWN_RECIPES.has(recipe)) { res.status(404).json({ error: 'Unknown recipe' }); return; }
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders?.();
 
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+
   const send = (event: string, data: unknown) => {
-    res.write(`event: ${event}\n`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (aborted || res.writableEnded) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
   const log = (m: string) => send('log', { message: m });
 
   try {
-    let result;
-    switch (recipe) {
-      case 'verify-stale':
-        result = await runVerifyStale({ dryRun, limit }, log);
-        break;
-      default:
-        send('error', { message: `Unknown recipe: ${recipe}` });
-        return res.end();
-    }
+    const result = await runVerifyStale({ dryRun, limit }, log);
     send('done', result);
   } catch (err) {
-    send('error', { message: (err as Error).message });
+    console.error('[runs/stream] error:', (err as Error).stack ?? err);
+    send('error', { message: 'Run failed — see server logs' });
   } finally {
-    res.end();
+    if (!res.writableEnded) res.end();
   }
 });

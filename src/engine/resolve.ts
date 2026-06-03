@@ -111,6 +111,14 @@ export async function resolveContact(input: ContactInput, source: string): Promi
   if (id) {
     const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
     if (Object.keys(patch).length > 1) await db.update(contacts).set(patch).where(eq(contacts.id, id));
+  } else if (values.email) {
+    // Race-safe insert: if a concurrent import already created this email, update instead
+    // of throwing on the unique index. Then read back the id.
+    const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
+    await db.insert(contacts).values(values)
+      .onConflictDoUpdate({ target: contacts.email, set: patch });
+    const r = await db.select({ id: contacts.id }).from(contacts).where(eq(contacts.email, values.email)).limit(1);
+    id = r[0].id;
   } else {
     const [ins] = await db.insert(contacts).values(values).returning({ id: contacts.id });
     id = ins.id;

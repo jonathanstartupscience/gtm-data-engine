@@ -1,13 +1,14 @@
 /** Read API over the canonical store: stats, companies, contacts, company detail. */
 import { Router } from 'express';
-import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, or } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, contactCompany } from '../../db/schema.js';
+import { asyncHandler } from '../middleware.js';
 
 export const store = Router();
 
 /** Dashboard stats. */
-store.get('/stats', async (_req, res) => {
+store.get('/stats', asyncHandler(async (_req, res) => {
   const [[c], [k]] = await Promise.all([
     db.select({ n: count() }).from(companies),
     db.select({ n: count() }).from(contacts),
@@ -34,13 +35,19 @@ store.get('/stats', async (_req, res) => {
     byPersona: byPersona.filter((r) => r.key),
     byEmailStatus: byEmailStatus.filter((r) => r.key),
   });
-});
+}));
+
+/** Parse + clamp pagination params (guards NaN / negative / oversized). */
+function page(req: { query: Record<string, unknown> }) {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  return { limit, offset };
+}
 
 /** Companies list with search + pagination. */
-store.get('/companies', async (req, res) => {
-  const q = String(req.query.q ?? '').trim();
-  const limit = Math.min(Number(req.query.limit ?? 50), 200);
-  const offset = Number(req.query.offset ?? 0);
+store.get('/companies', asyncHandler(async (req, res) => {
+  const q = String(req.query.q ?? '').trim().slice(0, 200);
+  const { limit, offset } = page(req);
   const where = q
     ? or(ilike(companies.name, `%${q}%`), ilike(companies.domain, `%${q}%`), ilike(companies.subType, `%${q}%`))
     : undefined;
@@ -49,15 +56,14 @@ store.get('/companies', async (req, res) => {
     db.select({ n: count() }).from(companies).where(where),
   ]);
   res.json({ total: n, rows });
-});
+}));
 
 /** Contacts list with search + filters + pagination. */
-store.get('/contacts', async (req, res) => {
-  const q = String(req.query.q ?? '').trim();
-  const persona = String(req.query.persona ?? '').trim();
-  const emailStatus = String(req.query.emailStatus ?? '').trim();
-  const limit = Math.min(Number(req.query.limit ?? 50), 200);
-  const offset = Number(req.query.offset ?? 0);
+store.get('/contacts', asyncHandler(async (req, res) => {
+  const q = String(req.query.q ?? '').trim().slice(0, 200);
+  const persona = String(req.query.persona ?? '').trim().slice(0, 64);
+  const emailStatus = String(req.query.emailStatus ?? '').trim().slice(0, 32);
+  const { limit, offset } = page(req);
   const conds = [
     q ? or(ilike(contacts.firstName, `%${q}%`), ilike(contacts.lastName, `%${q}%`),
       ilike(contacts.email, `%${q}%`), ilike(contacts.jobTitle, `%${q}%`)) : undefined,
@@ -70,17 +76,18 @@ store.get('/contacts', async (req, res) => {
     db.select({ n: count() }).from(contacts).where(where),
   ]);
   res.json({ total: n, rows });
-});
+}));
 
 /** Single company + its associated contacts. */
-store.get('/companies/:id', async (req, res) => {
+store.get('/companies/:id', asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) { res.status(400).json({ error: 'invalid id' }); return; }
   const [company] = await db.select().from(companies).where(eq(companies.id, id));
-  if (!company) return res.status(404).json({ error: 'not found' });
+  if (!company) { res.status(404).json({ error: 'not found' }); return; }
   const people = await db
     .select()
     .from(contacts)
     .innerJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
     .where(eq(contactCompany.companyId, id));
   res.json({ company, contacts: people.map((p) => p.contacts) });
-});
+}));

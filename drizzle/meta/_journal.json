@@ -8,6 +8,13 @@
       "when": 1780511685551,
       "tag": "0000_luxuriant_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780520194728,
+      "tag": "0001_busy_lizard",
+      "breakpoints": true
     }
   ]
 }

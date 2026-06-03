@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "contacts_email_uniq" ON "contacts" USING btree ("email") WHERE email is not null and email <> '';

@@ -7,6 +7,7 @@
  *   verifications  — Bouncer de-bounce cache with TTL
  *   hubspot_sync / runs — activation + run history
  */
+import { sql } from 'drizzle-orm';
 import {
   pgTable, serial, text, integer, real, timestamp, jsonb, boolean, uniqueIndex, index,
 } from 'drizzle-orm/pg-core';
@@ -106,7 +107,11 @@ export const contacts = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (t) => ({ emailIdx: index('contacts_email_idx').on(t.email) }),
+  (t) => ({
+    emailIdx: index('contacts_email_idx').on(t.email),
+    // Unique on real emails only (NULL/'' excluded) so resolution can rely on it + onConflict.
+    emailUniq: uniqueIndex('contacts_email_uniq').on(t.email).where(sql`email is not null and email <> ''`),
+  }),
 );
 
 export const contactIdentifiers = pgTable(

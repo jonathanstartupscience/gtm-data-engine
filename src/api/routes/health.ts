@@ -11,8 +11,10 @@ health.get('/', async (_req, res) => {
     await db.execute(sql`select 1`);
     out.db = 'connected';
   } catch (err) {
+    // Do NOT leak DB error detail to anonymous callers — log it, return generic status.
+    console.error('[health] db check failed:', (err as Error).message);
     out.db = 'unavailable';
-    out.dbError = (err as Error).message.slice(0, 120);
+    out.status = 'degraded';
   }
   res.json(out);
 });
