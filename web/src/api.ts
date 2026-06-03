@@ -76,6 +76,23 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+/** Download an auth-protected URL as a file (adds the Clerk token, triggers browser save). */
+export async function downloadCsv(url: string, filename: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = tokenGetter ? await tokenGetter() : null;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const r = await fetch(url, { headers });
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  const blob = await r.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
 /** POST a body and stream back SSE-style events (event/data lines). Calls onEvent per event. */
 export async function postStream(
   url: string,

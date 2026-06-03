@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type Company } from '../api.js';
+import { api, downloadCsv, type Company } from '../api.js';
 
 const LIMIT = 50;
 
@@ -26,6 +26,11 @@ export function Companies() {
   const clear = () => { setQ(''); setSubType(''); setCountry(''); setOffset(0); };
   const active = q || subType || country;
 
+  const exportCsv = () => {
+    const params = new URLSearchParams({ q, subType, country });
+    downloadCsv(`/api/export/companies?${params}`, 'companies.csv').catch((e) => alert('Export failed: ' + e));
+  };
+
   return (
     <>
       <div className="eyebrow">Browse</div>
@@ -44,6 +49,9 @@ export function Companies() {
           {facets.countries.map((c) => <option key={c.v} value={c.v}>{c.v} ({c.n})</option>)}
         </select>
         {active && <button className="btn" onClick={clear}>Clear filters</button>}
+        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>
+          Export {total.toLocaleString()} → CSV
+        </button>
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (

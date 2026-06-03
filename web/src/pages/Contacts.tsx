@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, type Contact } from '../api.js';
+import { api, downloadCsv, type Contact } from '../api.js';
 
 const LIMIT = 50;
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
@@ -23,10 +23,17 @@ export function Contacts() {
     return () => clearTimeout(t);
   }, [q, persona, emailStatus, offset]);
 
+  const active = q || persona || emailStatus;
+  const exportCsv = () => {
+    const params = new URLSearchParams({ q, persona, emailStatus });
+    downloadCsv(`/api/export/contacts?${params}`, 'contacts.csv').catch((e) => alert('Export failed: ' + e));
+  };
+
   return (
     <>
+      <div className="eyebrow">Browse</div>
       <h1 className="page-title">Contacts</h1>
-      <p className="page-sub">{total.toLocaleString()} matching</p>
+      <p className="page-sub">{total.toLocaleString()} matching{active ? ' (filtered)' : ''}</p>
 
       <div className="toolbar">
         <input className="input" placeholder="Search name, email, title…"
@@ -37,6 +44,10 @@ export function Contacts() {
         <select className="select" value={emailStatus} onChange={(e) => { setEmailStatus(e.target.value); setOffset(0); }}>
           {STATUSES.map((s) => <option key={s} value={s}>{s || 'All email statuses'}</option>)}
         </select>
+        {active && <button className="btn" onClick={() => { setQ(''); setPersona(''); setEmailStatus(''); setOffset(0); }}>Clear filters</button>}
+        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>
+          Export {total.toLocaleString()} → CSV
+        </button>
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (
