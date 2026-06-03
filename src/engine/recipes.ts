@@ -6,8 +6,26 @@ import { startRun, finishRun } from './runs.js';
 import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
 import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
 import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js';
+import { discoverLookalikes } from './stages/discover.js';
 
-export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list' | 'enrich-companies';
+export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list'
+  | 'enrich-companies' | 'discover-lookalikes';
+
+/** discover-lookalikes: find NEW target companies similar to seed domains (growth engine). */
+export async function runDiscoverLookalikes(
+  opts: { seedDomains: string[]; subType?: string; size?: number },
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('discover-lookalikes');
+  try {
+    const r = await discoverLookalikes(opts, log);
+    await finishRun(runId, r.planGated ? 'done' : 'done', r);
+    return { runId, kind: 'discover-lookalikes', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    await finishRun(runId, 'error', { error: (err as Error).message });
+    throw err;
+  }
+}
 
 /** enrich-companies: fill firmographic gaps via Ocean for companies missing them. */
 export async function runEnrichCompanies(

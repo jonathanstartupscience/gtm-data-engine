@@ -15,6 +15,7 @@ export function App() {
           <div className="brand-eyebrow">GTM Data Engine</div>
         </div>
         <NavLink to="/" end className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Dashboard</NavLink>
+        <NavLink to="/discover" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Find Companies</NavLink>
         <NavLink to="/import" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Import</NavLink>
         <NavLink to="/companies" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Companies</NavLink>
         <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Contacts</NavLink>

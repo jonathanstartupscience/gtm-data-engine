@@ -9,6 +9,7 @@ import { Contacts } from './pages/Contacts.js';
 import { CompanyDetail } from './pages/CompanyDetail.js';
 import { Runs } from './pages/Runs.js';
 import { Import } from './pages/Import.js';
+import { Discover } from './pages/Discover.js';
 import { setTokenGetter } from './api.js';
 import './styles.css';
 
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: 'contacts', element: <Contacts /> },
       { path: 'runs', element: <Runs /> },
       { path: 'import', element: <Import /> },
+      { path: 'discover', element: <Discover /> },
     ],
   },
 ]);

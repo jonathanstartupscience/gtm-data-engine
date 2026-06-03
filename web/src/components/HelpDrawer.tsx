@@ -24,6 +24,21 @@ const PAGES: Record<string, PageHelp> = {
       { heading: 'The charts', body: 'Companies by sub-type (what kind of organization), contacts by persona (the role we target), and email deliverability (how reachable our contacts are). Healthy data = most emails “deliverable”.' },
     ],
   },
+  '/discover': {
+    title: 'Find more companies',
+    intro: 'The growth engine. There are ~18,000 ESOs in the world and we only have a fraction. This finds NEW companies similar to ones you already target, using Ocean.io lookalikes.',
+    sections: [
+      { heading: 'How lookalikes work', body: 'You pick example companies you like (e.g. some accelerators). Ocean finds other companies that resemble them, and we add the new ones to your store — automatically skipping any you already have.' },
+      { heading: 'Choosing seeds', body: 'Pick a type first; we suggest a spread of your existing companies of that type as reference examples. The better the examples, the better the matches.' },
+      { heading: 'If you see a plan message', body: 'Ocean’s lookalike search needs a plan that includes it. If it’s not enabled, you’ll see a clear notice — company enrichment still works in the meantime.' },
+    ],
+    steps: [
+      'Choose what type of company you want more of.',
+      'Review the suggested example companies; keep the best references.',
+      'Set how many to find, then run.',
+      'New, deduped companies land in your store ready to enrich and verify.',
+    ],
+  },
   '/import': {
     title: 'Import — bring in a list',
     intro: 'The front door. Upload a CSV of companies or people and the engine cleans it and adds it to the store — automatically removing duplicates.',

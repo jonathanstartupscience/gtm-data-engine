@@ -52,6 +52,9 @@ export const api = {
   runs: () => get<{ rows: Run[] }>('/api/runs'),
   importPreview: (csv: string, entityType: string) =>
     post<ImportPreview>('/api/import/preview', { csv, entityType }),
+  subTypes: () => get<{ subTypes: { sub: string; n: number }[] }>('/api/discover/subtypes'),
+  seeds: (subType: string) =>
+    get<{ seeds: { domain: string; name: string }[] }>(`/api/discover/seeds?subType=${encodeURIComponent(subType)}`),
 };
 
 export interface ImportPreview {

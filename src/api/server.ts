@@ -8,6 +8,7 @@ import { health } from './routes/health.js';
 import { store } from './routes/store.js';
 import { runsRouter } from './routes/runs.js';
 import { importRouter } from './routes/import.js';
+import { discoverRouter } from './routes/discover.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -30,6 +31,7 @@ app.get('/api/config', (_req, res) => res.json({ authRequired: authConfigured() 
 app.use('/api/store', requireAuth, store);
 app.use('/api/runs', requireAuth, runsRouter);
 app.use('/api/import', requireAuth, express.json({ limit: '30mb' }), importRouter);
+app.use('/api/discover', requireAuth, discoverRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));
