@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, ilike, or, type AnyColumn } from 'drizzle-or
 import { db } from '../../db/index.js';
 import { companies, contacts, contactCompany } from '../../db/schema.js';
 import { asyncHandler } from '../middleware.js';
+import { typeLabel } from '../../engine/taxonomy.js';
 
 export const store = Router();
 
@@ -28,9 +29,15 @@ store.get('/stats', asyncHandler(async (_req, res) => {
     .from(contacts)
     .groupBy(contacts.emailStatus)
     .orderBy(desc(count()));
+  const byTypeRaw = await db
+    .select({ key: companies.type, n: count() })
+    .from(companies)
+    .groupBy(companies.type)
+    .orderBy(desc(count()));
   res.json({
     companies: c.n,
     contacts: k.n,
+    byType: byTypeRaw.filter((r) => r.key).map((r) => ({ key: typeLabel(r.key), n: r.n })),
     bySubType: bySubType.filter((r) => r.key),
     byPersona: byPersona.filter((r) => r.key),
     byEmailStatus: byEmailStatus.filter((r) => r.key),
@@ -108,8 +115,20 @@ store.get('/contacts', asyncHandler(async (req, res) => {
     emailStatus ? eq(contacts.emailStatus, emailStatus) : undefined,
   ].filter(Boolean);
   const where = conds.length ? and(...conds) : undefined;
+  // LEFT JOIN through the association table to the company, so each contact carries
+  // its company name / domain / website / company LinkedIn.
   const [rows, [{ n }]] = await Promise.all([
-    db.select().from(contacts).where(where).orderBy(sortClause(CONTACT_SORT, req, contacts.lastName)).limit(limit).offset(offset),
+    db.select({
+      id: contacts.id, firstName: contacts.firstName, lastName: contacts.lastName,
+      email: contacts.email, jobTitle: contacts.jobTitle, persona: contacts.persona,
+      linkedinUrl: contacts.linkedinUrl, emailStatus: contacts.emailStatus, hubspotId: contacts.hubspotId,
+      companyName: companies.name, companyDomain: companies.domain,
+      companyWebsite: companies.website, companyLinkedin: companies.linkedinUrl,
+    })
+      .from(contacts)
+      .leftJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
+      .leftJoin(companies, eq(companies.id, contactCompany.companyId))
+      .where(where).orderBy(sortClause(CONTACT_SORT, req, contacts.lastName)).limit(limit).offset(offset),
     db.select({ n: count() }).from(contacts).where(where),
   ]);
   res.json({ total: n, rows });

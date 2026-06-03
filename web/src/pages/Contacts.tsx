@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, downloadCsv, type Contact } from '../api.js';
-import { SortHeader, nextSort } from '../components/Table.js';
+import { SortHeader, DomainLink, nextSort, emailStatusLabel } from '../components/Table.js';
 
 const LIMIT = 50;
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
@@ -44,7 +44,7 @@ export function Contacts() {
           {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
         </select>
         <select className="select" value={emailStatus} onChange={(e) => { setEmailStatus(e.target.value); setOffset(0); }}>
-          {STATUSES.map((s) => <option key={s} value={s}>{s || 'All email statuses'}</option>)}
+          {STATUSES.map((s) => <option key={s} value={s}>{s ? emailStatusLabel(s) : 'All email statuses'}</option>)}
         </select>
         {active && <button className="btn" onClick={() => { setQ(''); setPersona(''); setEmailStatus(''); setOffset(0); }}>Clear</button>}
         <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export {total.toLocaleString()} → CSV</button>
@@ -55,18 +55,29 @@ export function Contacts() {
           <thead><tr>
             <SortHeader label="Name" col="lastName" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Title" col="jobTitle" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+            <th>Company</th>
+            <th>Company site</th>
             <SortHeader label="Email" col="email" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Persona" col="persona" sort={sort.sort} dir={sort.dir} onSort={onSort} />
-            <SortHeader label="Status" col="emailStatus" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+            <SortHeader label="Email status" col="emailStatus" sort={sort.sort} dir={sort.dir} onSort={onSort} />
           </tr></thead>
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
-                <td>{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</td>
+                <td>
+                  {c.linkedinUrl
+                    ? <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</a>
+                    : ([c.firstName, c.lastName].filter(Boolean).join(' ') || '—')}
+                </td>
                 <td className="muted">{c.jobTitle}</td>
+                <td>
+                  {c.companyName ?? <span className="muted">—</span>}
+                  {c.companyLinkedin && <a href={c.companyLinkedin} target="_blank" rel="noopener noreferrer" title="Company LinkedIn" style={{ marginLeft: 6 }}>in</a>}
+                </td>
+                <td><DomainLink domain={c.companyDomain ?? c.companyWebsite} /></td>
                 <td className="muted">{c.email}</td>
                 <td>{c.persona && <span className="tag persona">{c.persona}</span>}</td>
-                <td>{c.emailStatus && <span className={`tag ${c.emailStatus}`}>{c.emailStatus}</span>}</td>
+                <td>{c.emailStatus && <span className={`tag ${c.emailStatus}`}>{emailStatusLabel(c.emailStatus)}</span>}</td>
               </tr>
             ))}
           </tbody>

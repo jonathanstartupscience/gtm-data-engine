@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, type Company, type Contact } from '../api.js';
+import { emailStatusLabel } from '../components/Table.js';
 
 export function CompanyDetail() {
   const { id } = useParams();
@@ -38,7 +39,7 @@ export function CompanyDetail() {
                 <td className="muted">{p.jobTitle}</td>
                 <td className="muted">{p.email}</td>
                 <td>{p.persona && <span className="tag persona">{p.persona}</span>}</td>
-                <td>{p.emailStatus && <span className={`tag ${p.emailStatus}`}>{p.emailStatus}</span>}</td>
+                <td>{p.emailStatus && <span className={`tag ${p.emailStatus}`}>{emailStatusLabel(p.emailStatus)}</span>}</td>
               </tr>
             ))}
           </tbody>

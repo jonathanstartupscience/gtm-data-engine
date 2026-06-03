@@ -2,6 +2,7 @@
 export interface Stats {
   companies: number;
   contacts: number;
+  byType: { key: string; n: number }[];
   bySubType: { key: string; n: number }[];
   byPersona: { key: string; n: number }[];
   byEmailStatus: { key: string; n: number }[];
@@ -18,6 +19,8 @@ export interface Contact {
   id: number; firstName: string | null; lastName: string | null; email: string | null;
   jobTitle: string | null; persona: string | null; linkedinUrl: string | null;
   emailStatus: string | null; hubspotId: string | null;
+  companyName?: string | null; companyDomain?: string | null;
+  companyWebsite?: string | null; companyLinkedin?: string | null;
 }
 
 /** Set by the app once Clerk is ready; returns a session token or null. */

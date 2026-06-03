@@ -49,16 +49,22 @@ export function Discover() {
       <p className="page-sub">Pick a type and sub-type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>1 · Choose type &amp; sub-type</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Matches our HubSpot taxonomy. New companies are tagged with the same type &amp; sub-type.</p>
+        <h3>1 · Choose a sub-type</h3>
         <div className="toolbar" style={{ marginBottom: 0 }}>
-          <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); }}>
-            <option value="">Select type…</option>
-            {types.map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
-          </select>
-          <select className="select" value={subType} onChange={(e) => setSubType(e.target.value)} disabled={!type}>
-            <option value="">{type ? 'Select sub-type…' : 'Pick a type first'}</option>
-            {subTypes.map((s) => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}
+          <select className="select" value={subType}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSubType(v);
+              // Selecting a sub-type auto-selects its parent type (only one possible).
+              const parent = types.find((t) => t.subTypes.some((s) => s.value === v));
+              setType(parent?.value ?? '');
+            }}>
+            <option value="">Select sub-type…</option>
+            {types.map((t) => (
+              <optgroup key={t.value} label={t.label}>
+                {t.subTypes.map((s) => <option key={t.value + s.value} value={s.value}>{s.value} ({s.count})</option>)}
+              </optgroup>
+            ))}
           </select>
         </div>
         {type && subType && (
