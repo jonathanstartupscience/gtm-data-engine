@@ -9,8 +9,9 @@
   },
   "scripts": {
     "dev": "tsx watch src/api/server.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/api/server.js",
+    "build": "tsc -p tsconfig.json && npm --prefix web install && npm --prefix web run build",
+    "start": "node dist/src/api/server.js",
+    "start:prod": "npm run db:migrate && npm start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "db:generate": "drizzle-kit generate",

@@ -1,0 +1,86 @@
+/** Read API over the canonical store: stats, companies, contacts, company detail. */
+import { Router } from 'express';
+import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { db } from '../../db/index.js';
+import { companies, contacts, contactCompany } from '../../db/schema.js';
+
+export const store = Router();
+
+/** Dashboard stats. */
+store.get('/stats', async (_req, res) => {
+  const [[c], [k]] = await Promise.all([
+    db.select({ n: count() }).from(companies),
+    db.select({ n: count() }).from(contacts),
+  ]);
+  const bySubType = await db
+    .select({ key: companies.subType, n: count() })
+    .from(companies)
+    .groupBy(companies.subType)
+    .orderBy(desc(count()));
+  const byPersona = await db
+    .select({ key: contacts.persona, n: count() })
+    .from(contacts)
+    .groupBy(contacts.persona)
+    .orderBy(desc(count()));
+  const byEmailStatus = await db
+    .select({ key: contacts.emailStatus, n: count() })
+    .from(contacts)
+    .groupBy(contacts.emailStatus)
+    .orderBy(desc(count()));
+  res.json({
+    companies: c.n,
+    contacts: k.n,
+    bySubType: bySubType.filter((r) => r.key),
+    byPersona: byPersona.filter((r) => r.key),
+    byEmailStatus: byEmailStatus.filter((r) => r.key),
+  });
+});
+
+/** Companies list with search + pagination. */
+store.get('/companies', async (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const offset = Number(req.query.offset ?? 0);
+  const where = q
+    ? or(ilike(companies.name, `%${q}%`), ilike(companies.domain, `%${q}%`), ilike(companies.subType, `%${q}%`))
+    : undefined;
+  const [rows, [{ n }]] = await Promise.all([
+    db.select().from(companies).where(where).orderBy(companies.name).limit(limit).offset(offset),
+    db.select({ n: count() }).from(companies).where(where),
+  ]);
+  res.json({ total: n, rows });
+});
+
+/** Contacts list with search + filters + pagination. */
+store.get('/contacts', async (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  const persona = String(req.query.persona ?? '').trim();
+  const emailStatus = String(req.query.emailStatus ?? '').trim();
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const offset = Number(req.query.offset ?? 0);
+  const conds = [
+    q ? or(ilike(contacts.firstName, `%${q}%`), ilike(contacts.lastName, `%${q}%`),
+      ilike(contacts.email, `%${q}%`), ilike(contacts.jobTitle, `%${q}%`)) : undefined,
+    persona ? eq(contacts.persona, persona) : undefined,
+    emailStatus ? eq(contacts.emailStatus, emailStatus) : undefined,
+  ].filter(Boolean);
+  const where = conds.length ? and(...conds) : undefined;
+  const [rows, [{ n }]] = await Promise.all([
+    db.select().from(contacts).where(where).orderBy(contacts.lastName).limit(limit).offset(offset),
+    db.select({ n: count() }).from(contacts).where(where),
+  ]);
+  res.json({ total: n, rows });
+});
+
+/** Single company + its associated contacts. */
+store.get('/companies/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const [company] = await db.select().from(companies).where(eq(companies.id, id));
+  if (!company) return res.status(404).json({ error: 'not found' });
+  const people = await db
+    .select()
+    .from(contacts)
+    .innerJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
+    .where(eq(contactCompany.companyId, id));
+  res.json({ company, contacts: people.map((p) => p.contacts) });
+});
