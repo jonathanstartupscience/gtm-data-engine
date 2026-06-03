@@ -77,25 +77,25 @@ interface Recipe { id: string; name: string; desc: string; testLimit?: number; t
 const RECIPES: Recipe[] = [
   {
     id: 'pull-hubspot-companies',
-    name: 'Pull companies from HubSpot',
-    desc: 'Import companies from HubSpot into the store — every Type and Sub-type. This is what makes the engine cover your whole CRM (not just ESO). Deduped against what you already have. Run the test first, then the full pull.',
-    testLimit: 500, testLabel: 'Test (500)',
+    name: 'Sync companies from HubSpot',
+    desc: 'Imports companies from HubSpot across all types and sub-types, deduplicated against existing records. Run a test batch first, then the full sync.',
+    testLimit: 500, testLabel: 'Test 500',
   },
   {
     id: 'pull-hubspot-contacts',
-    name: 'Pull contacts from HubSpot',
-    desc: 'Import people from HubSpot into the store, associated to their company. Run the company pull first so contacts can link up. Deduped by email. Run the test first, then the full pull.',
-    testLimit: 500, testLabel: 'Test (500)',
+    name: 'Sync contacts from HubSpot',
+    desc: 'Imports people from HubSpot and links them to their companies, deduplicated by email. Requires a company sync first.',
+    testLimit: 500, testLabel: 'Test 500',
   },
   {
     id: 'verify-stale',
-    name: 'Verify stale emails',
-    desc: 'Find every email in the store missing or past its 90-day verification and re-check it through Bouncer. The continuous-hygiene workhorse.',
+    name: 'Verify email deliverability',
+    desc: 'Re-checks every email address that is unverified or older than 90 days through Bouncer. Fresh results are skipped, so no verification credits are wasted.',
   },
   {
     id: 'enrich-companies',
-    name: 'Enrich companies',
-    desc: 'Fill in missing firmographics (employee size, founded year, industry) for companies that have a domain but incomplete data, using Ocean.io. Only fills gaps — never overwrites.',
+    name: 'Enrich company records',
+    desc: 'Fills missing firmographics — employee size, founded year, industry — for companies with incomplete data, via Ocean.io. Existing values are never overwritten.',
   },
 ];
 
@@ -134,9 +134,8 @@ export function Runs() {
 
   return (
     <>
-      <div className="eyebrow">Operate</div>
-      <h1 className="page-title">Run a <em>flow</em></h1>
-      <p className="page-sub">Pick a recipe and let the engine work. Dry-run first to preview — it’s always safe.</p>
+      <h1 className="page-title">Workflows</h1>
+      <p className="page-sub">Run a data operation. Use a test batch or dry run to preview before committing.</p>
 
       <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
         {RECIPES.map((r) => (
@@ -164,32 +163,51 @@ export function Runs() {
         ))}
       </div>
 
+      {running && (
+        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="spinner" /> <strong>Working…</strong>
+            <span className="muted">This runs on the server — you can safely leave this page or close the tab.
+              When you come back, find it under Recent activity below (or in Logs &amp; Health).</span>
+          </div>
+        </div>
+      )}
+
       {(log.length > 0 || result) && (
         <div className="panel" style={{ marginBottom: 24 }}>
-          <h3>Live output</h3>
-          <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 240, overflow: 'auto' }}>
-            {log.map((l, i) => <div key={i}>{l}</div>)}
-            <div ref={logEnd} />
-          </div>
-          {result && (
-            <pre style={{ background: 'var(--panel-2)', padding: 12, borderRadius: 8, marginTop: 12, fontSize: 12, overflow: 'auto' }}>
-              {JSON.stringify(result, null, 2)}
-            </pre>
+          <h3>{result ? 'Result' : 'In progress'}</h3>
+          {result && !running && (
+            <div style={{ fontSize: 15, marginBottom: 12 }}>{friendlyResult(result)}</div>
           )}
+          {result && (
+            <div className="cards" style={{ marginBottom: 12 }}>
+              {resultCards(result).map((c) => (
+                <div className="card" key={c.label}><div className="num">{c.value}</div><div className="label">{c.label}</div></div>
+              ))}
+            </div>
+          )}
+          <details {...(result ? {} : { open: true })}>
+            <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>
+              {result ? 'Show activity log' : 'Live activity'}
+            </summary>
+            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 240, overflow: 'auto', marginTop: 8 }}>
+              {log.map((l, i) => <div key={i}>{l}</div>)}
+              <div ref={logEnd} />
+            </div>
+          </details>
         </div>
       )}
 
       <div className="panel">
-        <h3>Run history</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Click any run to see the full step-by-step breakdown.</p>
+        <h3>Recent activity</h3>
+        <p className="muted" style={{ marginTop: -8 }}>Select any run to see a detailed breakdown.</p>
         <table>
-          <thead><tr><th>#</th><th>Recipe</th><th>Status</th><th>Started</th><th>Summary</th></tr></thead>
+          <thead><tr><th>Workflow</th><th>Status</th><th>When</th><th>Result</th></tr></thead>
           <tbody>
             {history.map((r) => (
               <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => openRun(r.id)}>
-                <td className="muted">{r.id}</td>
-                <td><a onClick={(e) => { e.preventDefault(); openRun(r.id); }}>{r.kind}</a></td>
-                <td><span className={`tag ${r.status === 'done' ? 'deliverable' : r.status === 'error' ? 'undeliverable' : 'unknown'}`}>{r.status}</span></td>
+                <td><a onClick={(e) => { e.preventDefault(); openRun(r.id); }} style={{ textTransform: 'capitalize' }}>{r.kind.replace(/-/g, ' ').replace('hubspot', 'HubSpot')}</a></td>
+                <td><span className={`tag ${r.status === 'done' ? 'deliverable' : r.status === 'error' ? 'undeliverable' : 'unknown'}`}>{r.status === 'done' ? 'Complete' : r.status === 'error' ? 'Failed' : r.status}</span></td>
                 <td className="muted">{new Date(r.startedAt).toLocaleString()}</td>
                 <td className="muted" style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {summarize(r.stats)}
@@ -203,6 +221,40 @@ export function Runs() {
       {detail && <RunDetail run={detail} onClose={() => setDetail(null)} />}
     </>
   );
+}
+
+/** A friendly one-sentence result for the just-finished run. */
+function friendlyResult(s: Record<string, unknown>): string {
+  if (s.planGated) return String(s.message ?? 'This step needs a plan upgrade.');
+  if (s.dryRun) return `Preview only — ${num(s.candidates)} records would be processed. Nothing was changed.`;
+  if (typeof s.verified === 'number') return `Checked ${num(s.verified)} email addresses for deliverability.`;
+  if (typeof s.enriched === 'number') return `Filled in details for ${num(s.enriched)} companies (${num(s.filledFields)} data points added).`;
+  if (typeof s.newCompanies === 'number') return `Found ${num(s.newCompanies)} new companies and added them to your data (${num(s.alreadyKnown)} were already there).`;
+  if (typeof s.pulled === 'number') return `Imported ${num(s.resolved)} of ${num(s.pulled)} records from HubSpot into your data${s.capped ? ' (stopped at the test limit — run the full sync to bring in the rest)' : ''}.`;
+  if (typeof s.resolved === 'number') return `Imported ${num(s.resolved)} records into your data.`;
+  return 'Finished.';
+}
+function num(v: unknown): string { return Number(v ?? 0).toLocaleString(); }
+
+/** Headline stat cards for a finished run. */
+function resultCards(s: Record<string, unknown>): { label: string; value: string }[] {
+  if (typeof s.pulled === 'number') return [
+    { label: 'Pulled from HubSpot', value: num(s.pulled) },
+    { label: 'Saved to your data', value: num(s.resolved) },
+    { label: 'Issues', value: num(s.errors) },
+  ];
+  if (typeof s.enriched === 'number') return [
+    { label: 'Companies enriched', value: num(s.enriched) },
+    { label: 'Data points added', value: num(s.filledFields) },
+    { label: 'Issues', value: num(s.errors) },
+  ];
+  if (typeof s.newCompanies === 'number') return [
+    { label: 'New companies', value: num(s.newCompanies) },
+    { label: 'Already known', value: num(s.alreadyKnown) },
+    { label: 'Total found', value: num(s.found) },
+  ];
+  if (typeof s.verified === 'number') return [{ label: 'Emails checked', value: num(s.verified) }];
+  return [];
 }
 
 /** One-line human summary of a run's stats (the headline number, no JSON dump). */

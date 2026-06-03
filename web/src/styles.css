@@ -165,6 +165,12 @@ td a:hover { text-decoration: underline; }
 .btn-green { background: var(--green); border-color: var(--green); color: var(--dark); }
 
 .muted { color: var(--text-muted); }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--accent-light); border-top-color: var(--accent);
+  display: inline-block; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .loading { color: var(--text-muted); padding: 48px; text-align: center; }
 
 /* ---- help drawer ---- */
