@@ -6,6 +6,8 @@
  * Usage: npm run seed:eso   (requires DATABASE_URL)
  */
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { parse } from 'csv-parse/sync';
 import { eq } from 'drizzle-orm';
 import { db } from '../src/db/index.js';
@@ -15,10 +17,10 @@ import {
 } from '../src/db/schema.js';
 import { normDomain, normEmail, normLinkedin, nameDomainKey, isValidEmail } from '../src/engine/normalize.js';
 
-const DATA = new URL('../data/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 
 function readCsv(file: string): Record<string, string>[] {
-  const text = readFileSync(DATA + file, 'utf8').replace(/^﻿/, '');
+  const text = readFileSync(join(DATA, file), 'utf8').replace(/^﻿/, '');
   return parse(text, { columns: true, skip_empty_lines: true, relax_quotes: true, relax_column_count: true });
 }
 
