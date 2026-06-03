@@ -14,6 +14,9 @@ export function App() {
         <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>
           Contacts
         </NavLink>
+        <NavLink to="/runs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>
+          Runs
+        </NavLink>
       </aside>
       <main className="main">
         <Outlet />

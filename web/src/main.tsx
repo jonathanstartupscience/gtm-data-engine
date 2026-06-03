@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard.js';
 import { Companies } from './pages/Companies.js';
 import { Contacts } from './pages/Contacts.js';
 import { CompanyDetail } from './pages/CompanyDetail.js';
+import { Runs } from './pages/Runs.js';
 import './styles.css';
 
 const router = createBrowserRouter([
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
       { path: 'companies', element: <Companies /> },
       { path: 'companies/:id', element: <CompanyDetail /> },
       { path: 'contacts', element: <Contacts /> },
+      { path: 'runs', element: <Runs /> },
     ],
   },
 ]);

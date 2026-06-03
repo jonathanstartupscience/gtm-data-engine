@@ -37,4 +37,11 @@ export const api = {
       `&emailStatus=${encodeURIComponent(emailStatus)}&limit=${limit}&offset=${offset}`),
   company: (id: string) =>
     get<{ company: Company; contacts: Contact[] }>(`/api/store/companies/${id}`),
+  runs: () => get<{ rows: Run[] }>('/api/runs'),
 };
+
+export interface Run {
+  id: number; kind: string; status: string;
+  stats: Record<string, unknown> | null;
+  startedAt: string; finishedAt: string | null;
+}
