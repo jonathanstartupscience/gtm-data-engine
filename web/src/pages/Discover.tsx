@@ -41,14 +41,24 @@ export function Discover() {
     <>
       <div className="eyebrow">Grow</div>
       <h1 className="page-title">Find more <em>companies</em></h1>
-      <p className="page-sub">There are ~18,000 ESOs out there. Pick a type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
+      <p className="page-sub">There are ~18,000 ESOs out there. Pick a sub-type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>1 · What kind of company are you looking for?</h3>
+        <h3>1 · Which sub-type are you looking for?</h3>
+        <p className="muted" style={{ marginTop: -8 }}>
+          Type is <strong>ESO</strong> (Entrepreneur Support Org) — matching our HubSpot taxonomy.
+          Choose the sub-type to grow:
+        </p>
         <select className="select" value={subType} onChange={(e) => setSubType(e.target.value)}>
-          <option value="">Choose a type…</option>
+          <option value="">Choose a sub-type…</option>
           {subTypes.map((s) => <option key={s.sub} value={s.sub}>{s.sub} ({s.n})</option>)}
         </select>
+        {subType && (
+          <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+            New companies will be tagged <span className="tag persona">ESO</span>
+            {' '}<span className="tag persona">{subType}</span> — ready to sync to HubSpot.
+          </p>
+        )}
       </div>
 
       {seeds.length > 0 && (

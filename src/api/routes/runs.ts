@@ -1,6 +1,6 @@
 /** Recipe execution API: trigger a recipe with SSE live progress + list run history. */
 import { Router } from 'express';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { runs } from '../../db/schema.js';
 import { runVerifyStale, runEnrichCompanies } from '../../engine/recipes.js';
@@ -15,6 +15,15 @@ const KNOWN_RECIPES = new Set(['verify-stale', 'enrich-companies']);
 runsRouter.get('/', asyncHandler(async (_req, res) => {
   const rows = await db.select().from(runs).orderBy(desc(runs.id)).limit(50);
   res.json({ rows });
+}));
+
+/** Single run detail — includes the step waterfall (stats._steps). */
+runsRouter.get('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) { res.status(400).json({ error: 'invalid id' }); return; }
+  const [run] = await db.select().from(runs).where(eq(runs.id, id));
+  if (!run) { res.status(404).json({ error: 'not found' }); return; }
+  res.json({ run });
 }));
 
 /**

@@ -1,8 +1,9 @@
 /**
- * Recipes — named end-to-end flows the engine can run. Each records a `runs` row.
+ * Recipes — named end-to-end flows the engine can run. Each records a `runs` row
+ * with a human-readable step waterfall (which provider, what action, how it went).
  * This is what the UI and CLI invoke. New recipes compose stages + adapters.
  */
-import { startRun, finishRun } from './runs.js';
+import { startRun, finishRun, StepRecorder } from './runs.js';
 import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
 import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
 import { companiesNeedingEnrichment, enrichCompanies } from './stages/enrich.js';
@@ -11,18 +12,34 @@ import { discoverLookalikes } from './stages/discover.js';
 export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list'
   | 'enrich-companies' | 'discover-lookalikes';
 
+export interface RecipeResult {
+  runId: number;
+  kind: string;
+  stats: Record<string, unknown>;
+}
+
 /** discover-lookalikes: find NEW target companies similar to seed domains (growth engine). */
 export async function runDiscoverLookalikes(
   opts: { seedDomains: string[]; subType?: string; size?: number },
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('discover-lookalikes');
+  const rec = new StepRecorder(log);
   try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Selected seed companies',
+      detail: `${opts.seedDomains.length} seeds${opts.subType ? `, sub-type "${opts.subType}"` : ''}` });
     const r = await discoverLookalikes(opts, log);
-    await finishRun(runId, r.planGated ? 'done' : 'done', r);
+    if (r.planGated) {
+      rec.step({ provider: 'Ocean.io', status: 'warn', label: 'Lookalike search unavailable', detail: r.message });
+    } else {
+      rec.step({ provider: 'Ocean.io', status: 'ok', label: 'Searched for lookalike companies', count: r.found, detail: `${r.found} candidates returned` });
+      rec.step({ provider: 'Engine', status: 'ok', label: 'Resolved into store', detail: `${r.newCompanies} new, ${r.alreadyKnown} already known` });
+    }
+    await finishRun(runId, 'done', r, rec.steps);
     return { runId, kind: 'discover-lookalikes', stats: r as unknown as Record<string, unknown> };
   } catch (err) {
-    await finishRun(runId, 'error', { error: (err as Error).message });
+    rec.step({ provider: 'Engine', status: 'error', label: 'Discovery failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }
 }
@@ -33,19 +50,24 @@ export async function runEnrichCompanies(
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('enrich-companies');
+  const rec = new StepRecorder(log);
   try {
     const targets = await companiesNeedingEnrichment(opts.limit ?? 1000);
-    log(`enrich-companies: ${targets.length} companies missing firmographics`);
+    rec.step({ provider: 'Engine', status: 'info', label: 'Found companies missing firmographics', count: targets.length, detail: `${targets.length} candidates` });
     if (opts.dryRun) {
       const stats = { candidates: targets.length, dryRun: true };
-      await finishRun(runId, 'done', stats);
+      rec.step({ provider: 'Engine', status: 'info', label: 'Dry run — no changes made' });
+      await finishRun(runId, 'done', stats, rec.steps);
       return { runId, kind: 'enrich-companies', stats };
     }
     const r = await enrichCompanies(targets, log);
-    await finishRun(runId, 'done', r);
+    rec.step({ provider: 'Ocean.io', status: 'ok', label: 'Enriched via Ocean', count: r.enriched, detail: `${r.enriched} companies, ${r.filledFields} fields filled` });
+    if (r.errors) rec.step({ provider: 'Ocean.io', status: 'warn', label: 'Some lookups failed', count: r.errors, detail: `${r.errors} errors` });
+    await finishRun(runId, 'done', r, rec.steps);
     return { runId, kind: 'enrich-companies', stats: r as unknown as Record<string, unknown> };
   } catch (err) {
-    await finishRun(runId, 'error', { error: (err as Error).message });
+    rec.step({ provider: 'Engine', status: 'error', label: 'Enrichment failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }
 }
@@ -59,22 +81,20 @@ export async function runImportList(
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('import-list');
+  const rec = new StepRecorder(log);
   try {
-    log(`import-list: ${rows.length} ${entityType} rows from "${sourceName}"`);
+    rec.step({ provider: 'Engine', status: 'info', label: `Parsed "${sourceName}"`, count: rows.length, detail: `${rows.length} ${entityType} rows` });
     const r = await ingestRows(rows, entityType, mapping, sourceName, log);
-    const stats = { ...r };
-    await finishRun(runId, 'done', stats);
-    return { runId, kind: 'import-list', stats };
+    rec.step({ provider: 'Engine', status: 'ok', label: 'Resolved into canonical store',
+      detail: `${r.resolved} resolved (${entityType === 'company' ? r.companies + ' companies' : r.contacts + ' contacts'})` });
+    if (r.errors) rec.step({ provider: 'Engine', status: 'warn', label: 'Skipped rows', count: r.errors, detail: `${r.errors} rows missing required fields` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'import-list', stats: r as unknown as Record<string, unknown> };
   } catch (err) {
-    await finishRun(runId, 'error', { error: (err as Error).message });
+    rec.step({ provider: 'Engine', status: 'error', label: 'Import failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }
-}
-
-export interface RecipeResult {
-  runId: number;
-  kind: string;
-  stats: Record<string, unknown>;
 }
 
 /**
@@ -86,20 +106,25 @@ export async function runVerifyStale(
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('verify-stale');
+  const rec = new StepRecorder(log);
   try {
     const emails = await emailsNeedingVerification(opts.limit ?? 100000);
-    log(`verify-stale: ${emails.length} emails need verification`);
+    rec.step({ provider: 'Engine', status: 'info', label: 'Found emails needing verification', count: emails.length, detail: `${emails.length} (missing or older than 90 days)` });
     if (opts.dryRun) {
       const stats = { candidates: emails.length, dryRun: true };
-      await finishRun(runId, 'done', stats);
+      rec.step({ provider: 'Engine', status: 'info', label: 'Dry run — no verification spent' });
+      await finishRun(runId, 'done', stats, rec.steps);
       return { runId, kind: 'verify-stale', stats };
     }
     const { verified, byStatus } = await verifyEmails(emails, log);
+    rec.step({ provider: 'Bouncer', status: 'ok', label: 'Verified emails', count: verified,
+      detail: Object.entries(byStatus).map(([k, v]) => `${v} ${k}`).join(', ') });
     const stats = { candidates: emails.length, verified, byStatus };
-    await finishRun(runId, 'done', stats);
+    await finishRun(runId, 'done', stats, rec.steps);
     return { runId, kind: 'verify-stale', stats };
   } catch (err) {
-    await finishRun(runId, 'error', { error: (err as Error).message });
+    rec.step({ provider: 'Engine', status: 'error', label: 'Verification failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }
 }

@@ -44,13 +44,30 @@ function page(req: { query: Record<string, unknown> }) {
   return { limit, offset };
 }
 
-/** Companies list with search + pagination. */
+/** Distinct filter values for the Companies tab (sub_type, country). */
+store.get('/companies/facets', asyncHandler(async (_req, res) => {
+  const [subTypes, countries] = await Promise.all([
+    db.select({ v: companies.subType, n: count() }).from(companies).groupBy(companies.subType).orderBy(desc(count())),
+    db.select({ v: companies.country, n: count() }).from(companies).groupBy(companies.country).orderBy(desc(count())),
+  ]);
+  res.json({
+    subTypes: subTypes.filter((r) => r.v),
+    countries: countries.filter((r) => r.v).slice(0, 40),
+  });
+}));
+
+/** Companies list with search + filters + pagination. */
 store.get('/companies', asyncHandler(async (req, res) => {
   const q = String(req.query.q ?? '').trim().slice(0, 200);
+  const subType = String(req.query.subType ?? '').trim().slice(0, 64);
+  const country = String(req.query.country ?? '').trim().slice(0, 64);
   const { limit, offset } = page(req);
-  const where = q
-    ? or(ilike(companies.name, `%${q}%`), ilike(companies.domain, `%${q}%`), ilike(companies.subType, `%${q}%`))
-    : undefined;
+  const conds = [
+    q ? or(ilike(companies.name, `%${q}%`), ilike(companies.domain, `%${q}%`)) : undefined,
+    subType ? eq(companies.subType, subType) : undefined,
+    country ? eq(companies.country, country) : undefined,
+  ].filter(Boolean);
+  const where = conds.length ? and(...conds) : undefined;
   const [rows, [{ n }]] = await Promise.all([
     db.select().from(companies).where(where).orderBy(companies.name).limit(limit).offset(offset),
     db.select({ n: count() }).from(companies).where(where),

@@ -1,6 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, authToken, type Run } from '../api.js';
 
+interface RunStep { label: string; provider?: string; status: 'ok' | 'warn' | 'error' | 'info'; detail?: string; count?: number; }
+
+function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
+  const steps = (run.stats?._steps as RunStep[] | undefined) ?? [];
+  const dur = run.finishedAt
+    ? `${Math.max(0, Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000))}s`
+    : '—';
+  const icon = (s: string) => (s === 'error' ? '✗' : s === 'warn' ? '⚠' : s === 'info' ? '·' : '✓');
+  const color = (s: string) => (s === 'error' ? 'var(--coral)' : s === 'warn' ? '#8b5e00' : s === 'info' ? 'var(--text-muted)' : 'var(--green-deep)');
+  return (
+    <>
+      <div className="help-overlay" onClick={onClose} />
+      <div className="help-drawer">
+        <button className="help-close" onClick={onClose}>×</button>
+        <div className="eyebrow">Run #{run.id}</div>
+        <h2>{run.kind}</h2>
+        <p className="muted">{run.status} · started {new Date(run.startedAt).toLocaleString()} · {dur}</p>
+
+        <h4>What happened</h4>
+        {steps.length === 0 && <p className="muted">No step detail recorded for this run.</p>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {steps.map((s, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: color(s.status), fontWeight: 700 }}>{icon(s.status)}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 500 }}>
+                  {s.provider && <span className="tag persona" style={{ marginRight: 6, fontSize: 11 }}>{s.provider}</span>}
+                  {s.label}
+                </div>
+                {s.detail && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{s.detail}</div>}
+              </div>
+              {typeof s.count === 'number' && <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{s.count}</span>}
+            </div>
+          ))}
+        </div>
+
+        <h4 style={{ marginTop: 24 }}>Raw result</h4>
+        <pre style={{ background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 12, overflow: 'auto' }}>
+          {JSON.stringify({ ...run.stats, _steps: undefined }, (k, v) => (k === '_steps' ? undefined : v), 2)}
+        </pre>
+      </div>
+    </>
+  );
+}
+
 interface Recipe { id: string; name: string; desc: string; }
 const RECIPES: Recipe[] = [
   {
@@ -20,10 +65,12 @@ export function Runs() {
   const [running, setRunning] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [detail, setDetail] = useState<Run | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const logEnd = useRef<HTMLDivElement>(null);
 
   const loadHistory = () => api.runs().then((d) => setHistory(d.rows));
+  const openRun = (id: number) => api.run(id).then((d) => setDetail(d.run));
   useEffect(() => { loadHistory(); }, []);
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
@@ -84,23 +131,39 @@ export function Runs() {
 
       <div className="panel">
         <h3>Run history</h3>
+        <p className="muted" style={{ marginTop: -8 }}>Click any run to see the full step-by-step breakdown.</p>
         <table>
-          <thead><tr><th>#</th><th>Recipe</th><th>Status</th><th>Started</th><th>Result</th></tr></thead>
+          <thead><tr><th>#</th><th>Recipe</th><th>Status</th><th>Started</th><th>Summary</th></tr></thead>
           <tbody>
             {history.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => openRun(r.id)}>
                 <td className="muted">{r.id}</td>
-                <td>{r.kind}</td>
+                <td><a onClick={(e) => { e.preventDefault(); openRun(r.id); }}>{r.kind}</a></td>
                 <td><span className={`tag ${r.status === 'done' ? 'deliverable' : r.status === 'error' ? 'undeliverable' : 'unknown'}`}>{r.status}</span></td>
                 <td className="muted">{new Date(r.startedAt).toLocaleString()}</td>
                 <td className="muted" style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.stats ? JSON.stringify(r.stats) : ''}
+                  {summarize(r.stats)}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {detail && <RunDetail run={detail} onClose={() => setDetail(null)} />}
     </>
   );
+}
+
+/** One-line human summary of a run's stats (the headline number, no JSON dump). */
+function summarize(stats: Record<string, unknown> | null): string {
+  if (!stats) return '';
+  if (stats.dryRun) return `dry run · ${stats.candidates ?? 0} candidates`;
+  if (stats.planGated) return 'Ocean plan upgrade needed';
+  if (typeof stats.verified === 'number') return `${stats.verified} emails verified`;
+  if (typeof stats.enriched === 'number') return `${stats.enriched} companies enriched, ${stats.filledFields ?? 0} fields`;
+  if (typeof stats.newCompanies === 'number') return `${stats.newCompanies} new companies found`;
+  if (typeof stats.resolved === 'number') return `${stats.resolved} records imported`;
+  if (stats.error) return `error: ${String(stats.error).slice(0, 60)}`;
+  return '';
 }

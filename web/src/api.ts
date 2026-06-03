@@ -40,9 +40,13 @@ async function get<T>(url: string): Promise<T> {
 
 export const api = {
   stats: () => get<Stats>('/api/store/stats'),
-  companies: (q: string, limit: number, offset: number) =>
+  companies: (q: string, subType: string, country: string, limit: number, offset: number) =>
     get<{ total: number; rows: Company[] }>(
-      `/api/store/companies?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`),
+      `/api/store/companies?q=${encodeURIComponent(q)}&subType=${encodeURIComponent(subType)}` +
+      `&country=${encodeURIComponent(country)}&limit=${limit}&offset=${offset}`),
+  companyFacets: () =>
+    get<{ subTypes: { v: string; n: number }[]; countries: { v: string; n: number }[] }>(
+      '/api/store/companies/facets'),
   contacts: (q: string, persona: string, emailStatus: string, limit: number, offset: number) =>
     get<{ total: number; rows: Contact[] }>(
       `/api/store/contacts?q=${encodeURIComponent(q)}&persona=${encodeURIComponent(persona)}` +
@@ -50,6 +54,7 @@ export const api = {
   company: (id: string) =>
     get<{ company: Company; contacts: Contact[] }>(`/api/store/companies/${id}`),
   runs: () => get<{ rows: Run[] }>('/api/runs'),
+  run: (id: number) => get<{ run: Run }>(`/api/runs/${id}`),
   importPreview: (csv: string, entityType: string) =>
     post<ImportPreview>('/api/import/preview', { csv, entityType }),
   subTypes: () => get<{ subTypes: { sub: string; n: number }[] }>('/api/discover/subtypes'),

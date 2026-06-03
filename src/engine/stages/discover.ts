@@ -84,7 +84,8 @@ export async function discoverLookalikes(
     try {
       await resolveCompany({
         name: c.name, domain,
-        subType: opts.subType, audienceType: 'Entrepreneurs',
+        // HubSpot taxonomy: Type = ESO (fixed for this audience), Sub-type = the category.
+        type: 'ESO', subType: opts.subType, audienceType: 'Entrepreneurs',
         sizeEmployees: c.companySize, foundedYear: c.yearFounded,
         sector: (c.industries ?? []).slice(0, 2).join(', '),
         country: c.primaryCountry,
