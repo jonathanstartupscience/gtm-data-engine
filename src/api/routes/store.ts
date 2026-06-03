@@ -1,6 +1,6 @@
 /** Read API over the canonical store: stats, companies, contacts, company detail. */
 import { Router } from 'express';
-import { and, count, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, type AnyColumn } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, contactCompany } from '../../db/schema.js';
 import { asyncHandler } from '../middleware.js';
@@ -56,26 +56,46 @@ store.get('/companies/facets', asyncHandler(async (_req, res) => {
   });
 }));
 
-/** Companies list with search + filters + pagination. */
+/** Allowed sortable columns → drizzle column (guards arbitrary input). */
+const COMPANY_SORT = {
+  name: companies.name, domain: companies.domain, subType: companies.subType,
+  country: companies.country, foundedYear: companies.foundedYear, sizeEmployees: companies.sizeEmployees,
+} as const;
+
+function sortClause(table: typeof COMPANY_SORT | typeof CONTACT_SORT, req: { query: Record<string, unknown> }, fallback: AnyColumn) {
+  const key = String(req.query.sort ?? '');
+  const dir = String(req.query.dir ?? 'asc') === 'desc' ? 'desc' : 'asc';
+  const col = (table as Record<string, AnyColumn>)[key] ?? fallback;
+  return dir === 'desc' ? desc(col) : asc(col);
+}
+
+/** Companies list with search + filters + sort + pagination. */
 store.get('/companies', asyncHandler(async (req, res) => {
   const q = String(req.query.q ?? '').trim().slice(0, 200);
+  const type = String(req.query.type ?? '').trim().slice(0, 64);
   const subType = String(req.query.subType ?? '').trim().slice(0, 64);
   const country = String(req.query.country ?? '').trim().slice(0, 64);
   const { limit, offset } = page(req);
   const conds = [
     q ? or(ilike(companies.name, `%${q}%`), ilike(companies.domain, `%${q}%`)) : undefined,
+    type ? eq(companies.type, type) : undefined,
     subType ? eq(companies.subType, subType) : undefined,
     country ? eq(companies.country, country) : undefined,
   ].filter(Boolean);
   const where = conds.length ? and(...conds) : undefined;
   const [rows, [{ n }]] = await Promise.all([
-    db.select().from(companies).where(where).orderBy(companies.name).limit(limit).offset(offset),
+    db.select().from(companies).where(where).orderBy(sortClause(COMPANY_SORT, req, companies.name)).limit(limit).offset(offset),
     db.select({ n: count() }).from(companies).where(where),
   ]);
   res.json({ total: n, rows });
 }));
 
-/** Contacts list with search + filters + pagination. */
+const CONTACT_SORT = {
+  lastName: contacts.lastName, firstName: contacts.firstName, email: contacts.email,
+  jobTitle: contacts.jobTitle, persona: contacts.persona, emailStatus: contacts.emailStatus,
+} as const;
+
+/** Contacts list with search + filters + sort + pagination. */
 store.get('/contacts', asyncHandler(async (req, res) => {
   const q = String(req.query.q ?? '').trim().slice(0, 200);
   const persona = String(req.query.persona ?? '').trim().slice(0, 64);
@@ -89,7 +109,7 @@ store.get('/contacts', asyncHandler(async (req, res) => {
   ].filter(Boolean);
   const where = conds.length ? and(...conds) : undefined;
   const [rows, [{ n }]] = await Promise.all([
-    db.select().from(contacts).where(where).orderBy(contacts.lastName).limit(limit).offset(offset),
+    db.select().from(contacts).where(where).orderBy(sortClause(CONTACT_SORT, req, contacts.lastName)).limit(limit).offset(offset),
     db.select({ n: count() }).from(contacts).where(where),
   ]);
   res.json({ total: n, rows });

@@ -10,6 +10,7 @@ import { runsRouter } from './routes/runs.js';
 import { importRouter } from './routes/import.js';
 import { discoverRouter } from './routes/discover.js';
 import { exportRouter } from './routes/export.js';
+import { taxonomyRouter } from './routes/taxonomy.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -26,7 +27,18 @@ app.use(express.json({ limit: '256kb' }));
 
 // Public: health + whether the client must authenticate.
 app.use('/api/health', health);
-app.get('/api/config', (_req, res) => res.json({ authRequired: authConfigured() }));
+app.get('/api/config', (_req, res) => res.json({
+  authRequired: authConfigured(),
+  // which integrations have a key configured (booleans only — never the values)
+  integrations: {
+    hubspot: !!config.hubspotToken,
+    airscale: !!config.airscaleKey,
+    bouncer: !!config.bouncerKey,
+    ocean: !!config.oceanKey,
+    emailBison: !!config.emailBisonKey,
+    heyreach: !!config.heyreachKey,
+  },
+}));
 
 // Protected: data + recipe execution + import (open only in dev when JWKS unset).
 app.use('/api/store', requireAuth, store);
@@ -34,6 +46,7 @@ app.use('/api/runs', requireAuth, runsRouter);
 app.use('/api/import', requireAuth, express.json({ limit: '30mb' }), importRouter);
 app.use('/api/discover', requireAuth, discoverRouter);
 app.use('/api/export', requireAuth, exportRouter);
+app.use('/api/taxonomy', requireAuth, taxonomyRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

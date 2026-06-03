@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { api, postStream } from '../api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { api, postStream, type TaxonomyType } from '../api.js';
 
 type Seed = { domain: string; name: string };
 
 export function Discover() {
-  const [subTypes, setSubTypes] = useState<{ sub: string; n: number }[]>([]);
+  const [types, setTypes] = useState<TaxonomyType[]>([]);
+  const [type, setType] = useState('');         // internal value (e.g. CUSTOMER)
   const [subType, setSubType] = useState('');
   const [seeds, setSeeds] = useState<Seed[]>([]);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
@@ -13,11 +14,15 @@ export function Discover() {
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
 
-  useEffect(() => { api.subTypes().then((d) => setSubTypes(d.subTypes)); }, []);
+  useEffect(() => { api.taxonomy().then((d) => setTypes(d.types)); }, []);
+
+  const typeObj = useMemo(() => types.find((t) => t.value === type), [types, type]);
+  const subTypes = typeObj?.subTypes ?? [];
+
   useEffect(() => {
-    if (!subType) { setSeeds([]); setChosen(new Set()); return; }
-    api.seeds(subType).then((d) => { setSeeds(d.seeds); setChosen(new Set(d.seeds.map((s) => s.domain))); });
-  }, [subType]);
+    if (!type || !subType) { setSeeds([]); setChosen(new Set()); return; }
+    api.seeds(type, subType).then((d) => { setSeeds(d.seeds); setChosen(new Set(d.seeds.map((s) => s.domain))); });
+  }, [type, subType]);
 
   function toggle(domain: string) {
     setChosen((c) => { const n = new Set(c); n.has(domain) ? n.delete(domain) : n.add(domain); return n; });
@@ -26,37 +31,40 @@ export function Discover() {
   async function run() {
     setBusy(true); setLog([]); setResult(null);
     await postStream('/api/discover/run',
-      { seedDomains: [...chosen], subType: subType || undefined, size },
+      { seedDomains: [...chosen], type: type || undefined, subType: subType || undefined, size },
       (ev, data) => {
         if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
-        else if (ev === 'done') { setResult((data as { stats: Record<string, unknown> }).stats); }
+        else if (ev === 'done') setResult((data as { stats: Record<string, unknown> }).stats);
         else if (ev === 'error') setLog((l) => [...l, '✗ ' + (data as { message: string }).message]);
       });
     setBusy(false);
   }
 
   const planGated = result?.planGated === true;
+  const typeLabel = typeObj?.label ?? '';
 
   return (
     <>
-      <div className="eyebrow">Grow</div>
       <h1 className="page-title">Find more <em>companies</em></h1>
-      <p className="page-sub">There are ~18,000 ESOs out there. Pick a sub-type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
+      <p className="page-sub">Pick a type and sub-type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>1 · Which sub-type are you looking for?</h3>
-        <p className="muted" style={{ marginTop: -8 }}>
-          Type is <strong>ESO</strong> (Entrepreneur Support Org) — matching our HubSpot taxonomy.
-          Choose the sub-type to grow:
-        </p>
-        <select className="select" value={subType} onChange={(e) => setSubType(e.target.value)}>
-          <option value="">Choose a sub-type…</option>
-          {subTypes.map((s) => <option key={s.sub} value={s.sub}>{s.sub} ({s.n})</option>)}
-        </select>
-        {subType && (
+        <h3>1 · Choose type &amp; sub-type</h3>
+        <p className="muted" style={{ marginTop: -8 }}>Matches our HubSpot taxonomy. New companies are tagged with the same type &amp; sub-type.</p>
+        <div className="toolbar" style={{ marginBottom: 0 }}>
+          <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); }}>
+            <option value="">Select type…</option>
+            {types.map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
+          </select>
+          <select className="select" value={subType} onChange={(e) => setSubType(e.target.value)} disabled={!type}>
+            <option value="">{type ? 'Select sub-type…' : 'Pick a type first'}</option>
+            {subTypes.map((s) => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}
+          </select>
+        </div>
+        {type && subType && (
           <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
-            New companies will be tagged <span className="tag persona">ESO</span>
-            {' '}<span className="tag persona">{subType}</span> — ready to sync to HubSpot.
+            New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
+            <span className="tag persona">{subType}</span> — ready to sync to HubSpot.
           </p>
         )}
       </div>
@@ -64,7 +72,7 @@ export function Discover() {
       {seeds.length > 0 && (
         <div className="panel" style={{ marginBottom: 16 }}>
           <h3>2 · Pick example companies to find lookalikes of</h3>
-          <p className="muted" style={{ marginTop: -8 }}>We suggested a spread of your existing {subType} companies. Uncheck any you don't want to use as a reference.</p>
+          <p className="muted" style={{ marginTop: -8 }}>A spread of your existing {subType} companies. Uncheck any you don't want as a reference.</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {seeds.map((s) => (
               <label key={s.domain} style={{

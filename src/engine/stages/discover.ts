@@ -14,13 +14,16 @@ import { searchCompanies, domainOf, type OceanCompany } from '../adapters/ocean.
 import { resolveCompany } from '../resolve.js';
 import { normDomain } from '../normalize.js';
 
-/** Suggest seed domains from the store: a sample of existing companies, optionally by sub_type. */
-export async function suggestSeeds(subType?: string, n = 10): Promise<{ domain: string; name: string }[]> {
-  const base = db.select({ domain: companies.domain, name: companies.name, sub: companies.subType })
+/** Suggest seed domains from the store: a sample of existing companies, by type + sub_type. */
+export async function suggestSeeds(
+  opts: { type?: string; subType?: string } = {}, n = 10,
+): Promise<{ domain: string; name: string }[]> {
+  const base = db.select({ domain: companies.domain, name: companies.name, type: companies.type, sub: companies.subType })
     .from(companies)
     .where(sql`${companies.domain} is not null and ${companies.domain} <> ''`);
-  const rows = await base.limit(500);
-  const filtered = subType ? rows.filter((r) => r.sub === subType) : rows;
+  const rows = await base.limit(1000);
+  const filtered = rows.filter((r) =>
+    (!opts.type || r.type === opts.type) && (!opts.subType || r.sub === opts.subType));
   // simple spread: take evenly across the filtered set
   const step = Math.max(1, Math.floor(filtered.length / n));
   const picks: { domain: string; name: string }[] = [];
@@ -44,7 +47,7 @@ export interface DiscoverResult {
  * new companies; size caps how many to fetch. New companies are resolved into the store.
  */
 export async function discoverLookalikes(
-  opts: { seedDomains: string[]; subType?: string; size?: number; minScore?: number },
+  opts: { seedDomains: string[]; type?: string; subType?: string; size?: number; minScore?: number },
   log: (m: string) => void = console.log,
 ): Promise<DiscoverResult> {
   const seeds = opts.seedDomains.map(normDomain).filter(Boolean);
@@ -57,7 +60,15 @@ export async function discoverLookalikes(
     results = r.companies;
   } catch (e) {
     const msg = (e as Error).message;
-    // Ocean returns this when the plan doesn't include lookalike search.
+    // Missing/invalid Ocean key → 403 "API token should be provided".
+    if (msg.includes('403') || msg.includes('API token should be provided')) {
+      return {
+        found: 0, newCompanies: 0, alreadyKnown: 0, errors: 0, planGated: true,
+        message: 'Ocean API key is missing or invalid on the server. Set OCEAN_API_KEY in the '
+          + 'deployment environment (Railway → Variables), then try again.',
+      };
+    }
+    // Plan doesn\'t include lookalike search.
     if (msg.includes('Plan version not supported') || msg.includes('400')) {
       return {
         found: 0, newCompanies: 0, alreadyKnown: 0, errors: 0, planGated: true,
@@ -84,8 +95,8 @@ export async function discoverLookalikes(
     try {
       await resolveCompany({
         name: c.name, domain,
-        // HubSpot taxonomy: Type = ESO (fixed for this audience), Sub-type = the category.
-        type: 'ESO', subType: opts.subType, audienceType: 'Entrepreneurs',
+        // HubSpot taxonomy: Type + Sub-type carried from the chosen seeds' type.
+        type: opts.type, subType: opts.subType, audienceType: 'Entrepreneurs',
         sizeEmployees: c.companySize, foundedYear: c.yearFounded,
         sector: (c.industries ?? []).slice(0, 2).join(', '),
         country: c.primaryCountry,

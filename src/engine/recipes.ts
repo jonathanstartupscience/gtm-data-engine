@@ -20,7 +20,7 @@ export interface RecipeResult {
 
 /** discover-lookalikes: find NEW target companies similar to seed domains (growth engine). */
 export async function runDiscoverLookalikes(
-  opts: { seedDomains: string[]; subType?: string; size?: number },
+  opts: { seedDomains: string[]; type?: string; subType?: string; size?: number },
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('discover-lookalikes');
