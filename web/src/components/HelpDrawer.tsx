@@ -39,6 +39,42 @@ const PAGES: Record<string, PageHelp> = {
       'New, deduped companies land in your store ready to enrich and verify.',
     ],
   },
+  '/sync': {
+    title: 'Sync to HubSpot',
+    intro: 'Push your cleaned company data back to HubSpot — your system of record. Nothing is written until you review and confirm exactly what will change.',
+    sections: [
+      { heading: 'Always preview first', body: 'Click “Preview changes” and the engine compares every company against HubSpot, showing how many will be created vs. updated, and the exact field-by-field changes — without writing anything.' },
+      { heading: 'You stay in control', body: 'Only after you click “Confirm & write” does anything change in HubSpot. We fill blanks and correct the taxonomy we own (type/sub-type), but never erase data you already have there.' },
+    ],
+    steps: [
+      'Click “Preview changes”.',
+      'Review the summary and the line-by-line list of what will change.',
+      'If it looks right, click “Confirm & write”.',
+      'Watch it apply, then review the result.',
+    ],
+  },
+  '/campaigns': {
+    title: 'Email Bison',
+    intro: 'Send a clean, campaign-ready segment of people into one of your cold-email campaigns.',
+    sections: [
+      { heading: 'Only safe addresses are sent', body: 'The engine includes only deliverable and risky-catch-all emails. Role-based (info@), undeliverable, unverified, and no-email contacts are automatically left out, protecting your sending reputation.' },
+      { heading: 'Segment by who you want', body: 'Filter by persona and sub-type; the live count shows how many contacts match before you send. Persona and sub-type travel with each lead as custom fields for personalization.' },
+      { heading: 'If campaigns won’t load', body: 'Check the Email Bison connection on the Logs & Health tab — the API key and instance URL must be set.' },
+    ],
+    steps: [
+      'Pick the campaign to send into.',
+      'Filter the audience by persona / sub-type and check the count.',
+      'Click Send — leads are created and attached to the campaign.',
+    ],
+  },
+  '/logs': {
+    title: 'Logs & Health',
+    intro: 'Check here first when something doesn’t work. Shows which integrations are connected and a feed of recent activity, with any failures surfaced.',
+    sections: [
+      { heading: 'Integrations', body: 'Each external tool (HubSpot, Airscale, Bouncer, Ocean, Email Bison) shows connected or not configured. If a feature isn’t working, a missing connection here is the usual cause.' },
+      { heading: 'Recent activity', body: 'Every workflow run is logged with its result. Failures are flagged in red with the error, so you can troubleshoot or report it quickly.' },
+    ],
+  },
   '/import': {
     title: 'Import — bring in a list',
     intro: 'The front door. Upload a CSV of companies or people and the engine cleans it and adds it to the store — automatically removing duplicates.',
