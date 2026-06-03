@@ -53,6 +53,7 @@ export const api = {
     get<{ company: Company; contacts: Contact[] }>(`/api/store/companies/${id}`),
   runs: () => get<{ rows: Run[] }>('/api/runs'),
   run: (id: number) => get<{ run: Run }>(`/api/runs/${id}`),
+  logs: () => get<{ events: LogEvent[]; integrations: Record<string, boolean> }>('/api/logs'),
   importPreview: (csv: string, entityType: string) =>
     post<ImportPreview>('/api/import/preview', { csv, entityType }),
   taxonomy: () => get<{ types: TaxonomyType[] }>('/api/taxonomy'),
@@ -64,6 +65,11 @@ export const api = {
 export interface TaxonomyType {
   value: string; label: string; count: number;
   subTypes: { value: string; count: number }[];
+}
+
+export interface LogEvent {
+  id: number; kind: string; status: string;
+  level: 'error' | 'warn' | 'info'; message: string; at: string;
 }
 
 export interface ImportPreview {

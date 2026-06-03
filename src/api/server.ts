@@ -11,6 +11,7 @@ import { importRouter } from './routes/import.js';
 import { discoverRouter } from './routes/discover.js';
 import { exportRouter } from './routes/export.js';
 import { taxonomyRouter } from './routes/taxonomy.js';
+import { logsRouter } from './routes/logs.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -47,6 +48,7 @@ app.use('/api/import', requireAuth, express.json({ limit: '30mb' }), importRoute
 app.use('/api/discover', requireAuth, discoverRouter);
 app.use('/api/export', requireAuth, exportRouter);
 app.use('/api/taxonomy', requireAuth, taxonomyRouter);
+app.use('/api/logs', requireAuth, logsRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

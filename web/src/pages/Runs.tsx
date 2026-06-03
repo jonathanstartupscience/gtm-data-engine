@@ -3,6 +3,21 @@ import { api, authToken, type Run } from '../api.js';
 
 interface RunStep { label: string; provider?: string; status: 'ok' | 'warn' | 'error' | 'info'; detail?: string; count?: number; }
 
+// Map each platform to the domain we pull its favicon from.
+const PROVIDER_DOMAIN: Record<string, string> = {
+  'Ocean.io': 'ocean.io', Bouncer: 'usebouncer.com', Airscale: 'airscale.io',
+  HubSpot: 'hubspot.com', 'Email Bison': 'emailbison.com', Heyreach: 'heyreach.io',
+};
+function ProviderIcon({ provider }: { provider?: string }) {
+  if (!provider) return null;
+  const domain = PROVIDER_DOMAIN[provider];
+  if (!domain) { // Engine / internal — a small dot
+    return <span style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--accent-light)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--accent)' }}>⚙</span>;
+  }
+  return <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt={provider}
+    width={16} height={16} style={{ borderRadius: 3, flexShrink: 0 }} />;
+}
+
 function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
   const steps = (run.stats?._steps as RunStep[] | undefined) ?? [];
   const dur = run.finishedAt
@@ -10,26 +25,36 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
     : '—';
   const icon = (s: string) => (s === 'error' ? '✗' : s === 'warn' ? '⚠' : s === 'info' ? '·' : '✓');
   const color = (s: string) => (s === 'error' ? 'var(--coral)' : s === 'warn' ? '#8b5e00' : s === 'info' ? 'var(--text-muted)' : 'var(--green-deep)');
+  // distinct platforms used in this run (for a prominent callout)
+  const platforms = [...new Set(steps.map((s) => s.provider).filter((p): p is string => !!p && p !== 'Engine'))];
   return (
     <>
       <div className="help-overlay" onClick={onClose} />
       <div className="help-drawer">
         <button className="help-close" onClick={onClose}>×</button>
-        <div className="eyebrow">Run #{run.id}</div>
-        <h2>{run.kind}</h2>
-        <p className="muted">{run.status} · started {new Date(run.startedAt).toLocaleString()} · {dur}</p>
+        <h2 style={{ textTransform: 'capitalize' }}>{run.kind.replace(/-/g, ' ')}</h2>
+        <p className="muted">Run #{run.id} · {run.status} · {new Date(run.startedAt).toLocaleString()} · {dur}</p>
 
-        <h4>What happened</h4>
-        {steps.length === 0 && <p className="muted">No step detail recorded for this run.</p>}
+        {platforms.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 6px', padding: '10px 12px', background: 'var(--bg)', borderRadius: 8 }}>
+            <span className="muted" style={{ fontSize: 13 }}>Platforms used:</span>
+            {platforms.map((p) => (
+              <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500 }}>
+                <ProviderIcon provider={p} /> {p}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <h4>Step-by-step</h4>
+        {steps.length === 0 && <p className="muted">No step detail recorded for this run (older run).</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {steps.map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ color: color(s.status), fontWeight: 700 }}>{icon(s.status)}</span>
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 0', borderBottom: '1px solid var(--border)', alignItems: 'flex-start' }}>
+              <span style={{ color: color(s.status), fontWeight: 700, width: 14 }}>{icon(s.status)}</span>
+              <ProviderIcon provider={s.provider} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>
-                  {s.provider && <span className="tag persona" style={{ marginRight: 6, fontSize: 11 }}>{s.provider}</span>}
-                  {s.label}
-                </div>
+                <div style={{ fontWeight: 500 }}>{s.label}</div>
                 {s.detail && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{s.detail}</div>}
               </div>
               {typeof s.count === 'number' && <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{s.count}</span>}
@@ -37,10 +62,12 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
           ))}
         </div>
 
-        <h4 style={{ marginTop: 24 }}>Raw result</h4>
-        <pre style={{ background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 12, overflow: 'auto' }}>
-          {JSON.stringify({ ...run.stats, _steps: undefined }, (k, v) => (k === '_steps' ? undefined : v), 2)}
-        </pre>
+        <details style={{ marginTop: 20 }}>
+          <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>Show raw result data</summary>
+          <pre style={{ background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 12, overflow: 'auto', marginTop: 8 }}>
+            {JSON.stringify(run.stats, (k, v) => (k === '_steps' ? undefined : v), 2)}
+          </pre>
+        </details>
       </div>
     </>
   );
