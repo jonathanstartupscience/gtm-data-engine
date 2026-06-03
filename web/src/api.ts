@@ -50,7 +50,51 @@ export const api = {
   company: (id: string) =>
     get<{ company: Company; contacts: Contact[] }>(`/api/store/companies/${id}`),
   runs: () => get<{ rows: Run[] }>('/api/runs'),
+  importPreview: (csv: string, entityType: string) =>
+    post<ImportPreview>('/api/import/preview', { csv, entityType }),
 };
+
+export interface ImportPreview {
+  headers: string[]; total: number; sample: Record<string, string>[];
+  fields: string[]; mapping: Record<string, string>;
+}
+
+async function post<T>(url: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = tokenGetter ? await tokenGetter() : null;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.json() as Promise<T>;
+}
+
+/** POST a body and stream back SSE-style events (event/data lines). Calls onEvent per event. */
+export async function postStream(
+  url: string,
+  body: unknown,
+  onEvent: (event: string, data: unknown) => void,
+): Promise<void> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = tokenGetter ? await tokenGetter() : null;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!resp.body) throw new Error('no stream');
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const chunks = buf.split('\n\n');
+    buf = chunks.pop() ?? '';
+    for (const chunk of chunks) {
+      const ev = chunk.match(/event: (.*)/)?.[1] ?? 'message';
+      const dataLine = chunk.match(/data: (.*)/)?.[1];
+      if (dataLine) onEvent(ev, JSON.parse(dataLine));
+    }
+  }
+}
 
 export interface Run {
   id: number; kind: string; status: string;

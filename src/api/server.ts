@@ -7,11 +7,12 @@ import { config } from '../lib/config.js';
 import { health } from './routes/health.js';
 import { store } from './routes/store.js';
 import { runsRouter } from './routes/runs.js';
+import { importRouter } from './routes/import.js';
 import { requireAuth, authConfigured } from './auth.js';
 
 const app = express();
 app.set('trust proxy', 1); // behind Railway's proxy (and Cloudflare) — correct protocol/IP
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '50mb' })); // CSV uploads sent as JSON text
 
 // Public: health + whether the client must authenticate.
 app.use('/api/health', health);
@@ -20,6 +21,7 @@ app.get('/api/config', (_req, res) => res.json({ authRequired: authConfigured() 
 // Protected: data + recipe execution (open if CLERK_JWKS_URL unset).
 app.use('/api/store', requireAuth, store);
 app.use('/api/runs', requireAuth, runsRouter);
+app.use('/api/import', requireAuth, importRouter);
 
 // Serve the built React app (web/dist) if present; SPA fallback to index.html.
 // Resolve robustly: in dev (tsx) the file is src/api/, in prod (tsc) it's dist/src/api/,

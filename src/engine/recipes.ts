@@ -4,8 +4,30 @@
  */
 import { startRun, finishRun } from './runs.js';
 import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
+import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
 
-export type RecipeName = 'verify-stale' | 'verify-emails';
+export type RecipeName = 'verify-stale' | 'verify-emails' | 'import-list';
+
+/** import-list: ingest parsed CSV rows → dedupe → resolve into the store. */
+export async function runImportList(
+  rows: Record<string, string>[],
+  entityType: EntityType,
+  mapping: Mapping,
+  sourceName: string,
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('import-list');
+  try {
+    log(`import-list: ${rows.length} ${entityType} rows from "${sourceName}"`);
+    const r = await ingestRows(rows, entityType, mapping, sourceName, log);
+    const stats = { ...r };
+    await finishRun(runId, 'done', stats);
+    return { runId, kind: 'import-list', stats };
+  } catch (err) {
+    await finishRun(runId, 'error', { error: (err as Error).message });
+    throw err;
+  }
+}
 
 export interface RecipeResult {
   runId: number;

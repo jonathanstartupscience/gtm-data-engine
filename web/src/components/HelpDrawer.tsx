@@ -24,6 +24,21 @@ const PAGES: Record<string, PageHelp> = {
       { heading: 'The charts', body: 'Companies by sub-type (what kind of organization), contacts by persona (the role we target), and email deliverability (how reachable our contacts are). Healthy data = most emails “deliverable”.' },
     ],
   },
+  '/import': {
+    title: 'Import — bring in a list',
+    intro: 'The front door. Upload a CSV of companies or people and the engine cleans it and adds it to the store — automatically removing duplicates.',
+    sections: [
+      { heading: 'What happens to my file', body: 'Each row is matched against what we already know (by domain, email, or LinkedIn). If it’s already in the store, we update that record instead of creating a duplicate. New rows become clean golden records.' },
+      { heading: 'Column mapping', body: 'We auto-guess which of your columns maps to each field (name, domain, email, etc.). You can correct any guess before importing. Leave a field blank to skip it.' },
+      { heading: 'Nothing is lost or overwritten blindly', body: 'We never blank out existing data — we only fill gaps and add new info. Every change records where it came from.' },
+    ],
+    steps: [
+      'Choose Companies or Contacts, then pick your CSV file.',
+      'Review the column mapping we guessed — fix anything that looks off.',
+      'Click Import and watch it resolve each row.',
+      'See how many were added vs. matched to existing records.',
+    ],
+  },
   '/companies': {
     title: 'Companies',
     intro: 'Every organization in the store. Search by name, domain, or sub-type. Click one to see its details and the people we have there.',

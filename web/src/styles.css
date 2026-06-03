@@ -65,6 +65,15 @@ body {
 }
 .help-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
+.user-menu {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  padding: 8px 6px; border-top: 1px solid rgba(255,255,255,0.08);
+}
+.user-name {
+  font-size: 13px; color: rgba(247,246,242,0.75); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ---- main ---- */
 .main { padding: 32px 36px; overflow: auto; }
 .page-title {
