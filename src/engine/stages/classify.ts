@@ -10,6 +10,7 @@ import { and, eq, isNull, isNotNull, ne, or } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, classifyProposals } from '../../db/schema.js';
 import { getTaxonomy, typeLabel } from '../taxonomy.js';
+import { taxonomyFlat, NOT_IN_ICP } from '../icp-taxonomy.js';
 import { enrichCompany } from '../adapters/ocean.js';
 
 export interface ClassifyInput {
@@ -51,12 +52,18 @@ export async function homepageText(domain: string, maxChars = 4000): Promise<str
 
 /** Build the classification prompt (taxonomy-constrained, asks for confidence + reason JSON). */
 export function buildPrompt(i: ClassifyInput): string {
+  // Authoritative ICP catalog with definitions + the exact Type each Sub-type belongs to,
+  // so the model returns a valid Type/Sub-type PAIR rather than a free-text guess.
+  const catalog = taxonomyFlat().map((t) => `- Sub-type "${t.subType}" (Type: ${t.type}) — ${t.definition}`).join('\n');
   return [
-    'You classify a company into our CRM taxonomy. Respond with ONLY a JSON object:',
-    '{"type": <one of the types>, "subType": <one of the sub-types>, "confidence": <0..1>, "reason": <short>}',
-    `Valid types: ${i.validTypes.join(', ')}`,
-    `Valid sub-types: ${i.validSubTypes.join(', ')}`,
-    'If the evidence is weak, give a low confidence. Do not invent values outside the lists.',
+    'You classify a company into our CRM ICP taxonomy. Pick the single best Sub-type from the catalog;',
+    'its Type is fixed by the catalog. Respond with ONLY a JSON object:',
+    '{"type": <the Type for your chosen Sub-type>, "subType": <one Sub-type from the catalog>, "confidence": <0..1>, "reason": <short>}',
+    '',
+    'Catalog:',
+    catalog,
+    '',
+    `If none fit, use {"type":"${NOT_IN_ICP.type}","subType":"${NOT_IN_ICP.subType}"}. If evidence is weak, lower the confidence. Never invent values outside the catalog.`,
     '',
     `Company: ${i.name} (${i.domain})`,
     i.oceanDescription ? `Description: ${i.oceanDescription}` : '',

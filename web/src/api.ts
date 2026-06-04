@@ -191,7 +191,7 @@ export interface SelectionScope { selected: number; billable: number; skipped: n
 export interface HygieneAnalytics {
   companies: { total: number; typed: number; withDomain: number; withSize: number };
   contacts: { total: number; withPersona: number; verified: number; withTitle: number; orphans: number };
-  tasks: Record<string, { candidates: number; free: boolean }>;
+  tasks: Record<string, { candidates: number; free: boolean; note?: string }>;
 }
 
 export interface Proposal {

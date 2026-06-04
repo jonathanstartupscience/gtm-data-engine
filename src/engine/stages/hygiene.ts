@@ -9,8 +9,12 @@
  */
 import { and, eq, inArray, isNull, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, contacts, contactCompany } from '../../db/schema.js';
+import { companies, contacts, contactCompany, hubspotSync } from '../../db/schema.js';
 import { classifyPersona } from '../persona.js';
+import { inferTypeFromSubType } from '../icp-taxonomy.js';
+import { typeValue } from '../taxonomy.js';
+import { patchCompany } from '../adapters/hubspot.js';
+import { config } from '../../lib/config.js';
 
 // ----------------------------------------------------------------- association repair
 // Drizzle's postgres-js db.execute returns the rows array directly.
@@ -99,4 +103,42 @@ export async function runNormalize(log: (m: string) => void = console.log): Prom
   }
   log(`Normalized ${normalized} company country values.`);
   return { normalized };
+}
+
+// ----------------------------------------------------------------- type ↔ sub-type pairing
+// Deterministic: if a company has a Sub-type but no Type, set the Type from the ICP taxonomy
+// (University→ESO, PE→Investor, …) and write it back to HubSpot. Companies missing BOTH are left
+// for the AI Classify queue (analyzePairing reports that count too).
+export async function analyzePairing(): Promise<{ candidates: number; pairable: number; bothMissing: number }> {
+  const rows = await db.select({ subType: companies.subType }).from(companies)
+    .where(and(or(isNull(companies.type), eq(companies.type, '')), isNotNull(companies.subType), ne(companies.subType, '')));
+  const pairable = rows.filter((r) => inferTypeFromSubType(r.subType)).length;
+  const [{ n: both }] = await db.select({ n: sql<number>`count(*)::int` }).from(companies)
+    .where(and(or(isNull(companies.type), eq(companies.type, '')), or(isNull(companies.subType), eq(companies.subType, ''))));
+  return { candidates: pairable, pairable, bothMissing: Number(both) };
+}
+
+export async function runPairing(log: (m: string) => void = console.log): Promise<{ paired: number; hubspotSynced: number; unresolved: number }> {
+  const rows = await db.select({ id: companies.id, subType: companies.subType, hubspotId: companies.hubspotId }).from(companies)
+    .where(and(or(isNull(companies.type), eq(companies.type, '')), isNotNull(companies.subType), ne(companies.subType, '')));
+  const canPush = !!config.hubspotToken;
+  let paired = 0, hubspotSynced = 0, unresolved = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const inferred = inferTypeFromSubType(rows[i].subType);
+    if (!inferred) { unresolved++; continue; }
+    const internalType = typeValue(inferred.type); // label → stored internal value (ESO→CUSTOMER, etc.)
+    // Normalize the sub-type to its canonical taxonomy label while we're here.
+    await db.update(companies).set({ type: internalType, subType: inferred.subType, updatedAt: new Date() }).where(eq(companies.id, rows[i].id));
+    paired++;
+    if (canPush && rows[i].hubspotId) {
+      try {
+        await patchCompany(rows[i].hubspotId!, { type: internalType, sub_type: inferred.subType });
+        await db.insert(hubspotSync).values({ entityType: 'company', entityId: rows[i].id, hubspotId: rows[i].hubspotId, action: 'patch', overwrote: `type=${internalType}` });
+        hubspotSynced++;
+      } catch { /* leave for a later sync */ }
+    }
+    if ((i + 1) % 100 === 0) log(`  paired ${paired}/${rows.length}…`);
+  }
+  log(`Paired ${paired} companies' Type from Sub-type (${hubspotSynced} synced to HubSpot, ${unresolved} sub-types unrecognized).`);
+  return { paired, hubspotSynced, unresolved };
 }

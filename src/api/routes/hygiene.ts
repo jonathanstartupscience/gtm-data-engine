@@ -8,6 +8,7 @@ import {
   analyzeAssociationRepair, runAssociationRepair,
   analyzePersonaBackfill, runPersonaBackfill,
   analyzeNormalize, runNormalize,
+  analyzePairing, runPairing,
 } from '../../engine/stages/hygiene.js';
 import { asyncHandler } from '../middleware.js';
 import { rateLimit } from '../validate.js';
@@ -33,14 +34,15 @@ hygieneRouter.get('/analytics', asyncHandler(async (_req, res) => {
     .from(contacts).leftJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
     .where(isNull(contactCompany.id));
 
-  const [assoc, persona, norm] = await Promise.all([
-    analyzeAssociationRepair(), analyzePersonaBackfill(), analyzeNormalize(),
+  const [assoc, persona, norm, pairing] = await Promise.all([
+    analyzeAssociationRepair(), analyzePersonaBackfill(), analyzeNormalize(), analyzePairing(),
   ]);
 
   res.json({
     companies: { total: co.n, typed: coStats.typed, withDomain: coStats.domain, withSize: coStats.sized },
     contacts: { total: ct.n, withPersona: ctStats.persona, verified: ctStats.verified, withTitle: ctStats.title, orphans },
     tasks: {
+      pairing: { candidates: pairing.candidates, free: true, note: `${pairing.bothMissing.toLocaleString()} companies missing both Type & Sub-type → AI Classify` },
       associationRepair: { candidates: assoc.candidates, free: true },
       personaBackfill: { candidates: persona.candidates, free: true },
       normalize: { candidates: norm.candidates, free: true },
@@ -48,10 +50,11 @@ hygieneRouter.get('/analytics', asyncHandler(async (_req, res) => {
   });
 }));
 
-const TASKS: Record<string, () => Promise<Record<string, number>>> = {
-  'association-repair': () => runAssociationRepair(console.log),
-  'persona-backfill': () => runPersonaBackfill(console.log),
-  'normalize': () => runNormalize(console.log),
+const TASKS: Record<string, (log: (m: string) => void) => Promise<Record<string, number>>> = {
+  'pairing': (log) => runPairing(log),
+  'association-repair': (log) => runAssociationRepair(log),
+  'persona-backfill': (log) => runPersonaBackfill(log),
+  'normalize': (log) => runNormalize(log),
 };
 
 /** Run a free hygiene task with SSE progress. */
@@ -72,11 +75,7 @@ hygieneRouter.get('/run/:task', rateLimit(10, 60_000), async (req, res) => {
   const rec = new StepRecorder((m) => send('log', { message: m }));
   try {
     rec.step({ provider: 'Engine', status: 'info', label: `Running ${task} (free)` });
-    const runner = TASKS[task];
-    // wrap to capture the runner's log calls into the SSE + recorder
-    const stats = await (task === 'association-repair' ? runAssociationRepair
-      : task === 'persona-backfill' ? runPersonaBackfill : runNormalize)((m) => rec.step({ provider: 'Engine', status: 'ok', label: m }));
-    void runner;
+    const stats = await TASKS[task]((m) => rec.step({ provider: 'Engine', status: 'ok', label: m }));
     await finishRun(runId, 'done', stats, rec.steps);
     send('done', { runId, stats });
   } catch (err) {

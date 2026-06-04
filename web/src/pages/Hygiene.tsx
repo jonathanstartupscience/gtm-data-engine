@@ -4,6 +4,8 @@ import { CostBadge } from '../components/CostBadge.js';
 
 interface Task { id: string; name: string; desc: string; key: string; }
 const TASKS: Task[] = [
+  { id: 'pairing', key: 'pairing', name: 'Pair Type from Sub-type',
+    desc: 'When a company has a Sub-type (ICP) but no Type, sets the Type from the canonical taxonomy (University → ESO, PE → Investor, Software → Provider…) and writes it back to HubSpot. Companies missing both go to AI Classify.' },
   { id: 'association-repair', key: 'associationRepair', name: 'Repair contact → company links',
     desc: 'Links orphaned contacts to a company by matching their email domain to a company you already have. Makes contacts usable by company and type.' },
   { id: 'persona-backfill', key: 'personaBackfill', name: 'Backfill personas',
