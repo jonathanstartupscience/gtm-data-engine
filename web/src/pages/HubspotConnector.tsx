@@ -61,10 +61,24 @@ export function HubspotConnector() {
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>Sync coverage</h3>
-        <p className="muted" style={{ marginTop: -8 }}>How much of your data is linked to a HubSpot record. Low coverage means records exist here that aren’t in HubSpot yet (push them) — or you haven’t pulled everything from HubSpot.</p>
+        <h3>What’s in the engine vs HubSpot</h3>
+        <p className="muted" style={{ marginTop: -8 }}>“Linked” = the record exists in both. A record here but not in HubSpot can be pushed; one in HubSpot but not here can be pulled.</p>
         <CoverageBar label="Companies" {...data.companies} />
         <CoverageBar label="Contacts" {...data.contacts} />
+        {(() => {
+          const coNotInHs = Math.max(data.companies.total - data.companies.synced, 0);
+          const ctNotInHs = Math.max(data.contacts.total - data.contacts.synced, 0);
+          if (coNotInHs + ctNotInHs === 0) return <p style={{ color: 'var(--green-deep)' }}>Everything here is linked to HubSpot ✓</p>;
+          return (
+            <div style={{ borderLeft: '3px solid var(--amber)', paddingLeft: 12, marginTop: 6 }}>
+              <p style={{ margin: '0 0 8px' }}>
+                <strong>{coNotInHs.toLocaleString()}</strong> companies and <strong>{ctNotInHs.toLocaleString()}</strong> contacts here are
+                <strong> not yet in HubSpot</strong>. Push them to clean up your CRM (you’ll preview every change first).
+              </p>
+              <Link to="/sync" className="btn btn-primary">Review &amp; push to HubSpot →</Link>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>

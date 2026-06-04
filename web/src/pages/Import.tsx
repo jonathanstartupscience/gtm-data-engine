@@ -68,39 +68,62 @@ export function Import() {
       {err && <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>{err}</div>}
 
       {/* Step 2 — mapping */}
-      {preview && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <h3>2 · Map your columns</h3>
-          <p className="muted" style={{ marginTop: -8 }}>We guessed these from your headers. Adjust any that look wrong; leave blank to skip a field.</p>
-          <table>
-            <thead><tr><th>Engine field</th><th>Your column</th><th>Sample value</th></tr></thead>
-            <tbody>
-              {preview.fields.map((field) => {
-                const col = mapping[field] ?? '';
-                const sample = col ? preview.sample[0]?.[col] ?? '' : '';
-                return (
-                  <tr key={field}>
-                    <td style={{ fontWeight: 500 }}>{field}</td>
-                    <td>
-                      <select className="select" value={col}
-                        onChange={(e) => setMapping((m) => ({ ...m, [field]: e.target.value }))}>
-                        <option value="">— skip —</option>
-                        {preview.headers.map((h) => <option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </td>
-                    <td className="muted">{sample}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div style={{ marginTop: 16 }}>
-            <button className="btn btn-primary" disabled={busy} onClick={runImport}>
-              {busy ? 'Importing…' : `Import ${preview.total} ${entityType === 'company' ? 'companies' : 'contacts'}`}
-            </button>
+      {preview && (() => {
+        const mappedCols = new Set(Object.values(mapping).filter(Boolean));
+        const unmapped = preview.headers.filter((h) => !mappedCols.has(h));
+        // Minimum to resolve a record: company needs name or domain; contact needs an email or a name.
+        const required = entityType === 'company' ? ['name', 'domain'] : ['email', 'firstName', 'lastName'];
+        const hasKey = entityType === 'company'
+          ? !!(mapping.name || mapping.domain)
+          : !!(mapping.email || mapping.firstName || mapping.lastName);
+        return (
+          <div className="panel" style={{ marginBottom: 16 }}>
+            <h3>2 · Match your columns to fields</h3>
+            <p className="muted" style={{ marginTop: -8 }}>We auto-matched by header name. Adjust any that look wrong; “skip” ignores a field. Each engine field on the left can be filled from one of your CSV columns on the right.</p>
+            <table>
+              <thead><tr><th>Engine field</th><th>Your CSV column</th><th>Sample value</th></tr></thead>
+              <tbody>
+                {preview.fields.map((field) => {
+                  const col = mapping[field] ?? '';
+                  const sample = col ? preview.sample[0]?.[col] ?? '' : '';
+                  const isReq = required.includes(field);
+                  return (
+                    <tr key={field}>
+                      <td style={{ fontWeight: 500 }}>
+                        {field}{isReq && <span className="muted" style={{ fontWeight: 400 }}> · key</span>}
+                      </td>
+                      <td>
+                        <select className="select" value={col}
+                          onChange={(e) => setMapping((m) => ({ ...m, [field]: e.target.value }))}>
+                          <option value="">— skip —</option>
+                          {preview.headers.map((h) => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                      </td>
+                      <td className="muted">{sample}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {unmapped.length > 0 && (
+              <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+                <strong>{unmapped.length}</strong> column{unmapped.length !== 1 ? 's' : ''} not mapped (will be ignored): {unmapped.join(', ')}
+              </p>
+            )}
+            {!hasKey && (
+              <p style={{ color: 'var(--coral)', fontSize: 13, marginTop: 10 }}>
+                Map at least one key field ({entityType === 'company' ? 'name or domain' : 'email or a name'}) so records can be matched/deduped.
+              </p>
+            )}
+            <div style={{ marginTop: 16 }}>
+              <button className="btn btn-primary" disabled={busy || !hasKey} onClick={runImport}>
+                {busy ? 'Importing…' : `Import ${preview.total} ${entityType === 'company' ? 'companies' : 'contacts'}`}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Step 3 — progress + result */}
       {(log.length > 0 || result) && (
