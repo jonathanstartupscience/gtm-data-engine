@@ -142,6 +142,7 @@ export function Runs() {
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [runErr, setRunErr] = useState('');
+  const [disconnected, setDisconnected] = useState(false);
   const [detail, setDetail] = useState<Run | null>(null);
   const [scope, setScope] = useState<import('../api.js').Scope | null>(null);
   const [scopeLoading, setScopeLoading] = useState<string | null>(null);
@@ -160,7 +161,7 @@ export function Runs() {
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
   async function run(recipe: string, dryRun: boolean, limit?: number) {
-    setRunning(recipe); setLog([]); setResult(null); setRunErr('');
+    setRunning(recipe); setLog([]); setResult(null); setRunErr(''); setDisconnected(false);
     const token = await authToken();
     let qs = `dryRun=${dryRun ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
     if (limit) qs += `&limit=${limit}`;
@@ -173,8 +174,18 @@ export function Runs() {
       es.close(); setRunning(null); loadHistory();
     });
     es.addEventListener('error', (e) => {
-      const msg = (e as MessageEvent).data ? JSON.parse((e as MessageEvent).data).message : 'connection error';
-      setRunErr(msg); setLog((l) => [...l, `✗ ${msg}`]); es.close(); setRunning(null); loadHistory();
+      const data = (e as MessageEvent).data;
+      if (data) {
+        // A real server-emitted error.
+        const msg = JSON.parse(data).message;
+        setRunErr(msg); setLog((l) => [...l, `✗ ${msg}`]);
+      } else {
+        // Just the live stream dropping — the run continues server-side. Not a failure.
+        setLog((l) => [...l, '… live view disconnected — the run is still going on the server. Check Recent activity for the final result.']);
+        setDisconnected(true);
+        setTimeout(loadHistory, 3000);
+      }
+      es.close(); setRunning(null); loadHistory();
     });
   }
 
@@ -226,6 +237,17 @@ export function Runs() {
               <a href="/connectors/hubspot">HubSpot connector</a> page.
             </div>
           )}
+        </div>
+      )}
+
+      {disconnected && (
+        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--accent)' }}>
+          <strong>Live view disconnected</strong>
+          <div className="muted" style={{ marginTop: 4 }}>
+            That’s expected on long runs — the workflow keeps running on the server. Its result will
+            appear under <strong>Recent activity</strong> below (and in Logs &amp; Health) when it finishes.
+            <button className="btn" style={{ marginLeft: 10, padding: '4px 10px' }} onClick={() => loadHistory()}>Refresh</button>
+          </div>
         </div>
       )}
 
