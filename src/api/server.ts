@@ -16,6 +16,7 @@ import { pushRouter } from './routes/push.js';
 import { bisonRouter } from './routes/bison.js';
 import { connectorsRouter } from './routes/connectors.js';
 import { classifyRouter } from './routes/classify.js';
+import { hygieneRouter } from './routes/hygiene.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -57,6 +58,7 @@ app.use('/api/push', requireAuth, pushRouter);
 app.use('/api/bison', requireAuth, bisonRouter);
 app.use('/api/connectors', requireAuth, connectorsRouter);
 app.use('/api/classify', requireAuth, classifyRouter);
+app.use('/api/hygiene', requireAuth, hygieneRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

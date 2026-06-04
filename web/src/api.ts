@@ -76,7 +76,14 @@ export const api = {
   classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number }>('/api/classify/audit'),
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
   classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number }>('/api/classify/decide', { approve, reject }),
+  hygieneAnalytics: () => get<HygieneAnalytics>('/api/hygiene/analytics'),
 };
+
+export interface HygieneAnalytics {
+  companies: { total: number; typed: number; withDomain: number; withSize: number };
+  contacts: { total: number; withPersona: number; verified: number; withTitle: number; orphans: number };
+  tasks: Record<string, { candidates: number; free: boolean }>;
+}
 
 export interface Proposal {
   id: number; companyId: number; type: string | null; subType: string | null;

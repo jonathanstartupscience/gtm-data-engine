@@ -1,0 +1,23 @@
+ALTER TABLE "companies" ADD COLUMN "lifecycle_stage" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "lead_status" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "owner_id" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "industry" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "revenue" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "employee_count" integer;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "phone" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "zip" text;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "hs_created_at" timestamp;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "hs_last_activity_at" timestamp;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "properties_json" jsonb;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "lifecycle_stage" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "lead_status" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "owner_id" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "seniority" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "phone" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "city" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "state" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "country" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "source" text;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "hs_created_at" timestamp;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "hs_last_activity_at" timestamp;--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "properties_json" jsonb;

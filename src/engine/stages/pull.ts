@@ -12,17 +12,32 @@ import { classifyPersona } from '../persona.js';
 
 const COMPANY_PROPS = [
   'name', 'domain', 'website', 'type', 'sub_type', 'audience_type', 'country',
-  'state', 'city', 'linkedin_company_page', 'founded_year', 'numberofemployees', 'industry',
+  'state', 'city', 'zip', 'linkedin_company_page', 'founded_year', 'numberofemployees', 'industry',
+  'lifecyclestage', 'hs_lead_status', 'hubspot_owner_id', 'annualrevenue', 'phone',
+  'createdate', 'hs_lastmodifieddate', 'notes_last_updated',
 ];
 
-/** Map a HubSpot company's properties → our CompanyInput. */
+// Known props we promote to columns; everything else goes to propertiesJson.
+const COMPANY_MAPPED = new Set([...COMPANY_PROPS]);
+
+function toInt(v?: string): number | undefined {
+  const n = Number(String(v ?? '').replace(/[^\d]/g, ''));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** Map a HubSpot company's properties → CompanyInput (known→columns, rest→propertiesJson). */
 function mapCompany(id: string, p: Record<string, string>): CompanyInput {
+  const extra: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(p)) if (!COMPANY_MAPPED.has(k) && v) extra[k] = v;
   return {
     name: p.name, domain: p.domain, website: p.website,
     type: p.type, subType: p.sub_type, audienceType: p.audience_type,
-    country: p.country, state: p.state, city: p.city,
+    country: p.country, state: p.state, city: p.city, zip: p.zip,
     linkedinUrl: p.linkedin_company_page, foundedYear: p.founded_year,
     sizeEmployees: p.numberofemployees, sector: p.industry, hubspotId: id,
+    lifecycleStage: p.lifecyclestage, leadStatus: p.hs_lead_status, ownerId: p.hubspot_owner_id,
+    industry: p.industry, revenue: p.annualrevenue, employeeCount: toInt(p.numberofemployees),
+    phone: p.phone, propertiesJson: extra,
   };
 }
 
@@ -69,7 +84,10 @@ export async function pullCompanies(
 const CONTACT_PROPS = [
   'firstname', 'lastname', 'email', 'jobtitle', 'hs_persona',
   'hs_linkedin_url', 'linkedin', 'associatedcompanyid',
+  'lifecyclestage', 'hs_lead_status', 'hubspot_owner_id', 'seniority', 'phone',
+  'city', 'state', 'country', 'hs_analytics_source', 'createdate', 'lastmodifieddate',
 ];
+const CONTACT_MAPPED = new Set([...CONTACT_PROPS]);
 
 /** Cache HubSpot company-id → domain so we can associate pulled contacts to companies. */
 async function companyDomainByHsId(): Promise<Map<string, string>> {
@@ -98,11 +116,16 @@ export async function pullContacts(
       const p = obj.properties;
       if (!p.email && !p.firstname && !p.lastname) continue;
       const companyDomain = p.associatedcompanyid ? hsIdToDomain.get(p.associatedcompanyid) : undefined;
+      const extra: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(p)) if (!CONTACT_MAPPED.has(k) && v) extra[k] = v;
       const input: ContactInput = {
         firstName: p.firstname, lastName: p.lastname, email: p.email, jobTitle: p.jobtitle,
         persona: p.hs_persona || classifyPersona(p.jobtitle) || '',
         linkedinUrl: p.hs_linkedin_url || p.linkedin,
         companyDomain, hubspotId: obj.id,
+        lifecycleStage: p.lifecyclestage, leadStatus: p.hs_lead_status, ownerId: p.hubspot_owner_id,
+        seniority: p.seniority, phone: p.phone, city: p.city, state: p.state, country: p.country,
+        source: p.hs_analytics_source, propertiesJson: extra,
       };
       try {
         await resolveContact(input, 'hubspot_pull');

@@ -17,12 +17,19 @@ export interface CompanyInput {
   audienceType?: string; country?: string; state?: string; city?: string;
   linkedinUrl?: string; foundedYear?: string; sizeEmployees?: string; sector?: string;
   focus?: string; hubspotId?: string;
+  // Expanded HubSpot fields (optional).
+  lifecycleStage?: string; leadStatus?: string; ownerId?: string; industry?: string;
+  revenue?: string; employeeCount?: number; phone?: string; zip?: string;
+  propertiesJson?: Record<string, unknown>;
 }
 
 export interface ContactInput {
   firstName?: string; lastName?: string; email?: string; jobTitle?: string;
   persona?: string; linkedinUrl?: string; emailStatus?: string; hubspotId?: string;
   companyDomain?: string;
+  lifecycleStage?: string; leadStatus?: string; ownerId?: string; seniority?: string;
+  phone?: string; city?: string; state?: string; country?: string; source?: string;
+  propertiesJson?: Record<string, unknown>;
 }
 
 const clean = (v?: string) => (v && v.trim() ? v.trim() : null);
@@ -54,7 +61,13 @@ export async function resolveCompany(input: CompanyInput, source: string): Promi
     country: clean(input.country), state: clean(input.state), city: clean(input.city),
     linkedinUrl: clean(input.linkedinUrl), foundedYear: clean(input.foundedYear),
     sizeEmployees: clean(input.sizeEmployees), sector: clean(input.sector), focus: clean(input.focus),
-    hubspotId: clean(input.hubspotId), updatedAt: new Date(),
+    hubspotId: clean(input.hubspotId),
+    lifecycleStage: clean(input.lifecycleStage), leadStatus: clean(input.leadStatus),
+    ownerId: clean(input.ownerId), industry: clean(input.industry), revenue: clean(input.revenue),
+    employeeCount: Number.isFinite(input.employeeCount) ? input.employeeCount! : null,
+    phone: clean(input.phone), zip: clean(input.zip),
+    propertiesJson: input.propertiesJson && Object.keys(input.propertiesJson).length ? input.propertiesJson : null,
+    updatedAt: new Date(),
   };
 
   if (id) {
@@ -105,7 +118,13 @@ export async function resolveContact(input: ContactInput, source: string): Promi
   const values = {
     firstName: clean(input.firstName), lastName: clean(input.lastName), email: email || null,
     jobTitle: clean(input.jobTitle), persona: clean(input.persona), linkedinUrl: clean(input.linkedinUrl),
-    emailStatus: clean(input.emailStatus), hubspotId: clean(input.hubspotId), updatedAt: new Date(),
+    emailStatus: clean(input.emailStatus), hubspotId: clean(input.hubspotId),
+    lifecycleStage: clean(input.lifecycleStage), leadStatus: clean(input.leadStatus),
+    ownerId: clean(input.ownerId), seniority: clean(input.seniority), phone: clean(input.phone),
+    city: clean(input.city), state: clean(input.state), country: clean(input.country),
+    source: clean(input.source),
+    propertiesJson: input.propertiesJson && Object.keys(input.propertiesJson).length ? input.propertiesJson : null,
+    updatedAt: new Date(),
   };
 
   if (id) {
