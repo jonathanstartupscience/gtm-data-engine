@@ -20,3 +20,4 @@ data/*.xlsx
 .DS_Store
 _pp.ts
 *.tmp.ts
+_run.ts
