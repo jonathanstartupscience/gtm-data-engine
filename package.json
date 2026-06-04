@@ -18,7 +18,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "engine": "tsx src/engine/cli.ts",
-    "seed:eso": "tsx scripts/seed-eso.ts"
+    "seed:eso": "tsx scripts/seed-eso.ts",
+    "classify": "tsx scripts/classify.ts"
   },
   "dependencies": {
     "csv-parse": "^6.2.1",

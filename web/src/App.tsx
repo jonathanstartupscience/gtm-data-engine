@@ -20,6 +20,7 @@ export function App() {
         <NavLink to="/import" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Import</NavLink>
         <NavLink to="/companies" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Companies</NavLink>
         <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Contacts</NavLink>
+        <NavLink to="/classify" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Classify</NavLink>
         <NavLink to="/runs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Workflows</NavLink>
         <NavLink to="/connectors" className={() => 'navlink' + (pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync' ? ' active' : '')}>Connectors</NavLink>
         {(pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync') && (

@@ -15,6 +15,13 @@
       "when": 1780520194728,
       "tag": "0001_busy_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780531782774,
+      "tag": "0002_confused_the_order",
+      "breakpoints": true
     }
   ]
 }

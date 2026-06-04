@@ -114,14 +114,14 @@ interface Recipe { id: string; name: string; desc: string; testLimit?: number; t
 const RECIPES: Recipe[] = [
   {
     id: 'pull-hubspot-companies',
-    name: 'Sync companies from HubSpot',
-    desc: 'Imports companies from HubSpot across all types and sub-types, deduplicated against existing records. Run a test batch first, then the full sync.',
+    name: 'Import companies from HubSpot',
+    desc: 'Pulls companies IN from HubSpot across all types and sub-types, deduplicated against existing records. (To push data back out to HubSpot, use Connectors → Sync to HubSpot.) Run a test batch first, then the full import.',
     testLimit: 500, testLabel: 'Test 500',
   },
   {
     id: 'pull-hubspot-contacts',
-    name: 'Sync contacts from HubSpot',
-    desc: 'Imports people from HubSpot and links them to their companies, deduplicated by email. Requires a company sync first.',
+    name: 'Import contacts from HubSpot',
+    desc: 'Pulls people IN from HubSpot and links them to their companies, deduplicated by email. Run the company import first.',
     testLimit: 500, testLabel: 'Test 500',
   },
   {

@@ -162,6 +162,25 @@ export const verifications = pgTable(
   },
 );
 
+// ---------------------------------------------------------------- classification review queue
+// AI-proposed type/sub_type for companies missing them. NEVER auto-applied — reviewed first.
+export const classifyProposals = pgTable(
+  'classify_proposals',
+  {
+    id: serial('id').primaryKey(),
+    companyId: integer('company_id').references(() => companies.id).notNull(),
+    proposedType: text('proposed_type'),
+    proposedSubType: text('proposed_sub_type'),
+    confidence: real('confidence'),
+    reason: text('reason'),
+    signal: text('signal'),         // what was read (ocean | homepage | both)
+    status: text('status').default('pending').notNull(), // pending | approved | rejected | applied
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    reviewedAt: timestamp('reviewed_at'),
+  },
+  (t) => ({ companyIdx: uniqueIndex('classify_company_idx').on(t.companyId) }),
+);
+
 // ---------------------------------------------------------------- activation + runs
 export const hubspotSync = pgTable('hubspot_sync', {
   id: serial('id').primaryKey(),

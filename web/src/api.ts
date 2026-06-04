@@ -73,7 +73,16 @@ export const api = {
       `/api/discover/find-contacts/scope?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
+  classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number }>('/api/classify/audit'),
+  classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
+  classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number }>('/api/classify/decide', { approve, reject }),
 };
+
+export interface Proposal {
+  id: number; companyId: number; type: string | null; subType: string | null;
+  confidence: number | null; reason: string | null; signal: string | null;
+  name: string | null; domain: string | null; currentType: string | null; currentSubType: string | null;
+}
 
 export interface Scope {
   recipe: string; candidates: number; unit: string; estCostUsd: number;
