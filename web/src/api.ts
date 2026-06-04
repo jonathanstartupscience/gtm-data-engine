@@ -77,7 +77,43 @@ export const api = {
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
   classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number }>('/api/classify/decide', { approve, reject }),
   hygieneAnalytics: () => get<HygieneAnalytics>('/api/hygiene/analytics'),
+
+  // ---- Outbound Engine (Email Bison) ----
+  outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
+  outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
+  outboundSync: () => post<{ synced: number; added: number; updated: number }>('/api/outbound/sync', {}),
+  outboundSenders: () => get<{ senders: Sender[] }>('/api/outbound/senders'),
+  outboundSegmentCount: (persona: string, subType: string) =>
+    get<{ count: number }>(`/api/outbound/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
+  outboundBuild: (body: BuildCampaignBody) => post<{ id: number; bisonCampaignId: number; partialFailures: string[] }>('/api/outbound/campaigns', body),
+  outboundLaunch: (id: number) => post<{ ok: boolean; status: string }>(`/api/outbound/campaigns/${id}/launch`, { confirm: true }),
+  outboundPause: (id: number) => post<{ ok: boolean; status: string }>(`/api/outbound/campaigns/${id}/pause`, {}),
+  outboundSendTest: (id: number, email: string) => post<{ ok: boolean; status: number }>(`/api/outbound/campaigns/${id}/send-test`, { email }),
+  outboundRefreshStats: (id: number) => post<{ stats: CampaignStats }>(`/api/outbound/campaigns/${id}/refresh-stats`, {}),
 };
+
+export interface OutboundCampaign {
+  id: number; bisonCampaignId: number | null; name: string; status: string;
+  persona: string | null; subType: string | null;
+  scheduleJson: unknown; limitsJson: unknown; createdAt: string; syncedAt: string | null;
+}
+export interface SequenceStep {
+  id: number; campaignId: number; stepOrder: number; waitInDays: number;
+  subject: string | null; body: string | null; variant: string | null; threadReply: boolean | null;
+}
+export interface SenderAssignment { id: number; campaignId: number; senderEmailId: number; senderEmail: string | null; dailyLimit: number | null }
+export interface Sender { id: number; email: string; name?: string; daily_limit?: number }
+export interface CampaignStats {
+  id: number; campaignId: number; capturedAt: string;
+  sent: number | null; opens: number | null; replies: number | null;
+  bounces: number | null; interested: number | null; unsubscribed: number | null;
+}
+export interface BuildStep { email_subject: string; email_body: string; wait_in_days: number; order: number; variant?: string; thread_reply?: boolean }
+export interface BuildCampaignBody {
+  name: string; persona?: string; subType?: string;
+  schedule?: { timezone: string; days: { day: string; from: string; to: string }[] };
+  senderEmailIds?: number[]; steps: BuildStep[]; limits?: Record<string, unknown>;
+}
 
 export interface HygieneAnalytics {
   companies: { total: number; typed: number; withDomain: number; withSize: number };

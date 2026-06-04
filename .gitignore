@@ -18,6 +18,7 @@ data/*.xlsx
 # Logs / OS
 *.log
 .DS_Store
-_pp.ts
+# Scratch / one-off runner files (any leading-underscore script)
+_*.ts
+_*.mjs
 *.tmp.ts
-_run.ts

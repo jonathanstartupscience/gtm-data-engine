@@ -14,6 +14,9 @@ import { FindContacts } from './pages/FindContacts.js';
 import { Logs } from './pages/Logs.js';
 import { Sync } from './pages/Sync.js';
 import { Campaigns } from './pages/Campaigns.js';
+import { OutboundOverview } from './pages/OutboundOverview.js';
+import { CampaignBuilder } from './pages/CampaignBuilder.js';
+import { CampaignDetail } from './pages/CampaignDetail.js';
 import { Connectors } from './pages/Connectors.js';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
@@ -36,7 +39,10 @@ const router = createBrowserRouter([
       { path: 'find-contacts', element: <FindContacts /> },
       { path: 'logs', element: <Logs /> },
       { path: 'sync', element: <Sync /> },
+      { path: 'outbound', element: <OutboundOverview /> },
       { path: 'campaigns', element: <Campaigns /> },
+      { path: 'campaigns/new', element: <CampaignBuilder /> },
+      { path: 'campaigns/:id', element: <CampaignDetail /> },
       { path: 'connectors', element: <Connectors /> },
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },

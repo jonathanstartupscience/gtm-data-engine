@@ -218,6 +218,65 @@ export const hubspotSync = pgTable('hubspot_sync', {
   lastSynced: timestamp('last_synced').defaultNow().notNull(),
 });
 
+// ---------------------------------------------------------------- outbound (Email Bison)
+// The engine is the source of truth for campaign *definitions* (templating/clone/compare);
+// Email Bison remains the execution system. bisonCampaignId links our record to theirs.
+export const bisonCampaigns = pgTable('bison_campaigns', {
+  id: serial('id').primaryKey(),
+  bisonCampaignId: integer('bison_campaign_id'), // id in Email Bison (null until created there)
+  name: text('name').notNull(),
+  status: text('status').default('draft').notNull(), // draft | created | active | paused | done
+  persona: text('persona'),
+  subType: text('sub_type'),
+  scheduleJson: jsonb('schedule_json'),
+  limitsJson: jsonb('limits_json'),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  syncedAt: timestamp('synced_at'),
+});
+
+export const bisonSequences = pgTable('bison_sequences', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),
+  stepOrder: integer('step_order').notNull(),
+  waitInDays: integer('wait_in_days').default(0).notNull(),
+  subject: text('subject'),
+  body: text('body'),
+  variant: text('variant'),
+  threadReply: boolean('thread_reply').default(false),
+});
+
+export const bisonSenderAssignments = pgTable('bison_sender_assignments', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),
+  senderEmailId: integer('sender_email_id').notNull(),
+  senderEmail: text('sender_email'),
+  dailyLimit: integer('daily_limit'),
+});
+
+export const bisonCampaignStats = pgTable('bison_campaign_stats', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),
+  capturedAt: timestamp('captured_at').defaultNow().notNull(),
+  sent: integer('sent'),
+  opens: integer('opens'),
+  replies: integer('replies'),
+  bounces: integer('bounces'),
+  interested: integer('interested'),
+  unsubscribed: integer('unsubscribed'),
+  perStepJson: jsonb('per_step_json'),
+});
+
+export const bisonPushLog = pgTable('bison_push_log', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),
+  runId: integer('run_id'),
+  leadsCreated: integer('leads_created'),
+  leadsAttached: integer('leads_attached'),
+  segmentFilterJson: jsonb('segment_filter_json'),
+  at: timestamp('at').defaultNow().notNull(),
+});
+
 export const runs = pgTable('runs', {
   id: serial('id').primaryKey(),
   kind: text('kind').notNull(), // recipe name: verify | enrich | discover | sync | full

@@ -78,6 +78,36 @@ body {
 }
 .navlink:hover { background: rgba(255,255,255,0.06); color: #fff; }
 .navlink.active { background: var(--green); color: var(--dark); font-weight: 600; }
+.subnav { margin-left: 12px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 6px; }
+
+/* ---- workspace switcher (top-left, replaces the static brand lockup) ---- */
+.ws-switcher { position: relative; margin: 0 0 20px; }
+.ws-current, .ws-option {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-on-dark); padding: 10px 12px; border-radius: var(--radius-sm);
+  cursor: pointer; font: 500 14px 'DM Sans', sans-serif;
+}
+.ws-current:hover, .ws-option:hover { background: rgba(255,255,255,0.1); }
+.ws-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.ws-dot[data-ws="data"] { background: var(--green); }
+.ws-dot[data-ws="outbound"] { background: var(--accent); }
+.ws-current-text { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+.ws-name { font-weight: 600; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-tagline { font-size: 11px; color: rgba(247,246,242,0.5); }
+.ws-caret { color: rgba(247,246,242,0.5); font-size: 11px; }
+.ws-check { color: var(--green); font-weight: 700; }
+.ws-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 50;
+  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm);
+  padding: 6px; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+}
+.ws-menu-label {
+  font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: rgba(247,246,242,0.4); padding: 6px 8px 8px;
+}
+.ws-option { margin-bottom: 4px; }
+.ws-option.active { background: rgba(101,194,56,0.12); }
 
 .help-btn {
   margin-top: auto; display: flex; align-items: center; gap: 8px;

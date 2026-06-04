@@ -1,110 +1,71 @@
 import { useEffect, useState } from 'react';
-import { api, postStream, type TaxonomyType } from '../api.js';
+import { Link } from 'react-router-dom';
+import { api, type OutboundCampaign } from '../api.js';
 
-const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
+const STATUS_TAG: Record<string, string> = {
+  active: 'deliverable', paused: 'risky_catchall', created: 'role_based', draft: 'unknown', done: 'role_based',
+};
 
+/** Campaigns list — our stored campaign definitions, syncable from Bison. */
 export function Campaigns() {
-  const [campaigns, setCampaigns] = useState<{ id: number; name: string }[]>([]);
-  const [campaignsErr, setCampaignsErr] = useState('');
-  const [campaignId, setCampaignId] = useState<number | ''>('');
-  const [persona, setPersona] = useState('');
-  const [subType, setSubType] = useState('');
-  const [types, setTypes] = useState<TaxonomyType[]>([]);
-  const [count, setCount] = useState<number | null>(null);
-  const [pushing, setPushing] = useState(false);
-  const [log, setLog] = useState<string[]>([]);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [campaigns, setCampaigns] = useState<OutboundCampaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [err, setErr] = useState('');
+  const [note, setNote] = useState('');
 
-  useEffect(() => {
-    api.bisonCampaigns().then((d) => setCampaigns(d.campaigns)).catch((e) => setCampaignsErr(String(e)));
-    api.taxonomy().then((d) => setTypes(d.types));
-  }, []);
+  function load() {
+    setLoading(true);
+    api.outboundCampaigns().then((d) => setCampaigns(d.campaigns)).catch((e) => setErr(String(e))).finally(() => setLoading(false));
+  }
+  useEffect(load, []);
 
-  useEffect(() => {
-    setCount(null);
-    const t = setTimeout(() => api.bisonSegmentCount(persona, subType).then((d) => setCount(d.count)), 200);
-    return () => clearTimeout(t);
-  }, [persona, subType]);
-
-  const allSubTypes = types.flatMap((t) => t.subTypes.map((s) => s.value));
-
-  async function push() {
-    if (!campaignId) return;
-    setPushing(true); setLog([]); setResult(null);
-    await postStream('/api/bison/push',
-      { confirm: true, campaignId, persona: persona || undefined, subType: subType || undefined },
-      (ev, data) => {
-        if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
-        else if (ev === 'done') setResult((data as { stats: Record<string, unknown> }).stats);
-        else if (ev === 'error') setLog((l) => [...l, '✗ ' + (data as { message: string }).message]);
-      });
-    setPushing(false);
+  async function sync() {
+    setSyncing(true); setErr(''); setNote('');
+    try {
+      const r = await api.outboundSync();
+      setNote(`Synced ${r.synced} campaigns from Bison (${r.added} new, ${r.updated} updated).`);
+      load();
+    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check the Email Bison key/instance URL in the Data Engine → Logs & Health.'); }
+    setSyncing(false);
   }
 
   return (
     <>
-      <h1 className="page-title">Email Bison</h1>
-      <p className="page-sub">Send a campaign-ready segment to a cold-email campaign. Only deliverable and risky catch-all addresses are included — role-based, undeliverable, and unverified contacts are automatically excluded.</p>
+      <h1 className="page-title">Campaigns</h1>
+      <p className="page-sub">Your cold-email campaigns. Build a new one, or sync the existing campaigns from Email Bison to mirror and track them here.</p>
 
-      {campaignsErr && (
-        <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>
-          Couldn’t load campaigns: {campaignsErr}. Check the Email Bison API key and instance URL in Logs &amp; Health.
+      <div className="toolbar">
+        <Link to="/campaigns/new" className="btn btn-primary">+ New campaign</Link>
+        <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from Bison'}</button>
+      </div>
+
+      {note && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{note}</div>}
+      {err && <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>{err}</div>}
+
+      {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
+        <div className="panel">
+          <p>No campaigns yet. <Link to="/campaigns/new">Build your first campaign</Link> or sync from Bison.</p>
+        </div>
+      ) : (
+        <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <table>
+            <thead><tr><th>Campaign</th><th>Status</th><th>Persona</th><th>Sub-type</th><th>In Bison</th><th>Created</th></tr></thead>
+            <tbody>
+              {campaigns.map((c) => (
+                <tr key={c.id}>
+                  <td><Link to={`/campaigns/${c.id}`}>{c.name}</Link></td>
+                  <td><span className={'tag ' + (STATUS_TAG[c.status] ?? 'unknown')}>{c.status}</span></td>
+                  <td>{c.persona ?? <span className="muted">—</span>}</td>
+                  <td>{c.subType ?? <span className="muted">—</span>}</td>
+                  <td>{c.bisonCampaignId ? `#${c.bisonCampaignId}` : <span className="muted">not created</span>}</td>
+                  <td className="muted">{new Date(c.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>1 · Choose a campaign</h3>
-        <select className="select" value={campaignId} onChange={(e) => setCampaignId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">Select a campaign…</option>
-          {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </div>
-
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <h3>2 · Choose who to send to</h3>
-        <div className="toolbar" style={{ marginBottom: 0 }}>
-          <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
-            {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
-          </select>
-          <select className="select" value={subType} onChange={(e) => setSubType(e.target.value)}>
-            <option value="">All sub-types</option>
-            {allSubTypes.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <p style={{ marginTop: 14, fontSize: 15 }}>
-          {count === null ? 'Counting…' : <><strong>{count.toLocaleString()}</strong> campaign-ready contacts match this segment.</>}
-        </p>
-      </div>
-
-      <div className="panel">
-        <h3>3 · Send</h3>
-        {!result ? (
-          <>
-            <button className="btn btn-primary" disabled={!campaignId || pushing || !count}
-              onClick={push}>
-              {pushing ? 'Sending…' : `Send ${count?.toLocaleString() ?? ''} contacts to campaign`}
-            </button>
-            {!campaignId && <p className="muted" style={{ marginTop: 8 }}>Select a campaign first.</p>}
-            {pushing && <p className="muted" style={{ marginTop: 8 }}><span className="spinner" /> Safe to leave — runs on the server.</p>}
-            {log.length > 0 && (
-              <details open style={{ marginTop: 12 }}><summary className="muted">Live activity</summary>
-                <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto', marginTop: 8 }}>
-                  {log.map((l, i) => <div key={i}>{l}</div>)}
-                </div>
-              </details>
-            )}
-          </>
-        ) : (
-          <div style={{ borderLeft: '3px solid var(--green)', paddingLeft: 12 }}>
-            <p style={{ fontSize: 15 }}>
-              Sent to Email Bison: <strong>{Number(result.created ?? 0).toLocaleString()}</strong> leads created,{' '}
-              {Number(result.attached ?? 0).toLocaleString()} attached to the campaign
-              {Number(result.failed ?? 0) > 0 && <>, {Number(result.failed).toLocaleString()} failed</>}.
-            </p>
-            <button className="btn" onClick={() => setResult(null)}>Send another</button>
-          </div>
-        )}
-      </div>
     </>
   );
 }

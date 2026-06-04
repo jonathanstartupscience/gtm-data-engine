@@ -2,35 +2,52 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { HelpDrawer } from './components/HelpDrawer.js';
 import { UserMenu } from './components/UserMenu.js';
+import { WorkspaceSwitcher, workspaceForPath } from './components/WorkspaceSwitcher.js';
+
+const nav = ({ isActive }: { isActive: boolean }) => 'navlink' + (isActive ? ' active' : '');
 
 export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const { pathname } = useLocation();
+  const ws = workspaceForPath(pathname);
 
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="brand-lockup">
-          <img src="/brand/logo-white.svg" alt="Startup Science" />
-          <div className="brand-eyebrow">GTM Data Engine</div>
-        </div>
-        <NavLink to="/" end className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Dashboard</NavLink>
-        <NavLink to="/discover" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Find Companies</NavLink>
-        <NavLink to="/find-contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Find Contacts</NavLink>
-        <NavLink to="/import" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Import</NavLink>
-        <NavLink to="/companies" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Companies</NavLink>
-        <NavLink to="/contacts" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Contacts</NavLink>
-        <NavLink to="/classify" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Classify</NavLink>
-        <NavLink to="/hygiene" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Data Hygiene</NavLink>
-        <NavLink to="/runs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Workflows</NavLink>
-        <NavLink to="/connectors" className={() => 'navlink' + (pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync' ? ' active' : '')}>Connectors</NavLink>
-        {(pathname.startsWith('/connectors') || pathname === '/campaigns' || pathname === '/sync') && (
-          <div style={{ marginLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 6 }}>
-            <NavLink to="/connectors/hubspot" className={({ isActive }) => 'navlink' + (isActive || pathname === '/sync' ? ' active' : '')}>HubSpot</NavLink>
-            <NavLink to="/campaigns" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Email Bison</NavLink>
-          </div>
+        <WorkspaceSwitcher active={ws} />
+
+        {ws.id === 'data' && (
+          <>
+            <NavLink to="/" end className={nav}>Dashboard</NavLink>
+            <NavLink to="/discover" className={nav}>Find Companies</NavLink>
+            <NavLink to="/find-contacts" className={nav}>Find Contacts</NavLink>
+            <NavLink to="/import" className={nav}>Import</NavLink>
+            <NavLink to="/companies" className={nav}>Companies</NavLink>
+            <NavLink to="/contacts" className={nav}>Contacts</NavLink>
+            <NavLink to="/classify" className={nav}>Classify</NavLink>
+            <NavLink to="/hygiene" className={nav}>Data Hygiene</NavLink>
+            <NavLink to="/runs" className={nav}>Workflows</NavLink>
+            <NavLink
+              to="/connectors"
+              className={() => 'navlink' + (pathname.startsWith('/connectors') || pathname === '/sync' ? ' active' : '')}
+            >Connectors</NavLink>
+            {(pathname.startsWith('/connectors') || pathname === '/sync') && (
+              <div className="subnav">
+                <NavLink to="/connectors/hubspot" className={({ isActive }) => 'navlink' + (isActive || pathname === '/sync' ? ' active' : '')}>HubSpot</NavLink>
+              </div>
+            )}
+            <NavLink to="/logs" className={nav}>Logs &amp; Health</NavLink>
+          </>
         )}
-        <NavLink to="/logs" className={({ isActive }) => 'navlink' + (isActive ? ' active' : '')}>Logs &amp; Health</NavLink>
+
+        {ws.id === 'outbound' && (
+          <>
+            <NavLink to="/outbound" end className={nav}>Overview</NavLink>
+            <NavLink to="/campaigns" className={nav}>Campaigns</NavLink>
+            <NavLink to="/campaigns/new" className={nav}>New Campaign</NavLink>
+          </>
+        )}
+
         <button className="help-btn" onClick={() => setHelpOpen(true)}>
           <span>?</span> Help &amp; how it works
         </button>
