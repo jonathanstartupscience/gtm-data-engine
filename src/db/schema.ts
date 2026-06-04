@@ -267,6 +267,41 @@ export const bisonCampaignStats = pgTable('bison_campaign_stats', {
   perStepJson: jsonb('per_step_json'),
 });
 
+// Reusable sequence templates — built independently in the Sequence Library, then COPIED into a
+// campaign on attach (editing a campaign's copy never mutates the template). Enables A/B testing
+// messaging across campaigns.
+export const sequenceTemplates = pgTable('sequence_templates', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  persona: text('persona'),
+  stepsJson: jsonb('steps_json').notNull(), // [{order, wait_in_days, email_subject, email_body, variant?, thread_reply?}]
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Captured replies (via Bison webhook + poll). Positive/interested replies are what we jump on.
+export const bisonReplies = pgTable(
+  'bison_replies',
+  {
+    id: serial('id').primaryKey(),
+    campaignId: integer('campaign_id'),            // our bison_campaigns.id (best-effort link)
+    bisonCampaignId: integer('bison_campaign_id'), // raw id from the event
+    bisonReplyId: text('bison_reply_id'),          // dedup key from Bison (event/message id)
+    leadEmail: text('lead_email'),
+    leadName: text('lead_name'),
+    subject: text('subject'),
+    body: text('body'),
+    sentiment: text('sentiment'),                  // interested | positive | neutral | negative | unknown
+    isPositive: boolean('is_positive').default(false),
+    status: text('status').default('new').notNull(), // new | read | handled
+    receivedAt: timestamp('received_at').defaultNow().notNull(),
+    raw: jsonb('raw'),
+  },
+  (t) => ({ dedup: uniqueIndex('bison_reply_dedup_idx').on(t.bisonReplyId) }),
+);
+
 export const bisonPushLog = pgTable('bison_push_log', {
   id: serial('id').primaryKey(),
   campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),

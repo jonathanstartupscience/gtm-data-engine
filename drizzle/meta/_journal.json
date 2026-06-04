@@ -36,6 +36,13 @@
       "when": 1780596466171,
       "tag": "0004_legal_cerebro",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780599213440,
+      "tag": "0005_organic_stellaris",
+      "breakpoints": true
     }
   ]
 }

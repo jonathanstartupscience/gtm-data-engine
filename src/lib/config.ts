@@ -26,6 +26,10 @@ export const config = {
   emailBisonKey: req('EMAILBISON_API_KEY'),
   emailBisonBase: req('EMAILBISON_BASE_URL', 'https://dedi.emailbison.com/api'),
   heyreachKey: req('HEYREACH_API_KEY'),
+
+  // Public app URL (for building webhook callback URLs) + the secret that guards the receiver.
+  publicUrl: req('PUBLIC_URL', 'https://gtm.startupscience.io'),
+  bisonWebhookSecret: req('BISON_WEBHOOK_SECRET'),
 } as const;
 
 /** Which provider runs behind each swappable stage. Change here, not in pipeline logic. */

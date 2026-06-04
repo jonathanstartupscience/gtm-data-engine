@@ -90,7 +90,40 @@ export const api = {
   outboundPause: (id: number) => post<{ ok: boolean; status: string }>(`/api/outbound/campaigns/${id}/pause`, {}),
   outboundSendTest: (id: number, email: string) => post<{ ok: boolean; status: number }>(`/api/outbound/campaigns/${id}/send-test`, { email }),
   outboundRefreshStats: (id: number) => post<{ stats: CampaignStats }>(`/api/outbound/campaigns/${id}/refresh-stats`, {}),
+
+  // Sequence library
+  sequences: () => get<{ sequences: SequenceTemplate[] }>('/api/outbound/sequences'),
+  sequence: (id: number) => get<{ sequence: SequenceTemplate }>(`/api/outbound/sequences/${id}`),
+  saveSequence: (body: SequenceBody) => post<{ sequence: SequenceTemplate }>('/api/outbound/sequences', body),
+  updateSequence: (id: number, body: SequenceBody) => put<{ sequence: SequenceTemplate }>(`/api/outbound/sequences/${id}`, body),
+  deleteSequence: (id: number) => del<{ ok: boolean }>(`/api/outbound/sequences/${id}`),
+
+  // Inbox / replies
+  inboxUnreadCount: () => get<{ count: number }>('/api/outbound/inbox/unread-count'),
+  inbox: (positiveOnly: boolean) => get<{ replies: Reply[] }>(`/api/outbound/inbox${positiveOnly ? '?positive=1' : ''}`),
+  inboxSync: () => post<{ pulled: number; added: number }>('/api/outbound/inbox/sync', {}),
+  inboxAction: (id: number, body: { status?: string; markInterested?: boolean }) =>
+    post<{ ok: boolean; interestedOk?: boolean }>(`/api/outbound/inbox/${id}/action`, body),
+
+  // Performance
+  performance: () => get<{ campaigns: CampaignPerf[] }>('/api/outbound/performance'),
 };
+
+export interface SequenceTemplate {
+  id: number; name: string; description: string | null; persona: string | null;
+  stepsJson: BuildStep[]; createdAt: string; updatedAt: string;
+}
+export interface SequenceBody { name: string; description?: string; persona?: string; steps: BuildStep[] }
+export interface Reply {
+  id: number; campaignId: number | null; bisonCampaignId: number | null;
+  leadEmail: string | null; leadName: string | null; subject: string | null; body: string | null;
+  sentiment: string | null; isPositive: boolean; status: string; receivedAt: string;
+}
+export interface CampaignPerf {
+  id: number; name: string; status: string; persona: string | null; subType: string | null;
+  sent: number; opens: number; replies: number; bounces: number; interested: number; positiveReplies: number;
+  openRate: number; replyRate: number; bounceRate: number; capturedAt: string | null;
+}
 
 export interface OutboundCampaign {
   id: number; bisonCampaignId: number | null; name: string; status: string;
@@ -168,10 +201,19 @@ export interface ImportPreview {
 }
 
 async function post<T>(url: string, body: unknown): Promise<T> {
+  return mutate<T>('POST', url, body);
+}
+async function put<T>(url: string, body: unknown): Promise<T> {
+  return mutate<T>('PUT', url, body);
+}
+async function del<T>(url: string): Promise<T> {
+  return mutate<T>('DELETE', url);
+}
+async function mutate<T>(method: string, url: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenGetter ? await tokenGetter() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
-  const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  const r = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json() as Promise<T>;
 }

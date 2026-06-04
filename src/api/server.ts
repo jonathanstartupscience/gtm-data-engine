@@ -18,6 +18,7 @@ import { connectorsRouter } from './routes/connectors.js';
 import { classifyRouter } from './routes/classify.js';
 import { hygieneRouter } from './routes/hygiene.js';
 import { outboundRouter } from './routes/outbound.js';
+import { webhooksRouter } from './routes/webhooks.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -34,6 +35,8 @@ app.use(express.json({ limit: '256kb' }));
 
 // Public: health + whether the client must authenticate.
 app.use('/api/health', health);
+// Public: inbound vendor webhooks (guarded by a secret in the path, not Clerk).
+app.use('/api/webhooks', webhooksRouter);
 app.get('/api/config', (_req, res) => res.json({
   authRequired: authConfigured(),
   // which integrations have a key configured (booleans only — never the values)

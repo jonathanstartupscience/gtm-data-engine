@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api, type Sender, type BuildStep, type TaxonomyType } from '../api.js';
+import { useNavigate, Link } from 'react-router-dom';
+import { api, type Sender, type BuildStep, type TaxonomyType, type SequenceTemplate } from '../api.js';
+import { SequenceStepsEditor, blankStep } from '../components/SequenceStepsEditor.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-
-const VARS = ['{{first_name}}', '{{last_name}}', '{{company}}', '{{title}}', '{{persona}}', '{{sub_type}}'];
-
-function blankStep(order: number): BuildStep {
-  return { order, wait_in_days: order === 1 ? 0 : 3, email_subject: '', email_body: '' };
-}
 
 /** Guided campaign builder: name → audience → schedule → senders → sequence → preview → create. */
 export function CampaignBuilder() {
@@ -30,6 +25,8 @@ export function CampaignBuilder() {
   const [picked, setPicked] = useState<number[]>([]);
 
   const [steps, setSteps] = useState<BuildStep[]>([blankStep(1)]);
+  const [sequences, setSequences] = useState<SequenceTemplate[]>([]);
+  const [attachedSeqId, setAttachedSeqId] = useState<number | ''>('');
 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +34,16 @@ export function CampaignBuilder() {
   useEffect(() => {
     api.taxonomy().then((d) => setTypes(d.types));
     api.outboundSenders().then((d) => setSenders(d.senders)).catch((e) => setSendersErr(String(e)));
+    api.sequences().then((d) => setSequences(d.sequences)).catch(() => {});
   }, []);
+
+  // Attaching a saved sequence COPIES its steps in (editable here without touching the template).
+  function attachSequence(id: number | '') {
+    setAttachedSeqId(id);
+    if (id === '') return;
+    const seq = sequences.find((s) => s.id === id);
+    if (seq?.stepsJson?.length) setSteps(seq.stepsJson.map((s, i) => ({ ...s, order: i + 1 })));
+  }
 
   useEffect(() => {
     setCount(null);
@@ -46,12 +52,6 @@ export function CampaignBuilder() {
   }, [persona, subType]);
 
   const allSubTypes = types.flatMap((t) => t.subTypes.map((s) => s.value));
-
-  function setStep(i: number, patch: Partial<BuildStep>) {
-    setSteps((s) => s.map((st, idx) => (idx === i ? { ...st, ...patch } : st)));
-  }
-  function addStep() { setSteps((s) => [...s, blankStep(s.length + 1)]); }
-  function removeStep(i: number) { setSteps((s) => s.filter((_, idx) => idx !== i).map((st, idx) => ({ ...st, order: idx + 1 }))); }
 
   const stepsValid = steps.every((s) => s.email_subject.trim() && s.email_body.trim());
   const canCreate = name.trim() && stepsValid && !creating;
@@ -148,30 +148,16 @@ export function CampaignBuilder() {
       {/* 5 · Sequence */}
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>5 · Email sequence</h3>
-        <p className="muted" style={{ marginTop: -4, marginBottom: 12 }}>
-          Personalize with: {VARS.map((v) => <code key={v} style={{ marginRight: 6 }}>{v}</code>)}
-        </p>
-        {steps.map((s, i) => (
-          <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 14, marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <strong>Step {s.order}</strong>
-              <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
-                <label className="muted">Wait
-                  <input className="input" type="number" min={0} max={90} value={s.wait_in_days}
-                    onChange={(e) => setStep(i, { wait_in_days: Number(e.target.value) })}
-                    style={{ minWidth: 0, width: 70, marginLeft: 6 }} /> days
-                </label>
-                {steps.length > 1 && <button className="btn" onClick={() => removeStep(i)} style={{ padding: '4px 10px' }}>Remove</button>}
-              </div>
-            </div>
-            <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Subject line"
-              value={s.email_subject} onChange={(e) => setStep(i, { email_subject: e.target.value })} />
-            <textarea className="input" style={{ width: '100%', minHeight: 140, fontFamily: 'inherit', resize: 'vertical' }}
-              placeholder="Email body…  Hi {{first_name}}, …"
-              value={s.email_body} onChange={(e) => setStep(i, { email_body: e.target.value })} />
-          </div>
-        ))}
-        <button className="btn" onClick={addStep}>+ Add step</button>
+        <div className="toolbar" style={{ marginBottom: 12, alignItems: 'center' }}>
+          <label className="muted">Start from a saved sequence:</label>
+          <select className="select" value={attachedSeqId} onChange={(e) => attachSequence(e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Build from scratch</option>
+            {sequences.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.stepsJson.length} steps)</option>)}
+          </select>
+          <Link to="/sequences/new" className="muted" style={{ fontSize: 13 }}>+ manage sequences</Link>
+        </div>
+        {attachedSeqId !== '' && <p className="muted" style={{ marginTop: -4, marginBottom: 10 }}>Copied from the template — edits here won’t change the saved sequence.</p>}
+        <SequenceStepsEditor steps={steps} onChange={setSteps} />
       </div>
 
       {/* 6 · Create */}

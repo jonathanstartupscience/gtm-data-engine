@@ -1,15 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { HelpDrawer } from './components/HelpDrawer.js';
 import { UserMenu } from './components/UserMenu.js';
 import { WorkspaceSwitcher, workspaceForPath } from './components/WorkspaceSwitcher.js';
+import { api } from './api.js';
 
 const nav = ({ isActive }: { isActive: boolean }) => 'navlink' + (isActive ? ' active' : '');
 
 export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
+  const [replyBadge, setReplyBadge] = useState(0);
   const { pathname } = useLocation();
   const ws = workspaceForPath(pathname);
+
+  // Poll the unread positive-reply count so the Inbox nav shows a live badge.
+  useEffect(() => {
+    let on = true;
+    const tick = () => api.inboxUnreadCount().then((d) => { if (on) setReplyBadge(d.count); }).catch(() => {});
+    tick();
+    const t = setInterval(tick, 60_000);
+    return () => { on = false; clearInterval(t); };
+  }, [pathname]);
 
   return (
     <div className="layout">
@@ -43,8 +54,13 @@ export function App() {
         {ws.id === 'outbound' && (
           <>
             <NavLink to="/outbound" end className={nav}>Overview</NavLink>
-            <NavLink to="/campaigns" className={nav}>Campaigns</NavLink>
+            <NavLink to="/campaigns" end className={nav}>Campaigns</NavLink>
             <NavLink to="/campaigns/new" className={nav}>New Campaign</NavLink>
+            <NavLink to="/sequences" className={nav}>Sequences</NavLink>
+            <NavLink to="/inbox" className={nav}>
+              Inbox{replyBadge > 0 && <span className="nav-badge">{replyBadge > 99 ? '99+' : replyBadge}</span>}
+            </NavLink>
+            <NavLink to="/performance" className={nav}>Performance</NavLink>
           </>
         )}
 

@@ -120,6 +120,50 @@ export async function sendTest(id: number, email: string): Promise<Response> {
   });
 }
 
+export interface BisonReply {
+  id?: number | string;
+  campaign_id?: number;
+  lead?: { email?: string; first_name?: string; last_name?: string };
+  email?: string; first_name?: string; last_name?: string;
+  subject?: string; body?: string; message?: string; text?: string;
+  sentiment?: string; interested?: boolean; is_interested?: boolean;
+  created_at?: string; received_at?: string;
+  [k: string]: unknown;
+}
+
+/**
+ * List recent replies from the unibox/inbox. Bison's exact path varies by instance — try the
+ * documented `/replies` then fall back to `/unibox`. Returns [] if neither responds (so the
+ * UI degrades gracefully). Verify the live shape on deploy.
+ */
+export async function listReplies(page = 1): Promise<BisonReply[]> {
+  for (const path of [`/replies?page=${page}`, `/unibox?page=${page}`, `/inbox?page=${page}`]) {
+    const resp = await request(`${BASE}${path}`, { headers: headers(), limiter });
+    if (resp.ok) {
+      const j = (await resp.json()) as { data?: BisonReply[]; items?: BisonReply[] };
+      return j.data ?? j.items ?? [];
+    }
+    if (resp.status !== 404) break; // a non-404 error means the path exists but failed — stop trying alternates
+  }
+  return [];
+}
+
+/** Mark a lead/reply as interested in Bison (best-effort; path unverified). */
+export async function markInterested(leadEmail: string, campaignId?: number): Promise<Response> {
+  return request(`${BASE}/leads/mark-interested`, {
+    method: 'POST', headers: headers(), limiter,
+    body: JSON.stringify({ email: leadEmail, campaign_id: campaignId }),
+  });
+}
+
+/** Register a webhook so Bison pushes reply/bounce/etc. events to our receiver. */
+export async function createWebhook(url: string, eventTypes: string[]): Promise<Response> {
+  return request(`${BASE}/webhooks`, {
+    method: 'POST', headers: headers(), limiter,
+    body: JSON.stringify({ url, event_types: eventTypes }),
+  });
+}
+
 export interface BisonLead {
   email: string; first_name?: string; last_name?: string;
   title?: string; company?: string; custom_variables?: { name: string; value: string }[];

@@ -23,7 +23,7 @@ export interface Workspace {
 export const WORKSPACES: Workspace[] = [
   {
     id: 'data',
-    name: 'GTM Data Engine',
+    name: 'Data Engine',
     tagline: 'CRM & data warehouse',
     home: '/',
     routes: ['/', '/discover', '/find-contacts', '/import', '/companies', '/contacts',
@@ -31,10 +31,10 @@ export const WORKSPACES: Workspace[] = [
   },
   {
     id: 'outbound',
-    name: 'GTM Outbound Engine',
+    name: 'Outbound Engine',
     tagline: 'Campaigns & cold email',
     home: '/outbound',
-    routes: ['/outbound', '/campaigns'],
+    routes: ['/outbound', '/campaigns', '/sequences', '/inbox', '/performance'],
   },
 ];
 

@@ -17,6 +17,10 @@ import { Campaigns } from './pages/Campaigns.js';
 import { OutboundOverview } from './pages/OutboundOverview.js';
 import { CampaignBuilder } from './pages/CampaignBuilder.js';
 import { CampaignDetail } from './pages/CampaignDetail.js';
+import { Sequences } from './pages/Sequences.js';
+import { SequenceBuilder } from './pages/SequenceBuilder.js';
+import { Inbox } from './pages/Inbox.js';
+import { Performance } from './pages/Performance.js';
 import { Connectors } from './pages/Connectors.js';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
@@ -43,6 +47,11 @@ const router = createBrowserRouter([
       { path: 'campaigns', element: <Campaigns /> },
       { path: 'campaigns/new', element: <CampaignBuilder /> },
       { path: 'campaigns/:id', element: <CampaignDetail /> },
+      { path: 'sequences', element: <Sequences /> },
+      { path: 'sequences/new', element: <SequenceBuilder /> },
+      { path: 'sequences/:id', element: <SequenceBuilder /> },
+      { path: 'inbox', element: <Inbox /> },
+      { path: 'performance', element: <Performance /> },
       { path: 'connectors', element: <Connectors /> },
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },
