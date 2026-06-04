@@ -19,10 +19,13 @@ export function Discover() {
   const typeObj = useMemo(() => types.find((t) => t.value === type), [types, type]);
   const subTypes = typeObj?.subTypes ?? [];
 
+  // A sub-type can exist on companies whose Type is null (shown as "(unset)"). In that case we
+  // still fetch seeds by sub-type alone — passing the literal "(unset)" would match no rows.
+  const typeForQuery = type && type !== '(unset)' ? type : '';
   useEffect(() => {
-    if (!type || !subType) { setSeeds([]); setChosen(new Set()); return; }
-    api.seeds(type, subType).then((d) => { setSeeds(d.seeds); setChosen(new Set(d.seeds.map((s) => s.domain))); });
-  }, [type, subType]);
+    if (!subType) { setSeeds([]); setChosen(new Set()); return; }
+    api.seeds(typeForQuery, subType).then((d) => { setSeeds(d.seeds); setChosen(new Set(d.seeds.map((s) => s.domain))); });
+  }, [typeForQuery, subType]);
 
   function toggle(domain: string) {
     setChosen((c) => { const n = new Set(c); n.has(domain) ? n.delete(domain) : n.add(domain); return n; });
@@ -67,10 +70,16 @@ export function Discover() {
             ))}
           </select>
         </div>
-        {type && subType && (
+        {subType && (
           <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
-            New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
-            <span className="tag persona">{subType}</span> — ready to sync to HubSpot.
+            {typeLabel && type !== '(unset)' ? (
+              <>New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
+                <span className="tag persona">{subType}</span> — ready to sync to HubSpot.</>
+            ) : (
+              <>New companies tagged <span className="tag persona">{subType}</span>. Heads-up: existing{' '}
+                <strong>{subType}</strong> companies have no <em>Type</em> set — run the “Pair Type &amp; Sub-type”
+                hygiene task so they’re classified (e.g. this sub-type → its parent Type) before syncing.</>
+            )}
           </p>
         )}
       </div>

@@ -34,13 +34,30 @@ store.get('/stats', asyncHandler(async (_req, res) => {
     .from(companies)
     .groupBy(companies.type)
     .orderBy(desc(count()));
+  // RevOps hygiene view: KEEP the empty/null bucket as an explicit "(Empty)" row + sum it, so the
+  // dashboard shows how much is unfilled (the gap to clean), not just the filled buckets.
+  const EMPTY = '(Empty — not set)';
+  const withEmpty = (rows: { key: string | null; n: number }[], relabel?: (k: string) => string) => {
+    let empty = 0; const out: { key: string; n: number }[] = [];
+    for (const r of rows) {
+      if (!r.key) empty += r.n;
+      else out.push({ key: relabel ? relabel(r.key) : r.key, n: r.n });
+    }
+    if (empty) out.push({ key: EMPTY, n: empty });
+    return out;
+  };
   res.json({
     companies: c.n,
     contacts: k.n,
-    byType: byTypeRaw.filter((r) => r.key).map((r) => ({ key: typeLabel(r.key), n: r.n })),
-    bySubType: bySubType.filter((r) => r.key),
-    byPersona: byPersona.filter((r) => r.key),
-    byEmailStatus: byEmailStatus.filter((r) => r.key),
+    byType: withEmpty(byTypeRaw, typeLabel),
+    bySubType: withEmpty(bySubType),
+    byPersona: withEmpty(byPersona),
+    byEmailStatus: withEmpty(byEmailStatus),
+    gaps: {
+      companiesNoType: byTypeRaw.filter((r) => !r.key).reduce((a, r) => a + r.n, 0),
+      companiesNoSubType: bySubType.filter((r) => !r.key).reduce((a, r) => a + r.n, 0),
+      contactsNoPersona: byPersona.filter((r) => !r.key).reduce((a, r) => a + r.n, 0),
+    },
   });
 }));
 

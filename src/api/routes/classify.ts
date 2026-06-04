@@ -3,8 +3,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { and, count, desc, eq, gte, isNull, lt, or, ne, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, classifyProposals } from '../../db/schema.js';
+import { companies, classifyProposals, hubspotSync } from '../../db/schema.js';
 import { typeValue } from '../../engine/taxonomy.js';
+import { patchCompany } from '../../engine/adapters/hubspot.js';
+import { config } from '../../lib/config.js';
 import { asyncHandler } from '../middleware.js';
 import { validateBody } from '../validate.js';
 
@@ -47,7 +49,8 @@ const decideSchema = z.object({
 /** Apply decisions: approved proposals write type/sub_type to the company; rejected are dismissed. */
 classifyRouter.post('/decide', validateBody(decideSchema), asyncHandler(async (req, res) => {
   const { approve = [], reject = [] } = req.body as z.infer<typeof decideSchema>;
-  let applied = 0;
+  let applied = 0, hubspotSynced = 0, hubspotFailed = 0;
+  const canPushHubspot = !!config.hubspotToken;
   for (const id of approve) {
     const [p] = await db.select().from(classifyProposals).where(eq(classifyProposals.id, id));
     if (!p || p.status !== 'pending') continue;
@@ -58,6 +61,18 @@ classifyRouter.post('/decide', validateBody(decideSchema), asyncHandler(async (r
     if (p.proposedSubType) patch.subType = p.proposedSubType;
     if (Object.keys(patch).length) {
       await db.update(companies).set({ ...patch, updatedAt: new Date() }).where(eq(companies.id, p.companyId));
+      // Hygiene point: also write the classification back to HubSpot (the system of record).
+      const [co] = await db.select({ hubspotId: companies.hubspotId }).from(companies).where(eq(companies.id, p.companyId));
+      if (canPushHubspot && co?.hubspotId) {
+        try {
+          const hsProps: Record<string, string> = {};
+          if (patch.type) hsProps.type = patch.type;
+          if (patch.subType) hsProps.sub_type = patch.subType;
+          await patchCompany(co.hubspotId, hsProps);
+          await db.insert(hubspotSync).values({ entityType: 'company', entityId: p.companyId, hubspotId: co.hubspotId, action: 'patch', overwrote: JSON.stringify(hsProps) });
+          hubspotSynced++;
+        } catch { hubspotFailed++; }
+      }
     }
     await db.update(classifyProposals).set({ status: 'applied', reviewedAt: new Date() }).where(eq(classifyProposals.id, id));
     applied++;
@@ -66,6 +81,6 @@ classifyRouter.post('/decide', validateBody(decideSchema), asyncHandler(async (r
     await db.update(classifyProposals).set({ status: 'rejected', reviewedAt: new Date() })
       .where(and(eq(classifyProposals.status, 'pending'), sql`${classifyProposals.id} = any(${reject})`));
   }
-  res.json({ applied, rejected: reject.length });
+  res.json({ applied, rejected: reject.length, hubspotSynced, hubspotFailed, hubspotConfigured: canPushHubspot });
   void lt; void ne;
 }));

@@ -33,8 +33,14 @@ app.set('trust proxy', 1); // behind Railway's proxy (and Cloudflare)
 app.disable('x-powered-by');
 app.use(securityHeaders);
 
-// Small default body limit; large CSV uploads get a scoped limit on the import routes only.
-app.use(express.json({ limit: '256kb' }));
+// Small default body limit for everything EXCEPT the import routes, which carry large CSV text
+// and get their own 30mb parser below. (A global parser here would consume/limit the body first
+// and 413 large uploads before they reach the import-scoped limit — the cause of import 500s.)
+const smallJson = express.json({ limit: '256kb' });
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/import')) return next();
+  return smallJson(req, res, next);
+});
 
 // Public: health + whether the client must authenticate.
 app.use('/api/health', health);

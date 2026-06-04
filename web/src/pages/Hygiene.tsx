@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, authToken, type HygieneAnalytics } from '../api.js';
+import { CostBadge } from '../components/CostBadge.js';
 
 interface Task { id: string; name: string; desc: string; key: string; }
 const TASKS: Task[] = [
@@ -71,18 +72,19 @@ export function Hygiene() {
           const cand = a?.tasks?.[t.key]?.candidates ?? null;
           return (
             <div className="card" key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {t.name}
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(101,194,56,0.16)', color: 'var(--green-deep)' }}>FREE</span>
-                </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 16 }}>{t.name}</div>
                 <div className="muted" style={{ marginTop: 4, maxWidth: 620 }}>{t.desc}</div>
                 <div style={{ marginTop: 8, fontWeight: 600 }}>
                   {cand === null ? 'Analyzing…' : cand === 0 ? 'Nothing to fix — all clean ✓' : `${cand.toLocaleString()} records will be updated`}
                 </div>
               </div>
-              <button className="btn btn-primary" disabled={!!running || cand === 0}
-                onClick={() => run(t.id)}>{running === t.id ? 'Running…' : 'Run'}</button>
+              {/* Uniform cost slot (top-right) + action, so Free vs paid is always in the same place. */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+                <CostBadge costUsd={0} />
+                <button className="btn btn-primary" disabled={!!running || cand === 0}
+                  onClick={() => run(t.id)}>{running === t.id ? 'Running…' : 'Run'}</button>
+              </div>
             </div>
           );
         })}

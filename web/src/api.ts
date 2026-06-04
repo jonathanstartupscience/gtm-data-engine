@@ -6,6 +6,7 @@ export interface Stats {
   bySubType: { key: string; n: number }[];
   byPersona: { key: string; n: number }[];
   byEmailStatus: { key: string; n: number }[];
+  gaps: { companiesNoType: number; companiesNoSubType: number; contactsNoPersona: number };
 }
 
 export interface Company {
@@ -75,7 +76,7 @@ export const api = {
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
   classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number }>('/api/classify/audit'),
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
-  classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number }>('/api/classify/decide', { approve, reject }),
+  classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number; hubspotSynced: number; hubspotFailed: number; hubspotConfigured: boolean }>('/api/classify/decide', { approve, reject }),
   hygieneAnalytics: () => get<HygieneAnalytics>('/api/hygiene/analytics'),
 
   // ---- Outbound Engine (Email Bison) ----

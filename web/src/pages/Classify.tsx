@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, type Proposal } from '../api.js';
+import { DomainLink } from '../components/Table.js';
 
 export function Classify() {
   const [audit, setAudit] = useState<{ missingTaxonomy: number; pendingProposals: number } | null>(null);
@@ -23,14 +24,18 @@ export function Classify() {
     if (!ids.length) return;
     setBusy(true); setMsg('');
     const r = await api.classifyDecide(kind === 'approve' ? ids : [], kind === 'reject' ? ids : []);
-    setMsg(kind === 'approve' ? `Applied ${r.applied} classifications to your companies.` : `Dismissed ${r.rejected} proposals.`);
+    if (kind === 'approve') {
+      const hs = !r.hubspotConfigured ? ' (HubSpot not connected — store only)'
+        : ` and synced ${r.hubspotSynced} to HubSpot${r.hubspotFailed ? `, ${r.hubspotFailed} failed` : ''}`;
+      setMsg(`Applied ${r.applied} classifications${hs}.`);
+    } else setMsg(`Dismissed ${r.rejected} proposals.`);
     setBusy(false); load();
   }
 
   return (
     <>
       <h1 className="page-title">Classify <em>review</em></h1>
-      <p className="page-sub">AI-proposed type &amp; sub-type for companies missing them. Review and approve — nothing is applied until you confirm. Run the classifier locally (npm run classify) to generate proposals.</p>
+      <p className="page-sub">AI-proposed type &amp; sub-type for companies missing them. Review and approve — nothing is applied until you confirm. Approving writes the classification to this store <strong>and back to HubSpot</strong> (for companies linked to a HubSpot record), so your CRM gets cleaned too.</p>
 
       {audit && (
         <div className="cards">
@@ -64,7 +69,7 @@ export function Classify() {
             {proposals.map((p) => (
               <tr key={p.id}>
                 <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
-                <td>{p.name}<div className="muted" style={{ fontSize: 12 }}>{p.domain}</div></td>
+                <td>{p.name}<div style={{ fontSize: 12 }}><DomainLink domain={p.domain} /></div></td>
                 <td><span className="tag persona">{p.type}</span> <span className="tag persona">{p.subType}</span></td>
                 <td style={{ color: confColor(p.confidence), fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                   {p.confidence == null ? '—' : `${Math.round(p.confidence * 100)}%`}
