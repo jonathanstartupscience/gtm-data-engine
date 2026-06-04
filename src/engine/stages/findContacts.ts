@@ -19,36 +19,67 @@ const PERSONA_TITLES: Record<string, string[]> = {
   'ESO Founder/GP': ['Founder', 'Co-Founder', 'Managing Partner', 'General Partner'],
 };
 
-/** Companies (domain present) that have NO contact for the given persona yet. */
-export async function companiesMissingPersona(persona: string, subType?: string, limit = 5000) {
+export interface CompanySelector {
+  type?: string;        // internal type value (e.g. CUSTOMER)
+  subType?: string;
+  country?: string;
+  persona?: string;     // when onlyMissingPersona, exclude companies that already have this persona
+  onlyMissingPersona?: boolean;
+}
+
+/**
+ * Company-FIRST selection for contact sourcing: filter the account set by Type / Sub-type /
+ * country (all optional), require a domain, and optionally keep only companies that don't yet
+ * have a contact in the target persona. This is the "which companies are we finding people at?"
+ * step the team asked for.
+ */
+export async function selectCompaniesForContactSearch(sel: CompanySelector, limit = 5000) {
   const rows = await db
     .select({ id: companies.id, domain: companies.domain, name: companies.name, subType: companies.subType })
     .from(companies)
-    .where(and(isNotNull(companies.domain), ne(companies.domain, ''),
-      subType ? eq(companies.subType, subType) : undefined))
+    .where(and(
+      isNotNull(companies.domain), ne(companies.domain, ''),
+      sel.type ? eq(companies.type, sel.type) : undefined,
+      sel.subType ? eq(companies.subType, sel.subType) : undefined,
+      sel.country ? eq(companies.country, sel.country) : undefined,
+    ))
     .limit(limit);
-  // filter to those lacking a contact in this persona
+  if (!sel.onlyMissingPersona || !sel.persona) {
+    return rows.map((c) => ({ id: c.id, domain: c.domain!, name: c.name }));
+  }
+  // Keep only companies lacking a contact in this persona.
   const out: { id: number; domain: string; name: string | null }[] = [];
   for (const c of rows) {
     const [{ n }] = await db.select({ n: sql<number>`count(*)::int` })
       .from(contacts).innerJoin(contactCompany, eq(contactCompany.contactId, contacts.id))
-      .where(and(eq(contactCompany.companyId, c.id), eq(contacts.persona, persona)));
+      .where(and(eq(contactCompany.companyId, c.id), eq(contacts.persona, sel.persona)));
     if (n === 0) out.push({ id: c.id, domain: c.domain!, name: c.name });
   }
   return out;
 }
 
+/** Back-compat shim. */
+export async function companiesMissingPersona(persona: string, subType?: string, limit = 5000) {
+  return selectCompaniesForContactSearch({ persona, subType, onlyMissingPersona: true }, limit);
+}
+
 export interface FindContactsResult { companies: number; found: number; added: number; errors: number }
 
-/** Discover people for the target persona at companies missing it; resolve into the store. */
+/** Discover people for the target roles at a filtered company set; resolve into the store. */
 export async function findContacts(
-  opts: { persona: string; subType?: string; perCompany?: number; limitCompanies?: number },
+  opts: {
+    persona: string; type?: string; subType?: string; country?: string;
+    onlyMissingPersona?: boolean; titles?: string[]; perCompany?: number; limitCompanies?: number;
+  },
   log: (m: string) => void = console.log,
 ): Promise<FindContactsResult> {
-  const titles = PERSONA_TITLES[opts.persona] ?? [opts.persona];
+  const titles = opts.titles?.length ? opts.titles : (PERSONA_TITLES[opts.persona] ?? [opts.persona]);
   const perCompany = opts.perCompany ?? 2;
-  const targets = await companiesMissingPersona(opts.persona, opts.subType, opts.limitCompanies ?? 1000);
-  log(`${targets.length} companies missing "${opts.persona}"`);
+  const targets = await selectCompaniesForContactSearch(
+    { type: opts.type, subType: opts.subType, country: opts.country, persona: opts.persona, onlyMissingPersona: opts.onlyMissingPersona },
+    opts.limitCompanies ?? 1000,
+  );
+  log(`${targets.length} companies match — sourcing ${titles.join(', ')}`);
   let found = 0, added = 0, errors = 0;
 
   for (let i = 0; i < targets.length; i++) {

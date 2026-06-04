@@ -18,14 +18,14 @@ import { findContacts } from './stages/findContacts.js';
 
 /** find-contacts: discover people for a persona at companies missing it (Airscale). */
 export async function runFindContacts(
-  opts: { persona: string; subType?: string; limitCompanies?: number },
+  opts: { persona: string; type?: string; subType?: string; country?: string; onlyMissingPersona?: boolean; titles?: string[]; limitCompanies?: number },
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
   const runId = await startRun('find-contacts');
   const rec = new StepRecorder(log);
   try {
-    rec.step({ provider: 'Engine', status: 'info', label: 'Finding companies missing this persona',
-      detail: [opts.persona, opts.subType].filter(Boolean).join(' · ') });
+    rec.step({ provider: 'Engine', status: 'info', label: 'Selecting companies to source contacts at',
+      detail: [opts.type, opts.subType, opts.country, opts.persona].filter(Boolean).join(' · ') });
     const r = await findContacts(opts, log);
     rec.step({ provider: 'Airscale', status: 'ok', label: 'Discovered people', count: r.found,
       detail: `${r.added} added across ${r.companies} companies${r.errors ? `, ${r.errors} errors` : ''}` });
