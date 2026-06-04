@@ -114,8 +114,44 @@ plus an entry in a unified **"Data Hygiene" tab** in the app, and eligibility fo
 ---
 
 ## "Run once today" checklist (the learning pass)
-- [ ] Association Repair (free) — expect ~22k links created
-- [ ] Persona Backfill (free) — expect ~20.8k tagged
-- [ ] Field Normalization (free)
+- [x] Association Repair (free) — expect ~22k links created
+- [x] Persona Backfill (free) — expect ~20.8k tagged
+- [x] Field Normalization (free)
 - [ ] Type Classification — sample 100 → review → tune → scale
 Capture metrics from each (match rate, false positives, cost) into this doc to tune the productized recipes.
+
+---
+
+## Wave 1 learning-pass results (run 2026-06-04)
+
+**Association Repair — strong win.**
+- Created **22,001** associations (51,482 → **73,483**). Orphan contacts 36,217 → **14,216** (−61%).
+- Idempotent confirmed: a second run created 0 new links.
+- *Learn:* the email-domain→company-domain match is high-precision and the single highest-leverage
+  free task. The remaining 14,216 orphans are personal-email domains (gmail/outlook) or contacts at
+  companies not in the store — those need domain recovery (task 4) or a new company first, not repair.
+
+**Persona Backfill — small real yield, but exposed classifier gaps (now fixed).**
+- First run tagged **0 of 20,855**. Root cause was NOT a bug in the runner — the ESO persona classifier
+  (`persona.ts`) is intentionally strict and ESO-buyer-specific, and the ESO contacts were *already*
+  tagged during the original ESO pipeline run (19,994 already had a persona). The untagged remainder is
+  mostly general-business titles at non-ESO company types (the CRM now spans 7+ types post-generalization).
+- Inspecting the misses surfaced genuine gaps; added safe, high-precision keywords:
+  `community lead`, `member experience/success`, `owner/co-owner`→Founder/GP, `cfo/chief financial officer`,
+  `chief of staff`, `vice president`→Leadership; guarded the `member` exclusion for member-experience roles
+  and the `mentor` exclusion for `startup mentor`.
+- After the fix: **1,034 tagged** CRM-wide (228 at typed companies). Spot-checks clean — genuinely
+  ambiguous titles (`Partner`, `Director`, `Manager`, `Professor`, `Project Manager`) correctly stay null.
+- *Learn:* persona coverage is now 21,028/85,053 (**24.7%**). The 19,821 still-untagged-but-titled are
+  ambiguous/non-ESO and should NOT be force-tagged. Bigger future lift comes from titles backfilled by
+  Airscale (task 6) feeding the classifier, not from loosening it further.
+
+**Field Normalization — zero candidates (already clean).**
+- 0 country variants found — the HubSpot pull already delivers canonical names (`United States`, etc.).
+- *Learn:* near-zero yield on the current CRM, but keep the recipe as a guard for **CSV imports**
+  (where `US`/`USA`/`UK` raw values do appear). It earns its keep on ingest, not on HubSpot data.
+
+**Implication for the productized recipes:** Association Repair is the flagship free recipe (run on every
+import + scheduled). Persona Backfill should run *after* title enrichment, not before. Normalization belongs
+in the import path more than as a standalone HubSpot pass. The Data Hygiene tab's candidate counts already
+set these expectations honestly (e.g. it will show "0 — already clean" for normalize, which is the right signal).

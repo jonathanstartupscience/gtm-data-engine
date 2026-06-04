@@ -7,14 +7,19 @@
  *   personaBackfill   — tag contacts that have a title but no persona (keyword classifier)
  *   normalize         — canonicalize country / casing / domain formatting
  */
-import { and, eq, isNull, isNotNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, contactCompany } from '../../db/schema.js';
 import { classifyPersona } from '../persona.js';
 
 // ----------------------------------------------------------------- association repair
+// Drizzle's postgres-js db.execute returns the rows array directly.
+async function execRows<T = Record<string, unknown>>(query: ReturnType<typeof sql>): Promise<T[]> {
+  return (await db.execute(query)) as unknown as T[];
+}
+
 export async function analyzeAssociationRepair(): Promise<{ candidates: number }> {
-  const [{ n }] = await db.execute<{ n: number }>(sql`
+  const rows = await execRows<{ n: number }>(sql`
     with orphan as (
       select ct.id, lower(split_part(ct.email,'@',2)) edom
       from contacts ct left join contact_company cc on cc.contact_id=ct.id
@@ -22,13 +27,13 @@ export async function analyzeAssociationRepair(): Promise<{ candidates: number }
     )
     select count(*)::int n from orphan o
     where exists (select 1 from companies c where lower(c.domain)=o.edom and c.domain<>'')
-  `) as unknown as { n: number }[];
-  return { candidates: Number(n) };
+  `);
+  return { candidates: Number(rows[0]?.n ?? 0) };
 }
 
 export async function runAssociationRepair(log: (m: string) => void = console.log): Promise<{ linked: number }> {
   // Link each orphaned contact to the (unique) company sharing its email domain.
-  const res = await db.execute(sql`
+  const rows = await execRows<{ id: number }>(sql`
     with orphan as (
       select ct.id cid, lower(split_part(ct.email,'@',2)) edom
       from contacts ct left join contact_company cc on cc.contact_id=ct.id
@@ -43,7 +48,7 @@ export async function runAssociationRepair(log: (m: string) => void = console.lo
     on conflict do nothing
     returning id
   `);
-  const linked = Array.isArray(res) ? res.length : 0;
+  const linked = rows.length;
   log(`Linked ${linked} contacts to companies by email domain.`);
   return { linked };
 }
@@ -79,8 +84,10 @@ const COUNTRY_MAP: Record<string, string> = {
 };
 export async function analyzeNormalize(): Promise<{ candidates: number }> {
   const variants = Object.keys(COUNTRY_MAP);
+  // inArray builds a proper IN(...) param list — avoids the record→text[] cast errors
+  // that `= any(${array})` produced under postgres-js.
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(companies)
-    .where(sql`lower(trim(country)) = any(${variants})`);
+    .where(inArray(sql`lower(trim(${companies.country}))`, variants));
   return { candidates: Number(n) };
 }
 export async function runNormalize(log: (m: string) => void = console.log): Promise<{ normalized: number }> {

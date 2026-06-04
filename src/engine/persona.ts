@@ -11,6 +11,7 @@ const PERSONA_KEYWORDS: [Persona, string[]][] = [
   ['ESO Leadership', [
     'executive director', 'ceo', 'chief executive', 'president', 'managing director',
     'founder & ceo', 'chief operating officer', 'coo', 'general manager', 'head of the org',
+    'chief financial officer', 'cfo', 'chief of staff', 'vice president', 'vp of',
   ]],
   ['ESO Program', [
     'program director', 'program manager', 'program lead', 'cohort', 'accelerator director',
@@ -20,19 +21,22 @@ const PERSONA_KEYWORDS: [Persona, string[]][] = [
   ]],
   ['ESO Partnerships', [
     'partnerships', 'partner manager', 'business development', 'bd', 'ecosystem',
-    'community manager', 'community director', 'head of community', 'strategic partnerships',
-    'corporate relations', 'sponsorship', 'membership director',
+    'community manager', 'community director', 'community lead', 'head of community',
+    'community engagement', 'strategic partnerships', 'corporate relations', 'sponsorship',
+    'membership director', 'member experience', 'member success',
   ]],
   ['ESO Founder/GP', [
     'founder', 'co-founder', 'managing partner', 'general partner', 'gp', 'principal',
+    'owner', 'co-owner',
   ]],
 ];
 
 const EXCLUDE = ['student', 'intern', 'alumni', 'retired', 'assistant', 'volunteer', 'mentor', 'member'];
 
 const WORD_BOUNDARY = new Set([
-  'ceo', 'coo', 'gp', 'bd', 'president', 'principal', 'gm', 'founder', 'co-founder',
+  'ceo', 'coo', 'gp', 'bd', 'cfo', 'president', 'principal', 'gm', 'founder', 'co-founder',
   'cohort', 'ecosystem', 'sponsorship', 'general manager', 'managing director',
+  'owner', 'co-owner', 'partner',
 ]);
 
 const wb = (kw: string, text: string) =>
@@ -50,7 +54,9 @@ export function classifyPersona(jobTitle: string | null | undefined): Persona | 
 
   for (const bad of EXCLUDE) {
     if (wb(bad, t)) {
-      if (bad === 'mentor' && t.includes('program')) continue;
+      if (bad === 'mentor' && (t.includes('program') || t.includes('startup'))) continue;
+      // "member experience/success" are partnerships roles, not excluded community members.
+      if (bad === 'member' && (t.includes('member experience') || t.includes('member success'))) continue;
       return null;
     }
   }
