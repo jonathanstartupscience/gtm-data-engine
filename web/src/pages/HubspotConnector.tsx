@@ -44,8 +44,15 @@ export function HubspotConnector() {
               <span style={{ fontSize: 13, fontWeight: 500, padding: '4px 12px', borderRadius: 999, background: bg, color }}>{label}</span>
               {data.tokenValid === false && (
                 <div className="muted" style={{ marginTop: 10 }}>
-                  {data.tokenDetail}. Check the private-app token + CRM scopes in HubSpot, then update
+                  {data.tokenDetail}. Check the private-app token in HubSpot, then update
                   <code> HUBSPOT_TOKEN</code> in Railway.
+                </div>
+              )}
+              {data.tokenFingerprint && (
+                <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
+                  Token in Railway: <code>{data.tokenFingerprint.prefix}…{data.tokenFingerprint.last4}</code>
+                  {' '}· length {data.tokenFingerprint.len}
+                  {data.tokenFingerprint.hasWhitespace && <strong style={{ color: 'var(--coral)' }}> · ⚠ contains a space/newline — re-paste it cleanly</strong>}
                 </div>
               )}
             </>

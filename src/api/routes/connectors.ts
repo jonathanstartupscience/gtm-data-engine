@@ -43,10 +43,17 @@ connectorsRouter.get('/hubspot', asyncHandler(async (_req, res) => {
   const pct = (s: number, t: number) => (t ? Math.round((s / t) * 100) : 0);
   // Live token test — actually pings HubSpot rather than just checking the token exists.
   const test = await testConnection();
+  // Safe fingerprint (NOT the secret): lets us confirm WHICH token Railway actually has +
+  // catch hidden whitespace/truncation without ever exposing the value.
+  const tok = config.hubspotToken;
+  const fingerprint = tok
+    ? { prefix: tok.slice(0, 11), len: tok.length, last4: tok.slice(-4), hasWhitespace: /\s/.test(tok) }
+    : null;
   res.json({
     connected: !!config.hubspotToken,
     tokenValid: test.ok,
     tokenDetail: test.ok ? 'Token verified' : test.detail,
+    tokenFingerprint: fingerprint,
     companies: { total: coTotal.n, synced: coSynced.n, coverage: pct(coSynced.n, coTotal.n) },
     contacts: { total: ctTotal.n, synced: ctSynced.n, coverage: pct(ctSynced.n, ctTotal.n) },
     lastSync: { pullCompanies, pullContacts, push },

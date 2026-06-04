@@ -93,6 +93,7 @@ export interface HubspotSync {
   connected: boolean;
   tokenValid?: boolean;
   tokenDetail?: string;
+  tokenFingerprint?: { prefix: string; len: number; last4: string; hasWhitespace: boolean } | null;
   companies: { total: number; synced: number; coverage: number };
   contacts: { total: number; synced: number; coverage: number };
   lastSync: { pullCompanies: string | null; pullContacts: string | null; push: string | null };
