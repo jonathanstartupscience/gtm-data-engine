@@ -36,6 +36,33 @@ export interface ContactInput {
 
 const clean = (v?: string) => (v && v.trim() ? v.trim() : null);
 
+// Fields never worth a per-field history row (huge blob / mechanical timestamp).
+const HISTORY_SKIP = new Set(['updatedAt', 'createdAt', 'propertiesJson']);
+
+/**
+ * Append provenance rows ONLY for fields whose value actually changed vs the prior record
+ * (or for all set fields on first insert). This avoids re-pulls writing millions of identical
+ * history rows — the bloat that filled the volume. propertiesJson/timestamps are skipped.
+ */
+async function recordHistory(
+  table: typeof companyFieldHistory | typeof contactFieldHistory,
+  fkCol: 'companyId' | 'contactId',
+  id: number,
+  values: Record<string, unknown>,
+  prior: Record<string, unknown> | undefined,
+  source: string,
+): Promise<void> {
+  const rows: Record<string, unknown>[] = [];
+  for (const [field, value] of Object.entries(values)) {
+    if (HISTORY_SKIP.has(field) || value == null || value === '') continue;
+    const before = prior ? prior[field] : undefined;
+    // Compare on string form so a Date vs string, etc., don't false-positive every time.
+    if (prior && before != null && String(before) === String(value)) continue;
+    rows.push({ [fkCol]: id, field, value: String(value), source });
+  }
+  if (rows.length) await db.insert(table).values(rows as never);
+}
+
 /** Find a company id by any identifier, or null. */
 async function findCompanyId(domain: string, linkedin: string, hubspotId?: string): Promise<number | null> {
   if (domain) {
@@ -73,7 +100,9 @@ export async function resolveCompany(input: CompanyInput, source: string): Promi
     updatedAt: new Date(),
   };
 
+  let prior: Record<string, unknown> | undefined;
   if (id) {
+    [prior] = await db.select().from(companies).where(eq(companies.id, id)) as unknown as Record<string, unknown>[];
     // Only overwrite fields we have a (non-null) value for — never blank existing data.
     const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
     if (Object.keys(patch).length > 1) await db.update(companies).set(patch).where(eq(companies.id, id));
@@ -90,12 +119,9 @@ export async function resolveCompany(input: CompanyInput, source: string): Promi
   ].filter(Boolean) as { companyId: number; kind: string; value: string }[];
   for (const i of idents) await db.insert(companyIdentifiers).values(i).onConflictDoNothing();
 
-  // provenance (record what this source supplied)
-  for (const [field, value] of Object.entries(values)) {
-    if (value && field !== 'updatedAt') {
-      await db.insert(companyFieldHistory).values({ companyId: id, field, value: String(value), source });
-    }
-  }
+  // provenance — record only fields whose value actually CHANGED (avoids history bloat on
+  // re-pulls). Skip propertiesJson (a large jsonb blob with no per-field audit value).
+  await recordHistory(companyFieldHistory, 'companyId', id, values, prior, source);
   return id;
 }
 
@@ -131,7 +157,9 @@ export async function resolveContact(input: ContactInput, source: string): Promi
     updatedAt: new Date(),
   };
 
+  let prior: Record<string, unknown> | undefined;
   if (id) {
+    [prior] = await db.select().from(contacts).where(eq(contacts.id, id)) as unknown as Record<string, unknown>[];
     const patch = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
     if (Object.keys(patch).length > 1) await db.update(contacts).set(patch).where(eq(contacts.id, id));
   } else if (values.email) {
@@ -162,11 +190,7 @@ export async function resolveContact(input: ContactInput, source: string): Promi
   ].filter(Boolean) as { contactId: number; kind: string; value: string }[];
   for (const i of idents) await db.insert(contactIdentifiers).values(i).onConflictDoNothing();
 
-  for (const [field, value] of Object.entries(values)) {
-    if (value && field !== 'updatedAt') {
-      await db.insert(contactFieldHistory).values({ contactId: id, field, value: String(value), source });
-    }
-  }
+  await recordHistory(contactFieldHistory, 'contactId', id, values, prior, source);
 
   if (domain) {
     const c = await db.select({ id: companies.id }).from(companies).where(eq(companies.domain, domain)).limit(1);
