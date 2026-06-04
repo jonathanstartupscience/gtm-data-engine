@@ -20,6 +20,7 @@ export interface CompanyInput {
   // Expanded HubSpot fields (optional).
   lifecycleStage?: string; leadStatus?: string; ownerId?: string; industry?: string;
   revenue?: string; employeeCount?: number; phone?: string; zip?: string;
+  hsCreatedAt?: Date; hsLastActivityAt?: Date;
   propertiesJson?: Record<string, unknown>;
 }
 
@@ -29,6 +30,7 @@ export interface ContactInput {
   companyDomain?: string;
   lifecycleStage?: string; leadStatus?: string; ownerId?: string; seniority?: string;
   phone?: string; city?: string; state?: string; country?: string; source?: string;
+  hsCreatedAt?: Date; hsLastActivityAt?: Date;
   propertiesJson?: Record<string, unknown>;
 }
 
@@ -66,6 +68,7 @@ export async function resolveCompany(input: CompanyInput, source: string): Promi
     ownerId: clean(input.ownerId), industry: clean(input.industry), revenue: clean(input.revenue),
     employeeCount: Number.isFinite(input.employeeCount) ? input.employeeCount! : null,
     phone: clean(input.phone), zip: clean(input.zip),
+    hsCreatedAt: input.hsCreatedAt ?? null, hsLastActivityAt: input.hsLastActivityAt ?? null,
     propertiesJson: input.propertiesJson && Object.keys(input.propertiesJson).length ? input.propertiesJson : null,
     updatedAt: new Date(),
   };
@@ -123,6 +126,7 @@ export async function resolveContact(input: ContactInput, source: string): Promi
     ownerId: clean(input.ownerId), seniority: clean(input.seniority), phone: clean(input.phone),
     city: clean(input.city), state: clean(input.state), country: clean(input.country),
     source: clean(input.source),
+    hsCreatedAt: input.hsCreatedAt ?? null, hsLastActivityAt: input.hsLastActivityAt ?? null,
     propertiesJson: input.propertiesJson && Object.keys(input.propertiesJson).length ? input.propertiesJson : null,
     updatedAt: new Date(),
   };

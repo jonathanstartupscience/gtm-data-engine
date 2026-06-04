@@ -25,6 +25,13 @@ function toInt(v?: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/** HubSpot returns ISO strings or epoch-ms; parse to a Date, or undefined if unusable. */
+function toDate(v?: string): Date | undefined {
+  if (!v) return undefined;
+  const d = /^\d+$/.test(v) ? new Date(Number(v)) : new Date(v);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
 /** Map a HubSpot company's properties → CompanyInput (known→columns, rest→propertiesJson). */
 function mapCompany(id: string, p: Record<string, string>): CompanyInput {
   const extra: Record<string, unknown> = {};
@@ -37,7 +44,10 @@ function mapCompany(id: string, p: Record<string, string>): CompanyInput {
     sizeEmployees: p.numberofemployees, sector: p.industry, hubspotId: id,
     lifecycleStage: p.lifecyclestage, leadStatus: p.hs_lead_status, ownerId: p.hubspot_owner_id,
     industry: p.industry, revenue: p.annualrevenue, employeeCount: toInt(p.numberofemployees),
-    phone: p.phone, propertiesJson: extra,
+    phone: p.phone,
+    hsCreatedAt: toDate(p.createdate),
+    hsLastActivityAt: toDate(p.notes_last_updated || p.hs_lastmodifieddate),
+    propertiesJson: extra,
   };
 }
 
@@ -125,7 +135,10 @@ export async function pullContacts(
         companyDomain, hubspotId: obj.id,
         lifecycleStage: p.lifecyclestage, leadStatus: p.hs_lead_status, ownerId: p.hubspot_owner_id,
         seniority: p.seniority, phone: p.phone, city: p.city, state: p.state, country: p.country,
-        source: p.hs_analytics_source, propertiesJson: extra,
+        source: p.hs_analytics_source,
+        hsCreatedAt: toDate(p.createdate),
+        hsLastActivityAt: toDate(p.lastmodifieddate),
+        propertiesJson: extra,
       };
       try {
         await resolveContact(input, 'hubspot_pull');
