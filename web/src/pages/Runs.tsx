@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, authToken, type Run } from '../api.js';
+import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
 
 interface RunStep { label: string; provider?: string; status: 'ok' | 'warn' | 'error' | 'info'; detail?: string; count?: number; }
@@ -187,7 +188,7 @@ export function Runs() {
     es.addEventListener('done', (e) => {
       const r = JSON.parse(e.data);
       setResult(r.stats); setLog((l) => [...l, `✓ done (run #${r.runId})`]);
-      es.close(); setRunning(null); loadHistory();
+      es.close(); setRunning(null); loadHistory(); refreshTaxonomy();
     });
     es.addEventListener('error', (e) => {
       const data = (e as MessageEvent).data;

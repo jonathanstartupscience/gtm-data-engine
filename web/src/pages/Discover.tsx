@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, postStream, type TaxonomyType } from '../api.js';
+import { api, postStream } from '../api.js';
+import { useTaxonomy } from '../hooks/useTaxonomy.js';
 
 type Seed = { domain: string; name: string };
 
 export function Discover() {
-  const [types, setTypes] = useState<TaxonomyType[]>([]);
+  const { types, refresh } = useTaxonomy();
   const [type, setType] = useState('');         // internal value (e.g. CUSTOMER)
   const [subType, setSubType] = useState('');
   const [seeds, setSeeds] = useState<Seed[]>([]);
@@ -13,8 +14,6 @@ export function Discover() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => { api.taxonomy().then((d) => setTypes(d.types)); }, []);
 
   const typeObj = useMemo(() => types.find((t) => t.value === type), [types, type]);
   const subTypes = typeObj?.subTypes ?? [];
@@ -37,7 +36,7 @@ export function Discover() {
       { seedDomains: [...chosen], type: type || undefined, subType: subType || undefined, size },
       (ev, data) => {
         if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
-        else if (ev === 'done') setResult((data as { stats: Record<string, unknown> }).stats);
+        else if (ev === 'done') { setResult((data as { stats: Record<string, unknown> }).stats); refresh(); }
         else if (ev === 'error') setLog((l) => [...l, '✗ ' + (data as { message: string }).message]);
       });
     setBusy(false);

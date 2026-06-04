@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, authToken, type HygieneAnalytics } from '../api.js';
+import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
 
 interface Task { id: string; name: string; desc: string; key: string; }
@@ -39,7 +40,7 @@ export function Hygiene() {
     const token = await authToken();
     const es = new EventSource(`/api/hygiene/run/${task}${token ? `?token=${encodeURIComponent(token)}` : ''}`);
     es.addEventListener('log', (e) => setLog((l) => [...l, JSON.parse(e.data).message]));
-    es.addEventListener('done', (e) => { setResult(JSON.parse(e.data).stats); es.close(); setRunning(null); load(); });
+    es.addEventListener('done', (e) => { setResult(JSON.parse(e.data).stats); es.close(); setRunning(null); load(); refreshTaxonomy(); });
     es.addEventListener('error', (e) => {
       const d = (e as MessageEvent).data;
       setLog((l) => [...l, d ? `✗ ${JSON.parse(d).message}` : '… disconnected — still running; check Logs & Health']);

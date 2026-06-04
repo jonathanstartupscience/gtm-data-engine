@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, downloadCsv, type Company, type TaxonomyType } from '../api.js';
+import { api, downloadCsv, type Company } from '../api.js';
+import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { SortHeader, DomainLink, nextSort } from '../components/Table.js';
 import { SelectionActionBar } from '../components/SelectionActionBar.js';
 
@@ -16,16 +17,12 @@ export function Companies() {
   const [rows, setRows] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [types, setTypes] = useState<TaxonomyType[]>([]);
-  const [countries, setCountries] = useState<{ v: string; n: number }[]>([]);
+  const { types, facets } = useTaxonomy();
+  const countries = facets?.countries ?? [];
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const pageAllSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
-  useEffect(() => {
-    api.taxonomy().then((d) => setTypes(d.types));
-    api.companyFacets().then((d) => setCountries(d.countries));
-  }, []);
   const subTypes = useMemo(() => types.find((t) => t.value === type)?.subTypes ?? [], [types, type]);
 
   useEffect(() => {

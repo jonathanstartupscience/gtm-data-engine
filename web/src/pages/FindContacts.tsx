@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { api, postStream, type TaxonomyType } from '../api.js';
+import { api, postStream } from '../api.js';
+import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
 
 const PERSONAS = ['ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
@@ -15,8 +16,8 @@ export function FindContacts() {
   const [subType, setSubType] = useState('');
   const [country, setCountry] = useState('');
   const [onlyMissing, setOnlyMissing] = useState(true);
-  const [types, setTypes] = useState<TaxonomyType[]>([]);
-  const [countries, setCountries] = useState<{ v: string; n: number }[]>([]);
+  const { types, facets, refresh } = useTaxonomy();
+  const countries = facets?.countries ?? [];
   // Step 2 — who
   const [persona, setPersona] = useState('');
 
@@ -26,10 +27,6 @@ export function FindContacts() {
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
 
-  useEffect(() => {
-    api.taxonomy().then((d) => setTypes(d.types));
-    api.companyFacets().then((d) => setCountries(d.countries));
-  }, []);
   const subTypes = useMemo(() => types.find((t) => t.value === type)?.subTypes ?? [], [types, type]);
 
   useEffect(() => {
@@ -49,7 +46,7 @@ export function FindContacts() {
       { confirm: true, persona, type: type || undefined, subType: subType || undefined, country: country || undefined, onlyMissingPersona: onlyMissing },
       (ev, data) => {
         if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
-        else if (ev === 'done') setResult((data as { stats: Record<string, unknown> }).stats);
+        else if (ev === 'done') { setResult((data as { stats: Record<string, unknown> }).stats); refresh(); }
         else if (ev === 'error') setLog((l) => [...l, '✗ ' + (data as { message: string }).message]);
       });
     setRunning(false);

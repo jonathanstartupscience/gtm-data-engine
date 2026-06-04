@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, authToken, type Proposal } from '../api.js';
+import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { DomainLink } from '../components/Table.js';
 
 export function Classify() {
@@ -55,6 +56,7 @@ export function Classify() {
       setMsg(`Applied ${r.applied} classifications${hs}.`);
     } else setMsg(`Dismissed ${r.rejected} proposals.`);
     setBusy(false); load();
+    if (kind === 'approve') refreshTaxonomy(); // types/sub-types changed → update dropdown counts everywhere
   }
 
   return (
