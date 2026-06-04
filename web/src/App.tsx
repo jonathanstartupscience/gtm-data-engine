@@ -74,6 +74,7 @@ export function App() {
             <NavLink to="/linkedin/inbox" className={nav}>
               Inbox{liBadge > 0 && <span className="nav-badge">{liBadge > 99 ? '99+' : liBadge}</span>}
             </NavLink>
+            <NavLink to="/settings" className={nav}>Settings</NavLink>
           </>
         )}
 

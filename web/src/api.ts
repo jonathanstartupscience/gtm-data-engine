@@ -120,7 +120,16 @@ export const api = {
   liInboxSync: () => post<{ pulled: number; added: number } | { configured: false; message: string }>('/api/linkedin/inbox/sync', {}),
   liInboxUnread: () => get<{ count: number }>('/api/linkedin/inbox/unread-count'),
   liInboxAction: (id: number, body: { status?: string }) => post<{ ok: boolean }>(`/api/linkedin/inbox/${id}/action`, body),
+
+  // Settings (runtime API keys)
+  settings: () => get<{ canStore: boolean; keys: ManagedKey[] }>('/api/settings'),
+  setSecret: (key: string, value: string) => post<{ ok: boolean } & SecretStatus>('/api/settings', { key, value }),
+  clearSecret: (key: string) => del<{ ok: boolean } & SecretStatus>(`/api/settings/${key}`),
+  testSecret: (key: string) => post<{ ok: boolean; status: number; detail: string }>(`/api/settings/${key}/test`, {}),
 };
+
+export interface SecretStatus { set: boolean; source: 'db' | 'env' | 'none'; masked: string }
+export interface ManagedKey extends SecretStatus { key: string; label: string; help: string; testable: boolean }
 
 export interface LiCampaign {
   id: number; heyreachCampaignId: number; name: string; status: string | null;

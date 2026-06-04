@@ -25,10 +25,11 @@ export function LinkedInOverview() {
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
           <h3 style={{ marginTop: 0 }}>Not connected yet</h3>
           <p style={{ lineHeight: 1.7 }}>
-            This engine is fully built and ready. To turn it on, add your HeyReach API key as
-            <code> HEYREACH_API_KEY </code> in Railway and redeploy. Get the key from HeyReach →
-            Settings → API. Everything below will activate automatically once the key is set.
+            This engine is fully built and ready. To turn it on, add your HeyReach API key in
+            <Link to="/settings"> Settings</Link> (get it from HeyReach → Settings → API). It takes effect
+            immediately — no redeploy. Everything below activates automatically once the key is set.
           </p>
+          <Link to="/settings" className="btn btn-primary">Add HeyReach key</Link>
         </div>
       )}
       {configured && keyValid === false && (

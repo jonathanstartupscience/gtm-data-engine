@@ -351,6 +351,15 @@ export const heyreachPushLog = pgTable('heyreach_push_log', {
   at: timestamp('at').defaultNow().notNull(),
 });
 
+// Runtime-settable secrets/config (e.g. vendor API keys set from the in-app Settings page).
+// value_enc holds an AES-256-GCM payload (see lib/secrets.ts); never store plaintext here.
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  valueEnc: text('value_enc').notNull(),
+  updatedBy: text('updated_by'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const runs = pgTable('runs', {
   id: serial('id').primaryKey(),
   kind: text('kind').notNull(), // recipe name: verify | enrich | discover | sync | full

@@ -18,17 +18,22 @@
  */
 import { config } from '../../lib/config.js';
 import { request, requestJson, RateLimiter } from '../../lib/http.js';
+import { getSecret, getSecretSync } from '../../lib/secrets.js';
 
-const BASE = (config.heyreachBase || 'https://api.heyreach.io/api/public').replace(/\/$/, '');
 const limiter = new RateLimiter(250, 60_000); // under the 300/min cap
-const headers = () => ({ 'X-API-KEY': config.heyreachKey, 'Content-Type': 'application/json' });
+const base = () => (config.heyreachBase || 'https://api.heyreach.io/api/public').replace(/\/$/, '');
+// Key resolves DB-first (in-app Settings) then env — so it can be set without a Railway redeploy.
+async function headers() { return { 'X-API-KEY': await getSecret('HEYREACH_API_KEY'), 'Content-Type': 'application/json' }; }
 
-export function isConfigured(): boolean { return !!config.heyreachKey; }
+/** Cheap sync check for guards/UI; the cache is warmed at boot + on every set. */
+export function isConfigured(): boolean { return !!getSecretSync('HEYREACH_API_KEY'); }
+/** Authoritative async check (reads DB if cache cold). */
+export async function isConfiguredAsync(): Promise<boolean> { return !!(await getSecret('HEYREACH_API_KEY')); }
 
 /** Validate the API key. Returns {ok,status}. */
 export async function checkApiKey(): Promise<{ ok: boolean; status: number }> {
-  if (!config.heyreachKey) return { ok: false, status: 0 };
-  const r = await request(`${BASE}/auth/CheckApiKey`, { headers: headers(), limiter });
+  if (!(await getSecret('HEYREACH_API_KEY'))) return { ok: false, status: 0 };
+  const r = await request(`${base()}/auth/CheckApiKey`, { headers: await headers(), limiter });
   return { ok: r.ok, status: r.status };
 }
 
@@ -39,8 +44,8 @@ export async function listCampaigns(): Promise<HrCampaign[]> {
   const all: HrCampaign[] = [];
   let offset = 0; const limit = 100;
   for (;;) {
-    const j = await requestJson<{ totalCount?: number; items?: HrCampaign[] }>(`${BASE}/campaign/GetAll`, {
-      method: 'POST', headers: headers(), limiter, body: JSON.stringify({ offset, limit }),
+    const j = await requestJson<{ totalCount?: number; items?: HrCampaign[] }>(`${base()}/campaign/GetAll`, {
+      method: 'POST', headers: await headers(), limiter, body: JSON.stringify({ offset, limit }),
     });
     const items = j.items ?? [];
     all.push(...items);
@@ -51,16 +56,16 @@ export async function listCampaigns(): Promise<HrCampaign[]> {
 }
 
 export async function getCampaign(campaignId: number): Promise<HrCampaign | null> {
-  const resp = await request(`${BASE}/campaign/GetById?campaignId=${campaignId}`, { headers: headers(), limiter });
+  const resp = await request(`${base()}/campaign/GetById?campaignId=${campaignId}`, { headers: await headers(), limiter });
   if (!resp.ok) return null;
   return (await resp.json()) as HrCampaign;
 }
 
 export async function pauseCampaign(campaignId: number): Promise<Response> {
-  return request(`${BASE}/campaign/Pause?campaignId=${campaignId}`, { method: 'POST', headers: headers(), limiter });
+  return request(`${base()}/campaign/Pause?campaignId=${campaignId}`, { method: 'POST', headers: await headers(), limiter });
 }
 export async function resumeCampaign(campaignId: number): Promise<Response> {
-  return request(`${BASE}/campaign/Resume?campaignId=${campaignId}`, { method: 'POST', headers: headers(), limiter });
+  return request(`${base()}/campaign/Resume?campaignId=${campaignId}`, { method: 'POST', headers: await headers(), limiter });
 }
 
 export interface HrLead {
@@ -82,15 +87,15 @@ export async function addLeadsToCampaign(campaignId: number, leads: HrLead[], li
     resumeFinishedCampaign: false, resumePausedCampaign: true,
   };
   const j = await requestJson<{ addedLeadsCount?: number; updatedLeadsCount?: number; failedLeadsCount?: number }>(
-    `${BASE}/lead/AddLeadsToCampaignV2`, { method: 'POST', headers: headers(), limiter, body: JSON.stringify(body) });
+    `${base()}/lead/AddLeadsToCampaignV2`, { method: 'POST', headers: await headers(), limiter, body: JSON.stringify(body) });
   return { added: j.addedLeadsCount ?? 0, updated: j.updatedLeadsCount ?? 0, failed: j.failedLeadsCount ?? 0 };
 }
 
 export interface HrStats { [k: string]: unknown }
 /** Overall account/campaign stats. Optionally scope by campaign ids + date range. */
 export async function getOverallStats(body: Record<string, unknown> = {}): Promise<HrStats | null> {
-  const resp = await request(`${BASE}/stats/GetOverallStats`, {
-    method: 'POST', headers: headers(), limiter, body: JSON.stringify(body),
+  const resp = await request(`${base()}/stats/GetOverallStats`, {
+    method: 'POST', headers: await headers(), limiter, body: JSON.stringify(body),
   });
   if (!resp.ok) return null;
   return (await resp.json()) as HrStats;
@@ -105,8 +110,8 @@ export interface HrConversation {
 
 /** Read inbox conversations (replies). Filters supported via body (campaign ids, unread, etc.). */
 export async function getConversations(body: Record<string, unknown> = {}): Promise<HrConversation[]> {
-  const resp = await request(`${BASE}/inbox/GetConversationsV2`, {
-    method: 'POST', headers: headers(), limiter, body: JSON.stringify({ offset: 0, limit: 100, ...body }),
+  const resp = await request(`${base()}/inbox/GetConversationsV2`, {
+    method: 'POST', headers: await headers(), limiter, body: JSON.stringify({ offset: 0, limit: 100, ...body }),
   });
   if (!resp.ok) return [];
   const j = (await resp.json()) as { items?: HrConversation[]; conversations?: HrConversation[] };

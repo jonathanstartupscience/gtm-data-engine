@@ -23,6 +23,7 @@ import { Performance } from './pages/Performance.js';
 import { LinkedInOverview } from './pages/LinkedInOverview.js';
 import { LinkedInCampaigns } from './pages/LinkedInCampaigns.js';
 import { LinkedInInbox } from './pages/LinkedInInbox.js';
+import { Settings } from './pages/Settings.js';
 import { Connectors } from './pages/Connectors.js';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: 'linkedin', element: <LinkedInOverview /> },
       { path: 'linkedin/campaigns', element: <LinkedInCampaigns /> },
       { path: 'linkedin/inbox', element: <LinkedInInbox /> },
+      { path: 'settings', element: <Settings /> },
       { path: 'connectors', element: <Connectors /> },
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },

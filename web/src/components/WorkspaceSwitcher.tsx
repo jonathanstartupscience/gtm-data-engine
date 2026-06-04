@@ -41,7 +41,7 @@ export const WORKSPACES: Workspace[] = [
     name: 'LinkedIn Engine',
     tagline: 'LinkedIn outreach · HeyReach',
     home: '/linkedin',
-    routes: ['/linkedin', '/linkedin/campaigns', '/linkedin/inbox'],
+    routes: ['/linkedin', '/linkedin/campaigns', '/linkedin/inbox', '/settings'],
   },
 ];
 

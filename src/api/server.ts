@@ -19,7 +19,9 @@ import { classifyRouter } from './routes/classify.js';
 import { hygieneRouter } from './routes/hygiene.js';
 import { outboundRouter } from './routes/outbound.js';
 import { linkedinRouter } from './routes/linkedin.js';
+import { settingsRouter } from './routes/settings.js';
 import { webhooksRouter } from './routes/webhooks.js';
+import { warmSecrets } from '../lib/secrets.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
 
@@ -66,6 +68,7 @@ app.use('/api/classify', requireAuth, classifyRouter);
 app.use('/api/hygiene', requireAuth, hygieneRouter);
 app.use('/api/outbound', requireAuth, outboundRouter);
 app.use('/api/linkedin', requireAuth, linkedinRouter);
+app.use('/api/settings', requireAuth, settingsRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -86,4 +89,6 @@ app.use(errorHandler); // terminal error handler — must be last
 app.listen(config.port, () => {
   console.log(`gtm-data-engine listening on :${config.port} (${config.nodeEnv})`);
   console.log(`[auth] ${authConfigured() ? 'ON (Clerk JWKS configured)' : 'OPEN (dev — no CLERK_JWKS_URL)'}`);
+  // Preload DB-stored secrets into the cache so sync key checks (isConfigured) are accurate.
+  warmSecrets().catch((e) => console.warn('[secrets] warm failed (will resolve lazily):', (e as Error).message));
 });
