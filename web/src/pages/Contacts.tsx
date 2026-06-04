@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, downloadCsv, type Contact } from '../api.js';
 import { SortHeader, DomainLink, nextSort, emailStatusLabel } from '../components/Table.js';
+import { SelectionActionBar } from '../components/SelectionActionBar.js';
 
 const LIMIT = 50;
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
@@ -15,6 +16,9 @@ export function Contacts() {
   const [rows, setRows] = useState<Contact[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const pageAllSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   useEffect(() => {
     setLoading(true);
@@ -58,6 +62,8 @@ export function Contacts() {
       {loading ? <div className="loading">Loading…</div> : (
         <table>
           <thead><tr>
+            <th><input type="checkbox" checked={pageAllSelected}
+              onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
             <SortHeader label="Name" col="lastName" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Title" col="jobTitle" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <th>Company</th>
@@ -70,6 +76,7 @@ export function Contacts() {
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
+                <td><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
                 <td>
                   {c.linkedinUrl
                     ? <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</a>
@@ -100,6 +107,9 @@ export function Contacts() {
         <span>{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total}</span>
         <button className="btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}>Next →</button>
       </div>
+
+      <SelectionActionBar kind="verify" ids={[...selected]} onClear={() => setSelected(new Set())}
+        onDone={() => api.contacts({ q, persona, emailStatus, sort: sort.sort, dir: sort.dir, limit: LIMIT, offset }).then((d) => setRows(d.rows))} />
     </>
   );
 }

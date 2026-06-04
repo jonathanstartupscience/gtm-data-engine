@@ -3,6 +3,9 @@
  * with a human-readable step waterfall (which provider, what action, how it went).
  * This is what the UI and CLI invoke. New recipes compose stages + adapters.
  */
+import { and, inArray, isNotNull, ne } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { companies, contacts } from '../db/schema.js';
 import { startRun, finishRun, StepRecorder } from './runs.js';
 import { emailsNeedingVerification, verifyEmails } from './stages/verify.js';
 import { ingestRows, type EntityType, type Mapping } from './stages/ingest.js';
@@ -268,6 +271,41 @@ export async function runVerifyEmails(
     return { runId, kind: 'verify-emails', stats };
   } catch (err) {
     await finishRun(runId, 'error', { error: (err as Error).message });
+    throw err;
+  }
+}
+
+/** verify-selected: verify emails for a chosen set of contact IDs (credit-safe — never the whole DB). */
+export async function runVerifyContacts(
+  contactIds: number[],
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const rows = await db.select({ email: contacts.email }).from(contacts)
+    .where(and(inArray(contacts.id, contactIds), isNotNull(contacts.email), ne(contacts.email, '')));
+  const emails = [...new Set(rows.map((r) => r.email!).filter(Boolean))];
+  log(`Verifying ${emails.length} selected contact emails…`);
+  return runVerifyEmails(emails, log);
+}
+
+/** enrich-selected: enrich a chosen set of company IDs (credit-safe). */
+export async function runEnrichSelected(
+  companyIds: number[],
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('enrich-companies');
+  const rec = new StepRecorder(log);
+  try {
+    const rows = await db.select({ id: companies.id, domain: companies.domain }).from(companies)
+      .where(and(inArray(companies.id, companyIds), isNotNull(companies.domain), ne(companies.domain, '')));
+    const targets = rows.filter((r) => r.domain) as { id: number; domain: string }[];
+    rec.step({ provider: 'Engine', status: 'info', label: 'Selected companies with a domain', count: targets.length, detail: `${targets.length} of ${companyIds.length} selected` });
+    const r = await enrichCompanies(targets, log);
+    rec.step({ provider: 'Ocean.io', status: 'ok', label: 'Enriched via Ocean', count: r.enriched, detail: `${r.enriched} companies, ${r.filledFields} fields filled` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'enrich-companies', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'Engine', status: 'error', label: 'Enrichment failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }
 }

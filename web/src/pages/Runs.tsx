@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, authToken, type Run } from '../api.js';
+import { CostBadge } from '../components/CostBadge.js';
 
 interface RunStep { label: string; provider?: string; status: 'ok' | 'warn' | 'error' | 'info'; detail?: string; count?: number; }
 
@@ -110,29 +111,44 @@ function ScopeDialog({ scope, onCancel, onConfirm }:
   );
 }
 
-interface Recipe { id: string; name: string; desc: string; testLimit?: number; testLabel?: string; }
-const RECIPES: Recipe[] = [
+interface Recipe { id: string; name: string; desc: string; testLimit?: number; testLabel?: string; paid?: boolean; }
+interface RecipeGroup { title: string; blurb: string; recipes: Recipe[]; }
+const GROUPS: RecipeGroup[] = [
   {
-    id: 'pull-hubspot-companies',
-    name: 'Import companies from HubSpot',
-    desc: 'Pulls companies IN from HubSpot across all types and sub-types, deduplicated against existing records. (To push data back out to HubSpot, use Connectors → Sync to HubSpot.) Run a test batch first, then the full import.',
-    testLimit: 500, testLabel: 'Test 500',
+    title: 'Import from HubSpot',
+    blurb: 'Free — pulls data IN from HubSpot. No vendor credits.',
+    recipes: [
+      {
+        id: 'pull-hubspot-companies',
+        name: 'Import companies from HubSpot',
+        desc: 'Pulls companies IN from HubSpot across all types and sub-types, deduplicated against existing records. (To push back out, use Connectors → Sync to HubSpot.) Run a test batch first, then the full import.',
+        testLimit: 500, testLabel: 'Test 500',
+      },
+      {
+        id: 'pull-hubspot-contacts',
+        name: 'Import contacts from HubSpot',
+        desc: 'Pulls people IN from HubSpot and links them to their companies, deduplicated by email. Run the company import first.',
+        testLimit: 500, testLabel: 'Test 500',
+      },
+    ],
   },
   {
-    id: 'pull-hubspot-contacts',
-    name: 'Import contacts from HubSpot',
-    desc: 'Pulls people IN from HubSpot and links them to their companies, deduplicated by email. Run the company import first.',
-    testLimit: 500, testLabel: 'Test 500',
-  },
-  {
-    id: 'verify-stale',
-    name: 'Verify email deliverability',
-    desc: 'Re-checks every email address that is unverified or older than 90 days through Bouncer. Fresh results are skipped, so no verification credits are wasted.',
-  },
-  {
-    id: 'enrich-companies',
-    name: 'Enrich company records',
-    desc: 'Fills missing firmographics — employee size, founded year, industry — for companies with incomplete data, via Ocean.io. Existing values are never overwritten.',
+    title: 'Bulk enrichment & verification (paid)',
+    blurb: 'These spend vendor credits across ALL matching records. For a controlled spend, select specific rows on the Companies or Contacts tab and use the action bar there instead.',
+    recipes: [
+      {
+        id: 'verify-stale',
+        name: 'Verify ALL stale emails',
+        desc: 'Re-checks every email that is unverified or older than 90 days through Bouncer. Fresh results are skipped. Shows a cost preview before spending.',
+        paid: true,
+      },
+      {
+        id: 'enrich-companies',
+        name: 'Enrich ALL incomplete companies',
+        desc: 'Fills missing firmographics for every company with incomplete data, via Ocean.io. Existing values are never overwritten. Shows a cost preview first.',
+        paid: true,
+      },
+    ],
   },
 ];
 
@@ -192,32 +208,42 @@ export function Runs() {
   return (
     <>
       <h1 className="page-title">Workflows</h1>
-      <p className="page-sub">Run a data operation. Use a test batch or dry run to preview before committing.</p>
+      <p className="page-sub">Bulk data operations. Free imports are grouped at the top; paid bulk operations below show a cost preview before spending. For a precise spend, select rows on Companies/Contacts and use the action bar there.</p>
 
-      <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
-        {RECIPES.map((r) => (
-          <div className="card" key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>{r.name}</div>
-              <div className="muted" style={{ marginTop: 4, maxWidth: 640 }}>{r.desc}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              {r.testLimit ? (
-                <>
-                  <button className="btn" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>
-                  <button className="btn btn-primary" disabled={!!running}
-                    onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Full pull'}</button>
-                </>
-              ) : (
-                <button className="btn btn-primary" disabled={!!running || scopeLoading === r.id}
-                  onClick={() => openScope(r.id)}>
-                  {scopeLoading === r.id ? 'Checking…' : running === r.id ? 'Running…' : 'Review & run'}
-                </button>
-              )}
-            </div>
+      {GROUPS.map((g) => (
+        <div key={g.title} style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <h3 style={{ margin: 0 }}>{g.title}</h3>
+            <CostBadge costUsd={g.recipes.some((r) => r.paid) ? 1 : 0} />
           </div>
-        ))}
-      </div>
+          <p className="muted" style={{ margin: '0 0 12px', fontSize: 13, maxWidth: 720 }}>{g.blurb}</p>
+          <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
+            {g.recipes.map((r) => (
+              <div className="card" key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 16 }}>{r.name}</div>
+                  <div className="muted" style={{ marginTop: 4, maxWidth: 640 }}>{r.desc}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'center' }}>
+                  <CostBadge costUsd={r.paid ? 1 : 0} />
+                  {r.testLimit ? (
+                    <>
+                      <button className="btn" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>
+                      <button className="btn btn-primary" disabled={!!running}
+                        onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Full import'}</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-primary" disabled={!!running || scopeLoading === r.id}
+                      onClick={() => openScope(r.id)}>
+                      {scopeLoading === r.id ? 'Checking…' : running === r.id ? 'Running…' : 'Review & run'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {scope && (
         <ScopeDialog

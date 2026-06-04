@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, downloadCsv, type Company, type TaxonomyType } from '../api.js';
 import { SortHeader, DomainLink, nextSort } from '../components/Table.js';
+import { SelectionActionBar } from '../components/SelectionActionBar.js';
 
 const LIMIT = 50;
 
@@ -17,6 +18,9 @@ export function Companies() {
   const [loading, setLoading] = useState(true);
   const [types, setTypes] = useState<TaxonomyType[]>([]);
   const [countries, setCountries] = useState<{ v: string; n: number }[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const pageAllSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   useEffect(() => {
     api.taxonomy().then((d) => setTypes(d.types));
@@ -68,6 +72,8 @@ export function Companies() {
       {loading ? <div className="loading">Loading…</div> : (
         <table>
           <thead><tr>
+            <th><input type="checkbox" checked={pageAllSelected}
+              onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
             <SortHeader label="Company" col="name" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Domain" col="domain" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Sub-type" col="subType" sort={sort.sort} dir={sort.dir} onSort={onSort} />
@@ -77,6 +83,7 @@ export function Companies() {
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
+                <td><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
                 <td><Link to={`/companies/${c.id}`}>{c.name ?? '—'}</Link></td>
                 <td><DomainLink domain={c.domain} /></td>
                 <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>
@@ -93,6 +100,9 @@ export function Companies() {
         <span>{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total}</span>
         <button className="btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}>Next →</button>
       </div>
+
+      <SelectionActionBar kind="enrich" ids={[...selected]} onClear={() => setSelected(new Set())}
+        onDone={() => api.companies({ q, type, subType, country, sort: sort.sort, dir: sort.dir, limit: LIMIT, offset }).then((d) => setRows(d.rows))} />
     </>
   );
 }

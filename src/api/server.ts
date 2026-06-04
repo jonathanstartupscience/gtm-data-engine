@@ -20,6 +20,7 @@ import { hygieneRouter } from './routes/hygiene.js';
 import { outboundRouter } from './routes/outbound.js';
 import { linkedinRouter } from './routes/linkedin.js';
 import { settingsRouter } from './routes/settings.js';
+import { actionsRouter } from './routes/actions.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { warmSecrets } from '../lib/secrets.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
@@ -75,6 +76,7 @@ app.use('/api/hygiene', requireAuth, hygieneRouter);
 app.use('/api/outbound', requireAuth, outboundRouter);
 app.use('/api/linkedin', requireAuth, linkedinRouter);
 app.use('/api/settings', requireAuth, settingsRouter);
+app.use('/api/actions', requireAuth, actionsRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

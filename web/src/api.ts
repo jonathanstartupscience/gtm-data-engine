@@ -79,6 +79,10 @@ export const api = {
   classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number; hubspotSynced: number; hubspotFailed: number; hubspotConfigured: boolean }>('/api/classify/decide', { approve, reject }),
   hygieneAnalytics: () => get<HygieneAnalytics>('/api/hygiene/analytics'),
 
+  // Scoped actions (selected rows) — credit-safe enrich/verify
+  enrichScope: (ids: number[]) => post<SelectionScope>('/api/actions/enrich-companies/scope', { ids }),
+  verifyScope: (ids: number[]) => post<SelectionScope>('/api/actions/verify-contacts/scope', { ids }),
+
   // ---- Outbound Engine (Email Bison) ----
   outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
   outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
@@ -180,6 +184,8 @@ export interface BuildCampaignBody {
   schedule?: { timezone: string; days: { day: string; from: string; to: string }[] };
   senderEmailIds?: number[]; steps: BuildStep[]; limits?: Record<string, unknown>;
 }
+
+export interface SelectionScope { selected: number; billable: number; skipped: number; vendor: string; estCostUsd: number; unit: string }
 
 export interface HygieneAnalytics {
   companies: { total: number; typed: number; withDomain: number; withSize: number };
