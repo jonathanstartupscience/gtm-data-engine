@@ -27,7 +27,7 @@ export const WORKSPACES: Workspace[] = [
     tagline: 'CRM & data warehouse',
     home: '/',
     routes: ['/', '/discover', '/find-contacts', '/import', '/companies', '/contacts',
-      '/classify', '/hygiene', '/runs', '/connectors', '/sync', '/logs', '/help'],
+      '/classify', '/hygiene', '/runs', '/connectors', '/sync', '/logs', '/help', '/help/'],
   },
   {
     id: 'email',

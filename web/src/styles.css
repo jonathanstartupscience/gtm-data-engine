@@ -115,13 +115,23 @@ body {
 .ws-option { margin-bottom: 4px; }
 .ws-option.active { background: rgba(101,194,56,0.12); }
 
+.footer-actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .help-btn {
-  margin-top: auto; display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px;
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
   color: rgba(247,246,242,0.8); padding: 10px 12px; border-radius: var(--radius-sm);
-  cursor: pointer; font: 500 13px 'DM Sans', sans-serif;
+  cursor: pointer; font: 500 13px 'DM Sans', sans-serif; text-decoration: none;
 }
 .help-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+/* Knowledge Base — a prominent (green) entry so it isn't buried like the rest of the nav. */
+.kb-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(101,194,56,0.16); border: 1px solid rgba(101,194,56,0.4);
+  color: #fff; padding: 10px 12px; border-radius: var(--radius-sm);
+  text-decoration: none; font: 600 13px 'DM Sans', sans-serif;
+}
+.kb-btn:hover { background: rgba(101,194,56,0.28); }
+.kb-btn.active { background: var(--green); color: var(--dark); }
 
 .user-menu {
   display: flex; align-items: center; gap: 10px; margin-top: 12px;

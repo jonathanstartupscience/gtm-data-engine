@@ -10,8 +10,10 @@ Live at **gtm.startupscience.io** (Railway auto-deploys from `main`; `start:prod
 ## 🔴 RULE: Keep the knowledge base current (every feature ships with its docs)
 
 The in-app help is driven by a **single source of truth**:
-[`web/src/help/knowledgeBase.ts`](web/src/help/knowledgeBase.ts). Both the contextual **Help drawer**
-(the "?" button) and the full **Knowledge Base page** (`/help`) render from it.
+[`web/src/help/knowledgeBase.ts`](web/src/help/knowledgeBase.ts). Everything renders from it:
+the contextual **Help drawer** ("Help for this page" button), the **Knowledge Base index** (`/help`,
+prominent green nav button), and a **dedicated article page per topic** (`/help/:slug` — concepts and
+each page guide become their own article via `kbArticles()`). Add content once, it appears everywhere.
 
 **Whenever you add or change a feature, update the KB in the SAME change — no exceptions:**
 

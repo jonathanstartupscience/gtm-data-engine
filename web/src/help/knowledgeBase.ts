@@ -270,12 +270,86 @@ export function helpForPath(pathname: string): KbPage {
   return hit ? PAGES[hit] : GENERAL;
 }
 
-/** All pages grouped by workspace, for the full KB page. */
-export function kbByWorkspace(): { workspace: string; label: string; pages: KbPage[] }[] {
-  const labels: Record<string, string> = { data: 'Data Engine', email: 'Email Engine', linkedin: 'LinkedIn Engine', general: 'General' };
-  const order = ['data', 'email', 'linkedin'];
-  // Dedupe by route, drop detail-route duplicates already covered by their list page.
+// ---------------------------------------------------------------- KB articles (one page each)
+/**
+ * The KB renders as an index + one page per ARTICLE. Articles come from three groups:
+ *   • "getting-started" — the GENERAL overview
+ *   • "concepts"        — each CORE CONCEPT becomes its own article
+ *   • the page guides   — each PAGES entry becomes an article (linked to its live route)
+ */
+export type KbCategory = 'getting-started' | 'concepts' | 'data' | 'email' | 'linkedin';
+
+export interface KbArticle {
+  slug: string;
+  category: KbCategory;
+  title: string;
+  summary: string;          // one-line teaser for the index
+  intro: string;
+  sections: KbSection[];
+  steps?: string[];
+  appRoute?: string;        // the live page this documents (for a "Go to" link)
+}
+
+export const CATEGORY_LABELS: Record<KbCategory, string> = {
+  'getting-started': 'Getting started',
+  concepts: 'Core concepts',
+  data: 'Data Engine',
+  email: 'Email Engine',
+  linkedin: 'LinkedIn Engine',
+};
+export const CATEGORY_ORDER: KbCategory[] = ['getting-started', 'concepts', 'data', 'email', 'linkedin'];
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[()]/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+/** Build the full, de-duplicated article list. */
+export function kbArticles(): KbArticle[] {
+  const out: KbArticle[] = [];
+
+  // Getting started — the overview.
+  out.push({
+    slug: 'overview', category: 'getting-started', title: GENERAL.title,
+    summary: 'The big picture: three workspaces on one clean dataset.',
+    intro: GENERAL.intro, sections: GENERAL.sections,
+  });
+
+  // Concepts — one article each.
+  for (const c of CONCEPTS) {
+    out.push({
+      slug: slugify(c.heading), category: 'concepts', title: c.heading,
+      summary: c.body.length > 120 ? c.body.slice(0, 117) + '…' : c.body,
+      intro: c.body, sections: [],
+    });
+  }
+
+  // Page guides — one article per route (deduped).
   const seen = new Set<string>();
-  const pages = Object.values(PAGES).filter((p) => { if (seen.has(p.route)) return false; seen.add(p.route); return true; });
-  return order.map((ws) => ({ workspace: ws, label: labels[ws], pages: pages.filter((p) => p.workspace === ws) }));
+  for (const p of Object.values(PAGES)) {
+    if (seen.has(p.route)) continue;
+    seen.add(p.route);
+    out.push({
+      slug: slugify(p.title), category: p.workspace === 'general' ? 'data' : p.workspace,
+      title: p.title, summary: p.intro.length > 120 ? p.intro.slice(0, 117) + '…' : p.intro,
+      intro: p.intro, sections: p.sections, steps: p.steps,
+      appRoute: p.route.startsWith('/') ? p.route : undefined,
+    });
+  }
+  return out;
+}
+
+/** Articles grouped by category (in display order), for the KB index. */
+export function kbArticlesByCategory(): { category: KbCategory; label: string; articles: KbArticle[] }[] {
+  const all = kbArticles();
+  return CATEGORY_ORDER
+    .map((category) => ({ category, label: CATEGORY_LABELS[category], articles: all.filter((a) => a.category === category) }))
+    .filter((g) => g.articles.length > 0);
+}
+
+export function kbArticleBySlug(slug: string): KbArticle | undefined {
+  return kbArticles().find((a) => a.slug === slug);
+}
+
+/** The KB article slug that documents a given app route (for "read more" deep-links). */
+export function slugForRoute(pathname: string): string {
+  return slugify(helpForPath(pathname).title);
 }

@@ -78,9 +78,14 @@ export function App() {
           </>
         )}
 
-        <button className="help-btn" onClick={() => setHelpOpen(true)}>
-          <span>?</span> Help &amp; how it works
-        </button>
+        <div className="footer-actions">
+          <NavLink to="/help" className={({ isActive }) => 'kb-btn' + (isActive ? ' active' : '')}>
+            <span>📖</span> Knowledge Base
+          </NavLink>
+          <button className="help-btn" onClick={() => setHelpOpen(true)}>
+            <span>?</span> Help for this page
+          </button>
+        </div>
         <UserMenu />
       </aside>
       <main className="main">

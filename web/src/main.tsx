@@ -25,6 +25,7 @@ import { LinkedInCampaigns } from './pages/LinkedInCampaigns.js';
 import { LinkedInInbox } from './pages/LinkedInInbox.js';
 import { Settings } from './pages/Settings.js';
 import { Help } from './pages/Help.js';
+import { HelpArticle } from './pages/HelpArticle.js';
 import { Connectors } from './pages/Connectors.js';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: 'linkedin/inbox', element: <LinkedInInbox /> },
       { path: 'settings', element: <Settings /> },
       { path: 'help', element: <Help /> },
+      { path: 'help/:slug', element: <HelpArticle /> },
       { path: 'connectors', element: <Connectors /> },
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },

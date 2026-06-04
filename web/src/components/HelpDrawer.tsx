@@ -1,10 +1,11 @@
 /** Context-aware help drawer. Renders the knowledge-base entry for the current page (see
  *  web/src/help/knowledgeBase.ts — the single source of truth) + a link to the full KB. */
 import { Link } from 'react-router-dom';
-import { GENERAL, helpForPath } from '../help/knowledgeBase.js';
+import { GENERAL, helpForPath, slugForRoute } from '../help/knowledgeBase.js';
 
 export function HelpDrawer({ page, onClose }: { page: string; onClose: () => void }) {
   const help = helpForPath(page);
+  const articleSlug = slugForRoute(page);
   return (
     <>
       <div className="help-overlay" onClick={onClose} />
@@ -31,7 +32,10 @@ export function HelpDrawer({ page, onClose }: { page: string; onClose: () => voi
         ))}
 
         <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-          <Link to="/help" className="btn btn-primary" onClick={onClose}>Open the full knowledge base →</Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {help.route !== '_general' && <Link to={`/help/${articleSlug}`} className="btn btn-primary" onClick={onClose}>Read the full article →</Link>}
+            <Link to="/help" className="btn" onClick={onClose}>Browse knowledge base</Link>
+          </div>
           {help.route !== '_general' && (
             <>
               <h4 style={{ marginTop: 20 }}>New here?</h4>
