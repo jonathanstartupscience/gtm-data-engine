@@ -11,6 +11,29 @@ import { discoverLookalikes } from './stages/discover.js';
 import { pullCompanies, pullContacts } from './stages/pull.js';
 import { previewPush, executePush, type PushPreview } from './stages/push.js';
 import { pushToBison, type SegmentFilter } from './stages/activate.js';
+import { findContacts } from './stages/findContacts.js';
+
+/** find-contacts: discover people for a persona at companies missing it (Airscale). */
+export async function runFindContacts(
+  opts: { persona: string; subType?: string; limitCompanies?: number },
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('find-contacts');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Finding companies missing this persona',
+      detail: [opts.persona, opts.subType].filter(Boolean).join(' · ') });
+    const r = await findContacts(opts, log);
+    rec.step({ provider: 'Airscale', status: 'ok', label: 'Discovered people', count: r.found,
+      detail: `${r.added} added across ${r.companies} companies${r.errors ? `, ${r.errors} errors` : ''}` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'find-contacts', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'Airscale', status: 'error', label: 'Find contacts failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
 
 /** push-email-bison: send a filtered campaign-ready segment to an Email Bison campaign. */
 export async function runPushToBison(

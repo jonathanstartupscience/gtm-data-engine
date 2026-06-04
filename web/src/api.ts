@@ -68,6 +68,9 @@ export const api = {
   bisonSegmentCount: (persona: string, subType: string) =>
     get<{ count: number }>(`/api/bison/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
   scope: (recipe: string) => get<Scope>(`/api/runs/scope/${recipe}`),
+  findContactsScope: (persona: string, subType: string) =>
+    get<{ candidates: number; estPeople: number; estCostUsd: number; vendor: string; what: string }>(
+      `/api/discover/find-contacts/scope?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
 };

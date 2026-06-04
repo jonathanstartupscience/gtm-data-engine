@@ -10,6 +10,7 @@ import { CompanyDetail } from './pages/CompanyDetail.js';
 import { Runs } from './pages/Runs.js';
 import { Import } from './pages/Import.js';
 import { Discover } from './pages/Discover.js';
+import { FindContacts } from './pages/FindContacts.js';
 import { Logs } from './pages/Logs.js';
 import { Sync } from './pages/Sync.js';
 import { Campaigns } from './pages/Campaigns.js';
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
       { path: 'runs', element: <Runs /> },
       { path: 'import', element: <Import /> },
       { path: 'discover', element: <Discover /> },
+      { path: 'find-contacts', element: <FindContacts /> },
       { path: 'logs', element: <Logs /> },
       { path: 'sync', element: <Sync /> },
       { path: 'campaigns', element: <Campaigns /> },
