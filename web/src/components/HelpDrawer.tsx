@@ -1,131 +1,10 @@
-/** Context-aware help drawer. Explains, in plain language, what the engine is doing
- *  and how — tailored to whichever page the user is on. */
-
-interface Section { heading: string; body: string; }
-interface PageHelp { title: string; intro: string; sections: Section[]; steps?: string[]; }
-
-const GENERAL: PageHelp = {
-  title: 'What is the GTM Data Engine?',
-  intro:
-    'It is our single source of truth for go-to-market data. You feed it a list of companies or people; it cleans them, removes duplicates, finds and verifies their emails, tags them, and keeps everything in one place — then pushes the clean result to HubSpot and our outreach tools.',
-  sections: [
-    { heading: 'Why it exists', body: 'Instead of cleaning a messy list by hand every time, the engine does it consistently and remembers everything. Every new list reconciles against what we already know, so duplicates and stale data stop piling up.' },
-    { heading: 'The flow', body: 'Ingest a list → match it against the store (dedupe) → enrich missing data → verify every email → tag persona/firmographics → send to HubSpot, Email Bison, Heyreach, or ad audiences.' },
-    { heading: 'The vocabulary', body: 'A “company” and a “contact” are golden records with a stable ID. “Verification” means we checked an email is real and deliverable. A “run” is one execution of a flow (a recipe).' },
-  ],
-};
-
-const PAGES: Record<string, PageHelp> = {
-  '/': {
-    title: 'The Dashboard',
-    intro: 'A live snapshot of everything in the store right now — how many companies and contacts we hold, and how they break down.',
-    sections: [
-      { heading: 'The number cards', body: 'Total companies and contacts in the store, plus how many contacts have a deliverable (safe-to-email) address.' },
-      { heading: 'The charts', body: 'Companies by sub-type (what kind of organization), contacts by persona (the role we target), and email deliverability (how reachable our contacts are). Healthy data = most emails “deliverable”.' },
-    ],
-  },
-  '/discover': {
-    title: 'Find more companies',
-    intro: 'The growth engine. There are ~18,000 ESOs in the world and we only have a fraction. This finds NEW companies similar to ones you already target, using Ocean.io lookalikes.',
-    sections: [
-      { heading: 'How lookalikes work', body: 'You pick example companies you like (e.g. some accelerators). Ocean finds other companies that resemble them, and we add the new ones to your store — automatically skipping any you already have.' },
-      { heading: 'Choosing seeds', body: 'Pick a type first; we suggest a spread of your existing companies of that type as reference examples. The better the examples, the better the matches.' },
-      { heading: 'If you see a plan message', body: 'Ocean’s lookalike search needs a plan that includes it. If it’s not enabled, you’ll see a clear notice — company enrichment still works in the meantime.' },
-    ],
-    steps: [
-      'Choose what type of company you want more of.',
-      'Review the suggested example companies; keep the best references.',
-      'Set how many to find, then run.',
-      'New, deduped companies land in your store ready to enrich and verify.',
-    ],
-  },
-  '/sync': {
-    title: 'Sync to HubSpot',
-    intro: 'Push your cleaned company data back to HubSpot — your system of record. Nothing is written until you review and confirm exactly what will change.',
-    sections: [
-      { heading: 'Always preview first', body: 'Click “Preview changes” and the engine compares every company against HubSpot, showing how many will be created vs. updated, and the exact field-by-field changes — without writing anything.' },
-      { heading: 'You stay in control', body: 'Only after you click “Confirm & write” does anything change in HubSpot. We fill blanks and correct the taxonomy we own (type/sub-type), but never erase data you already have there.' },
-    ],
-    steps: [
-      'Click “Preview changes”.',
-      'Review the summary and the line-by-line list of what will change.',
-      'If it looks right, click “Confirm & write”.',
-      'Watch it apply, then review the result.',
-    ],
-  },
-  '/campaigns': {
-    title: 'Email Bison',
-    intro: 'Send a clean, campaign-ready segment of people into one of your cold-email campaigns.',
-    sections: [
-      { heading: 'Only safe addresses are sent', body: 'The engine includes only deliverable and risky-catch-all emails. Role-based (info@), undeliverable, unverified, and no-email contacts are automatically left out, protecting your sending reputation.' },
-      { heading: 'Segment by who you want', body: 'Filter by persona and sub-type; the live count shows how many contacts match before you send. Persona and sub-type travel with each lead as custom fields for personalization.' },
-      { heading: 'If campaigns won’t load', body: 'Check the Email Bison connection on the Logs & Health tab — the API key and instance URL must be set.' },
-    ],
-    steps: [
-      'Pick the campaign to send into.',
-      'Filter the audience by persona / sub-type and check the count.',
-      'Click Send — leads are created and attached to the campaign.',
-    ],
-  },
-  '/logs': {
-    title: 'Logs & Health',
-    intro: 'Check here first when something doesn’t work. Shows which integrations are connected and a feed of recent activity, with any failures surfaced.',
-    sections: [
-      { heading: 'Integrations', body: 'Each external tool (HubSpot, Airscale, Bouncer, Ocean, Email Bison) shows connected or not configured. If a feature isn’t working, a missing connection here is the usual cause.' },
-      { heading: 'Recent activity', body: 'Every workflow run is logged with its result. Failures are flagged in red with the error, so you can troubleshoot or report it quickly.' },
-    ],
-  },
-  '/import': {
-    title: 'Import — bring in a list',
-    intro: 'The front door. Upload a CSV of companies or people and the engine cleans it and adds it to the store — automatically removing duplicates.',
-    sections: [
-      { heading: 'What happens to my file', body: 'Each row is matched against what we already know (by domain, email, or LinkedIn). If it’s already in the store, we update that record instead of creating a duplicate. New rows become clean golden records.' },
-      { heading: 'Column mapping', body: 'We auto-guess which of your columns maps to each field (name, domain, email, etc.). You can correct any guess before importing. Leave a field blank to skip it.' },
-      { heading: 'Nothing is lost or overwritten blindly', body: 'We never blank out existing data — we only fill gaps and add new info. Every change records where it came from.' },
-    ],
-    steps: [
-      'Choose Companies or Contacts, then pick your CSV file.',
-      'Review the column mapping we guessed — fix anything that looks off.',
-      'Click Import and watch it resolve each row.',
-      'See how many were added vs. matched to existing records.',
-    ],
-  },
-  '/companies': {
-    title: 'Companies',
-    intro: 'Every organization in the store. Search by name, domain, or sub-type. Click one to see its details and the people we have there.',
-    sections: [
-      { heading: 'What you can do', body: 'Search and browse. Each company is deduplicated — even if it came in from several lists, you see one clean record with all its known identifiers (domain, LinkedIn, HubSpot ID).' },
-      { heading: 'The HubSpot column', body: 'A check means this company is synced to HubSpot. The engine keeps HubSpot as the system of record.' },
-    ],
-  },
-  '/contacts': {
-    title: 'Contacts',
-    intro: 'Every person in the store. Filter by persona (their role) or by email status (how reachable they are).',
-    sections: [
-      { heading: 'Persona', body: 'The kind of buyer — e.g. Leadership, Program, Partnerships. We tag this automatically from their job title so you can target the right person.' },
-      { heading: 'Email status', body: '“Deliverable” = safe to email. “Risky (catch-all)” = use cautiously. “Role-based” (like info@) = avoid cold email, fine for ads. “Undeliverable” = do not send. These come from real verification.' },
-    ],
-  },
-  '/runs': {
-    title: 'Runs — operating the engine',
-    intro: 'This is where you actually run a data flow. Pick a recipe, and the engine does the work while you watch the live log.',
-    sections: [
-      { heading: 'Dry run vs Run', body: '“Dry run” shows you what WOULD happen (and how much it would cost) without spending anything. “Run” does it for real. Always safe to dry-run first.' },
-      { heading: 'Verify stale emails', body: 'Finds every email that has never been verified — or whose check is older than 90 days — and re-checks deliverability through Bouncer. Anything still fresh is skipped, so you never pay to re-verify good data.' },
-      { heading: 'Enrich companies', body: 'For companies that have a website but are missing details (employee size, founded year, industry), this looks them up via Ocean.io and fills the gaps. It only fills what is empty — it never overwrites data you already have.' },
-      { heading: 'Run history', body: 'Every run is logged with its result, so there is always a record of what the engine did and when.' },
-    ],
-    steps: [
-      'Click “Dry run” to preview how many records the recipe would touch.',
-      'If the preview looks right, click “Run”.',
-      'Watch the live output stream as it works.',
-      'Review the result summary and the updated data.',
-    ],
-  },
-};
+/** Context-aware help drawer. Renders the knowledge-base entry for the current page (see
+ *  web/src/help/knowledgeBase.ts — the single source of truth) + a link to the full KB. */
+import { Link } from 'react-router-dom';
+import { GENERAL, helpForPath } from '../help/knowledgeBase.js';
 
 export function HelpDrawer({ page, onClose }: { page: string; onClose: () => void }) {
-  const help = PAGES[page] ?? GENERAL;
+  const help = helpForPath(page);
   return (
     <>
       <div className="help-overlay" onClick={onClose} />
@@ -151,12 +30,15 @@ export function HelpDrawer({ page, onClose }: { page: string; onClose: () => voi
           </div>
         ))}
 
-        {page !== '/' && (
-          <>
-            <h4 style={{ marginTop: 28 }}>New here?</h4>
-            <p>{GENERAL.intro}</p>
-          </>
-        )}
+        <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+          <Link to="/help" className="btn btn-primary" onClick={onClose}>Open the full knowledge base →</Link>
+          {help.route !== '_general' && (
+            <>
+              <h4 style={{ marginTop: 20 }}>New here?</h4>
+              <p>{GENERAL.intro}</p>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
