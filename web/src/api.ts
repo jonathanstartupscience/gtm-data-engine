@@ -73,6 +73,7 @@ export const api = {
     get<{ candidates: number; estPeople: number; estCostUsd: number; vendor: string; what: string }>(
       `/api/discover/find-contacts/scope?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
+  connectorCredits: () => get<{ vendors: VendorCredits[] }>('/api/connectors/credits'),
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
   classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number }>('/api/classify/audit'),
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
@@ -204,6 +205,7 @@ export interface Scope {
   vendor: string; what: string; free?: boolean;
 }
 export interface Connector { id: string; name: string; role: string; connected: boolean }
+export interface VendorCredits { id: string; name: string; credits: number | null; configured: boolean; relatable: string | null }
 export interface HubspotSync {
   connected: boolean;
   tokenValid?: boolean;

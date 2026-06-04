@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type Connector } from '../api.js';
+import { api, type Connector, type VendorCredits } from '../api.js';
 
 const PAGE: Record<string, string> = { hubspot: '/connectors/hubspot', emailbison: '/campaigns' };
 
 export function Connectors() {
   const [connectors, setConnectors] = useState<Connector[]>([]);
-  useEffect(() => { api.connectors().then((d) => setConnectors(d.connectors)); }, []);
+  const [credits, setCredits] = useState<VendorCredits[] | null>(null);
+  useEffect(() => {
+    api.connectors().then((d) => setConnectors(d.connectors));
+    api.connectorCredits().then((d) => setCredits(d.vendors)).catch(() => setCredits([]));
+  }, []);
 
   return (
     <>
@@ -35,6 +39,22 @@ export function Connectors() {
             : <div key={c.id}>{inner}</div>;
         })}
       </div>
+
+      <h3 style={{ margin: '28px 0 12px' }}>Credit balances</h3>
+      <p className="page-sub" style={{ marginTop: -6 }}>Live balances for the metered vendors, with what each buys you.</p>
+      {credits === null ? <div className="loading">Loading balances…</div> : (
+        <div className="cards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+          {credits.filter((v) => v.configured).map((v) => (
+            <div className="card" key={v.id}>
+              <div className="num" style={{ fontSize: 28 }}>{v.credits == null ? '—' : v.credits.toLocaleString()}</div>
+              <div className="label">{v.name} credits</div>
+              {v.relatable && <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>{v.relatable}</div>}
+              {v.credits == null && <div className="muted" style={{ marginTop: 8, fontSize: 12, color: 'var(--coral)' }}>Couldn’t fetch — check the key.</div>}
+            </div>
+          ))}
+          {credits.filter((v) => v.configured).length === 0 && <div className="panel"><p className="muted">No metered vendors connected yet.</p></div>}
+        </div>
+      )}
     </>
   );
 }

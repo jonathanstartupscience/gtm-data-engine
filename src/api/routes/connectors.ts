@@ -5,9 +5,50 @@ import { db } from '../../db/index.js';
 import { companies, contacts, runs } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
 import { testConnection } from '../../engine/adapters/hubspot.js';
+import { creditBalance as oceanBalance } from '../../engine/adapters/ocean.js';
+import { credits as bouncerCredits } from '../../engine/adapters/bouncer.js';
+import { creditCount as airscaleCredits } from '../../engine/adapters/airscale.js';
 import { asyncHandler } from '../middleware.js';
 
 export const connectorsRouter = Router();
+
+/**
+ * Live vendor credit balances, each translated into a relatable "what can I do with this" metric.
+ * Fetched in parallel; any vendor that errors (or has no key) returns null so the UI degrades.
+ */
+connectorsRouter.get('/credits', asyncHandler(async (_req, res) => {
+  const safe = async <T>(on: boolean, fn: () => Promise<T>): Promise<T | null> => {
+    if (!on) return null;
+    try { return await fn(); } catch { return null; }
+  };
+  const [ocean, bouncer, airscale] = await Promise.all([
+    safe(!!config.oceanKey, oceanBalance),
+    safe(!!config.bouncerKey, bouncerCredits),
+    safe(!!config.airscaleKey, airscaleCredits),
+  ]);
+
+  const oceanTotal = ocean ? (ocean.credits.oneTime ?? 0) + (ocean.credits.recurrent ?? 0) : null;
+  // Ocean enrich = 1 credit/company; a lookalike search batch ~ size companies. Express both.
+  res.json({
+    vendors: [
+      {
+        id: 'ocean', name: 'Ocean.io', credits: oceanTotal, configured: !!config.oceanKey,
+        relatable: oceanTotal == null ? null
+          : `~${oceanTotal.toLocaleString()} company enrichments, or ~${Math.floor(oceanTotal / 25).toLocaleString()} lookalike searches (25 each)`,
+      },
+      {
+        id: 'bouncer', name: 'Bouncer', credits: bouncer, configured: !!config.bouncerKey,
+        relatable: bouncer == null ? null : `~${bouncer.toLocaleString()} email verifications`,
+      },
+      {
+        id: 'airscale', name: 'Airscale', credits: airscale, configured: !!config.airscaleKey,
+        // ~1 credit per email found, ~0.1 per lead listed.
+        relatable: airscale == null ? null
+          : `~${airscale.toLocaleString()} contact email lookups, or ~${(airscale * 10).toLocaleString()} leads listed`,
+      },
+    ],
+  });
+}));
 
 /** Overview: each connector + connected status + role. */
 connectorsRouter.get('/', asyncHandler(async (_req, res) => {
