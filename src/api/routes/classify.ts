@@ -6,9 +6,11 @@ import { db } from '../../db/index.js';
 import { companies, classifyProposals, hubspotSync } from '../../db/schema.js';
 import { typeValue } from '../../engine/taxonomy.js';
 import { patchCompany } from '../../engine/adapters/hubspot.js';
+import { classifyCompanies } from '../../engine/stages/classify.js';
+import { anthropicClassify, isConfiguredAsync as anthropicConfigured } from '../../engine/adapters/anthropic.js';
 import { config } from '../../lib/config.js';
 import { asyncHandler } from '../middleware.js';
-import { validateBody } from '../validate.js';
+import { rateLimit, validateBody } from '../validate.js';
 
 export const classifyRouter = Router();
 
@@ -19,8 +21,27 @@ classifyRouter.get('/audit', asyncHandler(async (_req, res) => {
       or(isNull(companies.type), eq(companies.type, ''), isNull(companies.subType), eq(companies.subType, '')))),
     db.select({ n: count() }).from(classifyProposals).where(eq(classifyProposals.status, 'pending')),
   ]);
-  res.json({ missingTaxonomy: missing.n, pendingProposals: pending.n });
+  res.json({ missingTaxonomy: missing.n, pendingProposals: pending.n, canRunInApp: await anthropicConfigured() });
 }));
+
+/** Run the AI classifier in-app (needs ANTHROPIC_API_KEY). SSE progress. Writes to the review queue. */
+classifyRouter.get('/run', rateLimit(5, 60_000), async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 500);
+  const oceanFallback = req.query.ocean === '1';
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive'); res.flushHeaders?.();
+  let aborted = false; req.on('close', () => { aborted = true; });
+  const send = (e: string, d: unknown) => { if (!aborted && !res.writableEnded) res.write(`event: ${e}\ndata: ${JSON.stringify(d)}\n\n`); };
+  try {
+    if (!(await anthropicConfigured())) { send('error', { message: 'No Anthropic API key. Add ANTHROPIC_API_KEY in Settings to run the classifier in-app.' }); return; }
+    send('log', { message: `Classifying up to ${limit} companies${oceanFallback ? ' (homepage + Ocean fallback)' : ' (homepage signal)'}…` });
+    const r = await classifyCompanies(anthropicClassify, { limit, oceanFallback }, (m) => send('log', { message: m }));
+    send('done', r);
+  } catch (e) {
+    console.error('[classify/run]', (e as Error).stack ?? e);
+    send('error', { message: 'Classifier run failed — see server logs' });
+  } finally { if (!res.writableEnded) res.end(); }
+});
 
 /** Pending proposals, with company context. Optional ?minConfidence= filter. */
 classifyRouter.get('/proposals', asyncHandler(async (req, res) => {

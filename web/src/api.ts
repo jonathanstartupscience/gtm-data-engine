@@ -77,7 +77,7 @@ export const api = {
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
   connectorCredits: () => get<{ vendors: VendorCredits[] }>('/api/connectors/credits'),
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
-  classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number }>('/api/classify/audit'),
+  classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number; canRunInApp: boolean }>('/api/classify/audit'),
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
   classifyDecide: (approve: number[], reject: number[]) => post<{ applied: number; rejected: number; hubspotSynced: number; hubspotFailed: number; hubspotConfigured: boolean }>('/api/classify/decide', { approve, reject }),
   hygieneAnalytics: () => get<HygieneAnalytics>('/api/hygiene/analytics'),

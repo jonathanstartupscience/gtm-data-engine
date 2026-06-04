@@ -1,20 +1,45 @@
 import { useEffect, useState } from 'react';
-import { api, type Proposal } from '../api.js';
+import { Link } from 'react-router-dom';
+import { api, authToken, type Proposal } from '../api.js';
 import { DomainLink } from '../components/Table.js';
 
 export function Classify() {
-  const [audit, setAudit] = useState<{ missingTaxonomy: number; pendingProposals: number } | null>(null);
+  const [audit, setAudit] = useState<{ missingTaxonomy: number; pendingProposals: number; canRunInApp: boolean } | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [minConf, setMinConf] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // In-app classifier run
+  const [runLimit, setRunLimit] = useState(50);
+  const [useOcean, setUseOcean] = useState(false);
+  const [runningClassify, setRunningClassify] = useState(false);
+  const [runLog, setRunLog] = useState<string[]>([]);
 
   const load = () => {
     api.classifyAudit().then(setAudit);
     api.classifyProposals(minConf).then((d) => { setProposals(d.proposals); setSelected(new Set(d.proposals.map((p) => p.id))); });
   };
   useEffect(load, [minConf]);
+
+  async function runClassifier() {
+    setRunningClassify(true); setRunLog([]);
+    const token = await authToken();
+    const qs = `limit=${runLimit}&ocean=${useOcean ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    const es = new EventSource(`/api/classify/run?${qs}`);
+    es.addEventListener('log', (e) => setRunLog((l) => [...l, JSON.parse(e.data).message]));
+    es.addEventListener('done', (e) => {
+      const r = JSON.parse(e.data);
+      setRunLog((l) => [...l, `✓ ${r.proposed} proposals written, ${r.errors} errors`]);
+      es.close(); setRunningClassify(false); load();
+    });
+    es.addEventListener('error', (e) => {
+      const data = (e as MessageEvent).data;
+      if (data) setRunLog((l) => [...l, '✗ ' + JSON.parse(data).message]);
+      else setRunLog((l) => [...l, '… stream ended (run continues server-side; refresh proposals shortly)']);
+      es.close(); setRunningClassify(false); setTimeout(load, 3000);
+    });
+  }
 
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const confColor = (c: number | null) => (c == null ? 'var(--text-muted)' : c >= 0.85 ? 'var(--green-deep)' : c >= 0.6 ? '#8b5e00' : 'var(--coral)');
@@ -44,6 +69,40 @@ export function Classify() {
         </div>
       )}
 
+      {/* Run the classifier in-app */}
+      <div className="panel" style={{ marginBottom: 16 }}>
+        <h3>Generate proposals</h3>
+        {audit && !audit.canRunInApp ? (
+          <p className="muted">
+            To run the AI classifier from here, add an <code>ANTHROPIC_API_KEY</code> in <Link to="/settings">Settings</Link>.
+            (Or run <code>npm run classify</code> locally — that uses Claude Code at no API cost.)
+          </p>
+        ) : (
+          <>
+            <p className="muted" style={{ marginTop: -4 }}>Reads each company’s homepage and proposes a Type/Sub-type from the ICP taxonomy. Proposals land below for your review — nothing is applied automatically.</p>
+            <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+              <label className="muted">How many:
+                <select className="select" value={runLimit} onChange={(e) => setRunLimit(Number(e.target.value))} style={{ marginLeft: 6 }}>
+                  {[25, 50, 100, 250].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={useOcean} onChange={(e) => setUseOcean(e.target.checked)} />
+                <span className="muted">Use Ocean when a homepage is thin (costs credits)</span>
+              </label>
+              <button className="btn btn-primary" disabled={runningClassify} onClick={runClassifier}>
+                {runningClassify ? <><span className="spinner" /> Classifying…</> : 'Run classifier'}
+              </button>
+            </div>
+            {runLog.length > 0 && (
+              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 160, overflow: 'auto', marginTop: 12 }}>
+                {runLog.map((l, i) => <div key={i}>{l}</div>)}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="toolbar">
         <label className="muted">Show confidence ≥</label>
         <select className="select" value={minConf} onChange={(e) => setMinConf(Number(e.target.value))}>
@@ -57,7 +116,7 @@ export function Classify() {
       {msg && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{msg}</div>}
 
       {proposals.length === 0 ? (
-        <div className="loading">No pending proposals. Run <code>npm run classify</code> locally to generate some.</div>
+        <div className="loading">No pending proposals yet. Use “Generate proposals” above to create some.</div>
       ) : (
         <table>
           <thead><tr>

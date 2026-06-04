@@ -22,6 +22,7 @@ export const SECRET_ENV: Record<string, string> = {
   BOUNCER_API_KEY: 'BOUNCER_API_KEY',
   AIRSCALE_API_KEY: 'AIRSCALE_API_KEY',
   OCEAN_API_KEY: 'OCEAN_API_KEY',
+  ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
 };
 
 function encKey(): Buffer | null {

@@ -12,9 +12,10 @@ import { checkApiKey as heyreachCheck } from '../../engine/adapters/heyreach.js'
 
 export const settingsRouter = Router();
 
-// Keys this page can manage today. (The store supports more — see SECRET_ENV — we expose HeyReach now.)
+// Keys this page can manage. (The store supports more — see SECRET_ENV.)
 const MANAGED = [
   { key: 'HEYREACH_API_KEY', label: 'HeyReach API key', help: 'HeyReach → Settings → API. Enables the LinkedIn Engine.', testable: true },
+  { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', help: 'console.anthropic.com → API keys. Enables running the AI classifier from the app (Classify tab).', testable: false },
 ];
 
 /** Status of each managed key: whether set, where it resolves from, masked preview. */
@@ -23,7 +24,7 @@ settingsRouter.get('/', asyncHandler(async (_req, res) => {
   res.json({ canStore: canStoreSecrets(), keys });
 }));
 
-const setSchema = z.object({ key: z.enum(['HEYREACH_API_KEY']), value: z.string().min(8).max(500) });
+const setSchema = z.object({ key: z.enum(['HEYREACH_API_KEY', 'ANTHROPIC_API_KEY']), value: z.string().min(8).max(500) });
 settingsRouter.post('/', rateLimit(20, 60_000), validateBody(setSchema), asyncHandler(async (req, res) => {
   if (!canStoreSecrets()) {
     res.status(400).json({ error: 'APP_ENCRYPTION_KEY is not set on the server, so keys can’t be stored securely. Add it in Railway once, then keys can be managed here.' });
@@ -35,7 +36,7 @@ settingsRouter.post('/', rateLimit(20, 60_000), validateBody(setSchema), asyncHa
   res.json({ ok: true, ...(await secretStatus(key)) });
 }));
 
-const keyParam = z.object({ key: z.enum(['HEYREACH_API_KEY']) });
+const keyParam = z.object({ key: z.enum(['HEYREACH_API_KEY', 'ANTHROPIC_API_KEY']) });
 settingsRouter.delete('/:key', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
   const parsed = keyParam.safeParse({ key: req.params.key });
   if (!parsed.success) { res.status(400).json({ error: 'unknown key' }); return; }
