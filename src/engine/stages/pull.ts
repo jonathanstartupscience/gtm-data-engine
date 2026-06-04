@@ -6,7 +6,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies } from '../../db/schema.js';
-import { listObjects } from '../adapters/hubspot.js';
+import { listObjectsAll, listAllProperties } from '../adapters/hubspot.js';
 import { resolveCompany, resolveContact, type CompanyInput, type ContactInput } from '../resolve.js';
 import { classifyPersona } from '../persona.js';
 
@@ -64,11 +64,14 @@ export async function pullCompanies(
   log: (m: string) => void = console.log,
 ): Promise<PullResult> {
   const cap = opts.limit ?? Infinity;
-  let after: string | undefined;
+  // Request EVERY property so propertiesJson is a complete mirror — no future re-pull to get a field.
+  const allProps = await listAllProperties('companies');
+  log(`  requesting all ${allProps.length} company properties`);
+  let cursor: string | undefined;
   let pulled = 0, resolved = 0, pages = 0, errors = 0;
 
   do {
-    const page = await listObjects('companies', COMPANY_PROPS, after, 100);
+    const page = await listObjectsAll('companies', allProps, cursor, 100);
     pages++;
     for (const obj of page.results) {
       if (pulled >= cap) break;
@@ -83,11 +86,13 @@ export async function pullCompanies(
         if (errors <= 5) log(`  resolve error (hs ${obj.id}): ${(e as Error).message.slice(0, 80)}`);
       }
     }
-    after = page.after;
+    const next = page.cursorId ?? undefined;
+    if (next && next === cursor) { log('  cursor stalled — stopping to avoid a loop'); break; }
+    cursor = next;
     if (pages % 5 === 0) log(`  pulled ${pulled} companies (${resolved} resolved)…`);
-  } while (after && pulled < cap);
+  } while (cursor && pulled < cap);
 
-  return { pulled, resolved, pages, errors, capped: pulled >= cap && !!after };
+  return { pulled, resolved, pages, errors, capped: pulled >= cap && !!cursor };
 }
 
 // ---------------------------------------------------------------- contacts
@@ -114,11 +119,13 @@ export async function pullContacts(
 ): Promise<PullResult> {
   const cap = opts.limit ?? Infinity;
   const hsIdToDomain = await companyDomainByHsId();
-  let after: string | undefined;
+  const allProps = await listAllProperties('contacts');
+  log(`  requesting all ${allProps.length} contact properties`);
+  let cursor: string | undefined;
   let pulled = 0, resolved = 0, pages = 0, errors = 0;
 
   do {
-    const page = await listObjects('contacts', CONTACT_PROPS, after, 100);
+    const page = await listObjectsAll('contacts', allProps, cursor, 100);
     pages++;
     for (const obj of page.results) {
       if (pulled >= cap) break;
@@ -148,11 +155,13 @@ export async function pullContacts(
         if (errors <= 5) log(`  resolve error (hs contact ${obj.id}): ${(e as Error).message.slice(0, 80)}`);
       }
     }
-    after = page.after;
+    const next = page.cursorId ?? undefined;
+    if (next && next === cursor) { log('  cursor stalled — stopping to avoid a loop'); break; }
+    cursor = next;
     if (pages % 5 === 0) log(`  pulled ${pulled} contacts (${resolved} resolved)…`);
-  } while (after && pulled < cap);
+  } while (cursor && pulled < cap);
 
-  return { pulled, resolved, pages, errors, capped: pulled >= cap && !!after };
+  return { pulled, resolved, pages, errors, capped: pulled >= cap && !!cursor };
 }
 
 void eq; // (reserved for future per-contact company lookups)

@@ -8,6 +8,9 @@ import { request, requestJson, RateLimiter } from '../../lib/http.js';
 
 const BASE = 'https://api.hubapi.com';
 const limiter = new RateLimiter(100, 10_000);
+// The /search endpoint is rate-limited far more tightly (~4 req/s) than reads — give it its own
+// budget so the full-property pull doesn't burn time on 429 retries.
+const searchLimiter = new RateLimiter(4, 1_000);
 const headers = () => ({ Authorization: `Bearer ${config.hubspotToken}`, 'Content-Type': 'application/json' });
 
 export interface HsPage<T> { results: T[]; after?: string }
@@ -36,6 +39,46 @@ export async function listObjects(
   const j = await requestJson<{ results: { id: string; properties: Record<string, string> }[]; paging?: { next?: { after: string } } }>(
     `${BASE}/crm/v3/objects/${object}?${params}`, { headers: headers(), limiter });
   return { results: j.results ?? [], after: j.paging?.next?.after };
+}
+
+/** Fetch the full list of property internal-names for an object (the whole schema). */
+export async function listAllProperties(object: 'companies' | 'contacts'): Promise<string[]> {
+  const j = await requestJson<{ results: { name: string; calculated?: boolean }[] }>(
+    `${BASE}/crm/v3/properties/${object}`, { headers: headers(), limiter });
+  // Keep everything except HubSpot "calculated" rollups that the read API won't return as values.
+  return (j.results ?? []).map((p) => p.name);
+}
+
+/**
+ * Page through objects requesting EVERY property via the search endpoint (body carries the
+ * property list, so no URL-length limit). The search API caps `after` paging at 10,000 results,
+ * so instead of `after` we *window* by hs_object_id: each page sorts by id ascending and filters
+ * id > the last id we saw. This pages through the full object set unbounded.
+ *
+ * `cursorId` is the last hs_object_id from the previous page (undefined for the first page).
+ * Returns the page plus the new cursor (the max id in this page) — null cursor means done.
+ */
+export async function listObjectsAll(
+  object: 'companies' | 'contacts',
+  properties: string[],
+  cursorId?: string,
+  limit = 100,
+): Promise<{ results: { id: string; properties: Record<string, string> }[]; cursorId: string | null }> {
+  const body: Record<string, unknown> = {
+    limit,
+    properties,
+    sorts: [{ propertyName: 'hs_object_id', direction: 'ASCENDING' }],
+    filterGroups: cursorId
+      ? [{ filters: [{ propertyName: 'hs_object_id', operator: 'GT', value: cursorId }] }]
+      : [],
+  };
+  const j = await requestJson<{ results: { id: string; properties: Record<string, string> }[] }>(
+    `${BASE}/crm/v3/objects/${object}/search`,
+    { method: 'POST', headers: headers(), limiter: searchLimiter, body: JSON.stringify(body) },
+  );
+  const results = j.results ?? [];
+  const next = results.length === limit ? results[results.length - 1].id : null;
+  return { results, cursorId: next };
 }
 
 export async function searchCompanyByDomain(domain: string, properties = ['domain', 'name', 'type', 'sub_type']) {
