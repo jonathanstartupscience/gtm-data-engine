@@ -4,6 +4,7 @@ import { and, count, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, runs } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
+import { testConnection } from '../../engine/adapters/hubspot.js';
 import { asyncHandler } from '../middleware.js';
 
 export const connectorsRouter = Router();
@@ -40,8 +41,12 @@ connectorsRouter.get('/hubspot', asyncHandler(async (_req, res) => {
     lastRun('pull-hubspot-companies'), lastRun('pull-hubspot-contacts'), lastRun('push-hubspot-companies'),
   ]);
   const pct = (s: number, t: number) => (t ? Math.round((s / t) * 100) : 0);
+  // Live token test — actually pings HubSpot rather than just checking the token exists.
+  const test = await testConnection();
   res.json({
     connected: !!config.hubspotToken,
+    tokenValid: test.ok,
+    tokenDetail: test.ok ? 'Token verified' : test.detail,
     companies: { total: coTotal.n, synced: coSynced.n, coverage: pct(coSynced.n, coTotal.n) },
     contacts: { total: ctTotal.n, synced: ctSynced.n, coverage: pct(ctSynced.n, ctTotal.n) },
     lastSync: { pullCompanies, pullContacts, push },

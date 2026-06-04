@@ -12,6 +12,18 @@ const headers = () => ({ Authorization: `Bearer ${config.hubspotToken}`, 'Conten
 
 export interface HsPage<T> { results: T[]; after?: string }
 
+/** Live token test: hits a cheap endpoint and reports whether auth actually works. */
+export async function testConnection(): Promise<{ ok: boolean; status: number; detail?: string }> {
+  if (!config.hubspotToken) return { ok: false, status: 0, detail: 'No token set' };
+  const r = await request(`${BASE}/crm/v3/objects/companies?limit=1`, { headers: headers(), limiter });
+  if (r.ok) return { ok: true, status: r.status };
+  const body = await r.text();
+  let detail = `HTTP ${r.status}`;
+  if (r.status === 401) detail = 'Token invalid or not authorized';
+  else if (r.status === 403) detail = 'Token missing required scopes (CRM read/write)';
+  return { ok: false, status: r.status, detail: detail + ': ' + body.slice(0, 80) };
+}
+
 /** Page through ALL companies (or contacts). Returns one page; pass `after` to continue. */
 export async function listObjects(
   object: 'companies' | 'contacts',

@@ -34,11 +34,23 @@ export function HubspotConnector() {
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>Connection</h3>
-        <span style={{ fontSize: 13, fontWeight: 500, padding: '4px 12px', borderRadius: 999,
-          background: data.connected ? 'rgba(101,194,56,0.14)' : 'rgba(196,117,91,0.12)',
-          color: data.connected ? 'var(--green-deep)' : 'var(--coral)' }}>
-          {data.connected ? '● Connected' : '○ Not configured'}
-        </span>
+        {(() => {
+          const ok = data.tokenValid;
+          const label = ok ? '● Connected & verified' : data.connected ? '⚠ Token set but failing' : '○ Not configured';
+          const color = ok ? 'var(--green-deep)' : 'var(--coral)';
+          const bg = ok ? 'rgba(101,194,56,0.14)' : 'rgba(196,117,91,0.12)';
+          return (
+            <>
+              <span style={{ fontSize: 13, fontWeight: 500, padding: '4px 12px', borderRadius: 999, background: bg, color }}>{label}</span>
+              {data.tokenValid === false && (
+                <div className="muted" style={{ marginTop: 10 }}>
+                  {data.tokenDetail}. Check the private-app token + CRM scopes in HubSpot, then update
+                  <code> HUBSPOT_TOKEN</code> in Railway.
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>

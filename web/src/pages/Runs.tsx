@@ -141,6 +141,7 @@ export function Runs() {
   const [running, setRunning] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [runErr, setRunErr] = useState('');
   const [detail, setDetail] = useState<Run | null>(null);
   const [scope, setScope] = useState<import('../api.js').Scope | null>(null);
   const [scopeLoading, setScopeLoading] = useState<string | null>(null);
@@ -159,7 +160,7 @@ export function Runs() {
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
   async function run(recipe: string, dryRun: boolean, limit?: number) {
-    setRunning(recipe); setLog([]); setResult(null);
+    setRunning(recipe); setLog([]); setResult(null); setRunErr('');
     const token = await authToken();
     let qs = `dryRun=${dryRun ? 1 : 0}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
     if (limit) qs += `&limit=${limit}`;
@@ -173,7 +174,7 @@ export function Runs() {
     });
     es.addEventListener('error', (e) => {
       const msg = (e as MessageEvent).data ? JSON.parse((e as MessageEvent).data).message : 'connection error';
-      setLog((l) => [...l, `✗ ${msg}`]); es.close(); setRunning(null); loadHistory();
+      setRunErr(msg); setLog((l) => [...l, `✗ ${msg}`]); es.close(); setRunning(null); loadHistory();
     });
   }
 
@@ -213,6 +214,19 @@ export function Runs() {
           onCancel={() => setScope(null)}
           onConfirm={() => { const r = scope.recipe; setScope(null); run(r, false); }}
         />
+      )}
+
+      {runErr && (
+        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--coral)' }}>
+          <strong style={{ color: 'var(--coral)' }}>This workflow failed.</strong>
+          <div className="muted" style={{ marginTop: 4 }}>{runErr}</div>
+          {/401|Authentication|credentials/i.test(runErr) && (
+            <div className="muted" style={{ marginTop: 8 }}>
+              Looks like a HubSpot auth problem — check the HubSpot token &amp; scopes on the{' '}
+              <a href="/connectors/hubspot">HubSpot connector</a> page.
+            </div>
+          )}
+        </div>
       )}
 
       {running && (

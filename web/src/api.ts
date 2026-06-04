@@ -91,6 +91,8 @@ export interface Scope {
 export interface Connector { id: string; name: string; role: string; connected: boolean }
 export interface HubspotSync {
   connected: boolean;
+  tokenValid?: boolean;
+  tokenDetail?: string;
   companies: { total: number; synced: number; coverage: number };
   contacts: { total: number; synced: number; coverage: number };
   lastSync: { pullCompanies: string | null; pullContacts: string | null; push: string | null };
