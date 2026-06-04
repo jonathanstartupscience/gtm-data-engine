@@ -4,6 +4,7 @@ import { and, count, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, runs } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
+import { getSecretSync } from '../../lib/secrets.js';
 import { testConnection } from '../../engine/adapters/hubspot.js';
 import { creditBalance as oceanBalance } from '../../engine/adapters/ocean.js';
 import { credits as bouncerCredits } from '../../engine/adapters/bouncer.js';
@@ -50,16 +51,18 @@ connectorsRouter.get('/credits', asyncHandler(async (_req, res) => {
   });
 }));
 
-/** Overview: each connector + connected status + role. */
+/** Overview: each connector + connected status + role. Status is DB-first (in-app Settings) then env. */
 connectorsRouter.get('/', asyncHandler(async (_req, res) => {
+  const has = (name: string) => !!getSecretSync(name);
   res.json({
     connectors: [
-      { id: 'hubspot', name: 'HubSpot', role: 'System of record — sync companies & contacts both ways', connected: !!config.hubspotToken },
-      { id: 'emailbison', name: 'Email Bison', role: 'Cold email — push campaign-ready segments to campaigns', connected: !!config.emailBisonKey },
-      { id: 'heyreach', name: 'Heyreach', role: 'LinkedIn outreach — not currently enabled', connected: !!config.heyreachKey },
-      { id: 'ocean', name: 'Ocean.io', role: 'Discovery & enrichment', connected: !!config.oceanKey },
-      { id: 'bouncer', name: 'Bouncer', role: 'Email verification', connected: !!config.bouncerKey },
-      { id: 'airscale', name: 'Airscale', role: 'People & email finding', connected: !!config.airscaleKey },
+      { id: 'hubspot', name: 'HubSpot', role: 'System of record — sync companies & contacts both ways', connected: has('HUBSPOT_TOKEN') },
+      { id: 'emailbison', name: 'Email Bison', role: 'Cold email — push campaign-ready segments to campaigns', connected: has('EMAILBISON_API_KEY') },
+      { id: 'heyreach', name: 'HeyReach', role: 'LinkedIn outreach — sync, push & monitor campaigns', connected: has('HEYREACH_API_KEY') },
+      { id: 'ocean', name: 'Ocean.io', role: 'Discovery & company enrichment', connected: has('OCEAN_API_KEY') },
+      { id: 'bouncer', name: 'Bouncer', role: 'Email verification', connected: has('BOUNCER_API_KEY') },
+      { id: 'airscale', name: 'Airscale', role: 'People & email finding', connected: has('AIRSCALE_API_KEY') },
+      { id: 'anthropic', name: 'Anthropic', role: 'Powers the AI company classifier', connected: has('ANTHROPIC_API_KEY') },
     ],
   });
 }));

@@ -15,7 +15,14 @@ export interface AirscaleLead {
   lastname?: string;
   jobTitle?: string;
   headline?: string;
+  description?: string;
   profileUrl?: string;
+  address?: string;
+  companyName?: string;
+  companyWebsite?: string;
+  companyUrl?: string;
+  companySize?: string;
+  companyIndustry?: string;
 }
 
 /** Remaining credits (response nests under response.credits). */
@@ -26,16 +33,35 @@ export async function creditCount(): Promise<number> {
   return Number(j.response?.credits ?? j.credits ?? 0);
 }
 
-/** Find people at a domain matching any of the given titles. */
+/** Find people at a domain matching any of the given titles. (Back-compat helper.) */
 export async function findPeople(domain: string, titles: string[], size = 10): Promise<AirscaleLead[]> {
-  const body = {
-    query: { companyDomain: { include: [domain] }, JobTitle: { include: titles } },
-    size: Math.min(size, 100),
-  };
-  const j = await requestJson<{ leads?: AirscaleLead[] }>(`${BASE}/find-people`, {
-    method: 'POST', headers: headers(), limiter, body: JSON.stringify(body),
-  });
-  return j.leads ?? [];
+  const { leads } = await searchPeople({ companyDomain: { include: [domain] }, JobTitle: { include: titles } }, size);
+  return leads;
+}
+
+/**
+ * Full Airscale find-people query (verified against docs.airscale.io/api-reference/find-people).
+ * Each field is an {include?, exclude?} string array (max 200 each), EXCEPT `keyword` (include-only,
+ * searches title/bio/skills/education). At least one filter required.
+ */
+export interface PeopleQuery {
+  firstname?: { include?: string[]; exclude?: string[] };
+  lastname?: { include?: string[]; exclude?: string[] };
+  JobTitle?: { include?: string[]; exclude?: string[] };
+  companyDomain?: { include?: string[]; exclude?: string[] };
+  companyLinkedinUrl?: { include?: string[]; exclude?: string[] };
+  location?: { include?: string[]; exclude?: string[] };
+  keyword?: { include?: string[] };
+}
+
+/** People search with the full query + cursor pagination. Returns {leads, total, nextCursor}. */
+export async function searchPeople(query: PeopleQuery, size = 25, cursor?: string): Promise<{ leads: AirscaleLead[]; total: number; nextCursor: string | null }> {
+  const body: Record<string, unknown> = { query, size: Math.min(Math.max(size, 1), 100) };
+  if (cursor) body.cursor = cursor;
+  const j = await requestJson<{ leads?: AirscaleLead[]; total?: number; next_cursor?: string | null }>(
+    `${BASE}/find-people`, { method: 'POST', headers: headers(), limiter, body: JSON.stringify(body) },
+  );
+  return { leads: j.leads ?? [], total: j.total ?? (j.leads?.length ?? 0), nextCursor: j.next_cursor ?? null };
 }
 
 export interface EmailResult { email: string; email_status: string; status?: string }

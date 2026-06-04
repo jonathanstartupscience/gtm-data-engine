@@ -163,6 +163,8 @@ export function Runs() {
   const [detail, setDetail] = useState<Run | null>(null);
   const [scope, setScope] = useState<import('../api.js').Scope | null>(null);
   const [scopeLoading, setScopeLoading] = useState<string | null>(null);
+  // Per-recipe scoped cost for the card badges (real estimate, fetched up front for paid recipes).
+  const [costs, setCosts] = useState<Record<string, number | null>>({});
   const esRef = useRef<EventSource | null>(null);
   const logEnd = useRef<HTMLDivElement>(null);
 
@@ -175,6 +177,16 @@ export function Runs() {
   const loadHistory = () => api.runs().then((d) => setHistory(d.rows));
   const openRun = (id: number) => api.run(id).then((d) => setDetail(d.run));
   useEffect(() => { loadHistory(); }, []);
+
+  // Fetch the real scoped cost for each paid recipe so the card badge shows an accurate estimate
+  // (not a placeholder). Refetched whenever a run finishes (candidate counts change).
+  useEffect(() => {
+    const paid = GROUPS.flatMap((g) => g.recipes).filter((r) => r.paid);
+    let on = true;
+    Promise.all(paid.map((r) => api.scope(r.id).then((s) => [r.id, s.estCostUsd] as const).catch(() => [r.id, null] as const)))
+      .then((pairs) => { if (on) setCosts(Object.fromEntries(pairs)); });
+    return () => { on = false; };
+  }, [running]);
   useEffect(() => { logEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [log]);
 
   async function run(recipe: string, dryRun: boolean, limit?: number) {
@@ -215,7 +227,7 @@ export function Runs() {
         <div key={g.title} style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <h3 style={{ margin: 0 }}>{g.title}</h3>
-            <CostBadge costUsd={g.recipes.some((r) => r.paid) ? 1 : 0} />
+            {g.recipes.some((r) => r.paid) ? <CostBadge paid /> : <CostBadge costUsd={0} />}
           </div>
           <p className="muted" style={{ margin: '0 0 12px', fontSize: 13, maxWidth: 720 }}>{g.blurb}</p>
           <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
@@ -226,7 +238,7 @@ export function Runs() {
                   <div className="muted" style={{ marginTop: 4, maxWidth: 640 }}>{r.desc}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'center' }}>
-                  <CostBadge costUsd={r.paid ? 1 : 0} />
+                  {r.paid ? <CostBadge costUsd={costs[r.id]} pending={!(r.id in costs)} /> : <CostBadge costUsd={0} />}
                   {r.testLimit ? (
                     <>
                       <button className="btn" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>

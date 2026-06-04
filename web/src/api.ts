@@ -69,10 +69,10 @@ export const api = {
   bisonSegmentCount: (persona: string, subType: string) =>
     get<{ count: number }>(`/api/bison/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
   scope: (recipe: string) => get<Scope>(`/api/runs/scope/${recipe}`),
-  findContactsScope: (p: { persona: string; type?: string; subType?: string; country?: string; onlyMissing?: boolean }) =>
+  findContactsScope: (p: { persona?: string; type?: string; subType?: string; country?: string; onlyMissing?: boolean }) =>
     get<{ candidates: number; unit: string; estPeople: number; estCostUsd: number; vendor: string; what: string }>(
       `/api/discover/find-contacts/scope?${new URLSearchParams({
-        persona: p.persona, type: p.type ?? '', subType: p.subType ?? '', country: p.country ?? '', onlyMissing: p.onlyMissing ? '1' : '0',
+        persona: p.persona ?? '', type: p.type ?? '', subType: p.subType ?? '', country: p.country ?? '', onlyMissing: p.onlyMissing ? '1' : '0',
       })}`),
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
   connectorCredits: () => get<{ vendors: VendorCredits[] }>('/api/connectors/credits'),

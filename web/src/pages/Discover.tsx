@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, postStream } from '../api.js';
+import { api, postStream, type Company } from '../api.js';
 import { useTaxonomy } from '../hooks/useTaxonomy.js';
+import { DomainLink } from '../components/Table.js';
 
 type Seed = { domain: string; name: string };
 
@@ -14,6 +15,12 @@ export function Discover() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  // Precise seed picker — search your real companies and check exactly which to use as seeds.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pq, setPq] = useState('');
+  const [pickerRows, setPickerRows] = useState<Company[]>([]);
+  const [pickerTotal, setPickerTotal] = useState(0);
+  const [seedMap, setSeedMap] = useState<Record<string, string>>({}); // domain → name, for chips
 
   const typeObj = useMemo(() => types.find((t) => t.value === type), [types, type]);
   const subTypes = typeObj?.subTypes ?? [];
@@ -25,6 +32,22 @@ export function Discover() {
     if (!subType) { setSeeds([]); setChosen(new Set()); return; }
     api.seeds(typeForQuery, subType).then((d) => { setSeeds(d.seeds); setChosen(new Set(d.seeds.map((s) => s.domain))); });
   }, [typeForQuery, subType]);
+
+  // Load companies for the precise picker (filtered by the same type/sub-type + a search box).
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const t = setTimeout(() => {
+      api.companies({ q: pq, type: typeForQuery, subType, country: '', sort: 'name', dir: 'asc', limit: 50, offset: 0 })
+        .then((d) => { setPickerRows(d.rows); setPickerTotal(d.total); });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [pickerOpen, pq, typeForQuery, subType]);
+
+  function pickSeed(c: Company) {
+    if (!c.domain) return;
+    setChosen((s) => { const n = new Set(s); n.has(c.domain!) ? n.delete(c.domain!) : n.add(c.domain!); return n; });
+    setSeedMap((m) => ({ ...m, [c.domain!]: c.name ?? c.domain! }));
+  }
 
   function toggle(domain: string) {
     setChosen((c) => { const n = new Set(c); n.has(domain) ? n.delete(domain) : n.add(domain); return n; });
@@ -81,24 +104,63 @@ export function Discover() {
             )}
           </p>
         )}
+        <button className="btn" style={{ marginTop: 12 }} onClick={() => setPickerOpen(true)}>
+          Pick exact companies from my list →
+        </button>
       </div>
 
-      {seeds.length > 0 && (
+      {(seeds.length > 0 || pickerOpen) && (
         <div className="panel" style={{ marginBottom: 16 }}>
-          <h3>2 · Pick example companies to find lookalikes of</h3>
-          <p className="muted" style={{ marginTop: -8 }}>A spread of your existing {subType} companies. Uncheck any you don't want as a reference.</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {seeds.map((s) => (
-              <label key={s.domain} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
-                border: '1px solid var(--border)', borderRadius: 8,
-                background: chosen.has(s.domain) ? 'var(--accent-light)' : 'transparent', cursor: 'pointer',
-              }}>
-                <input type="checkbox" checked={chosen.has(s.domain)} onChange={() => toggle(s.domain)} />
-                <span>{s.name || s.domain}</span>
-              </label>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>2 · Choose seed companies to find lookalikes of</h3>
+            <button className="btn" onClick={() => setPickerOpen((o) => !o)}>
+              {pickerOpen ? 'Use suggested examples' : 'Pick exact companies →'}
+            </button>
           </div>
+
+          {!pickerOpen ? (
+            <>
+              <p className="muted" style={{ marginTop: 8 }}>A spread of your existing {subType} companies. Uncheck any you don't want — or “Pick exact companies” to search your full list.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {seeds.map((s) => (
+                  <label key={s.domain} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
+                    border: '1px solid var(--border)', borderRadius: 8,
+                    background: chosen.has(s.domain) ? 'var(--accent-light)' : 'transparent', cursor: 'pointer',
+                  }}>
+                    <input type="checkbox" checked={chosen.has(s.domain)} onChange={() => toggle(s.domain)} />
+                    <span>{s.name || s.domain}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="muted" style={{ marginTop: 8 }}>Search your companies (filtered to the type/sub-type above) and check exactly the ones to use as seeds.</p>
+              <input className="input" style={{ width: '100%', marginBottom: 10 }} placeholder="Search name or domain…"
+                value={pq} onChange={(e) => setPq(e.target.value)} />
+              <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                <table>
+                  <thead><tr><th></th><th>Company</th><th>Domain</th><th>Sub-type</th></tr></thead>
+                  <tbody>
+                    {pickerRows.map((c) => (
+                      <tr key={c.id}>
+                        <td><input type="checkbox" disabled={!c.domain} checked={!!c.domain && chosen.has(c.domain)} onChange={() => pickSeed(c)} /></td>
+                        <td>{c.name ?? '—'}</td>
+                        <td><DomainLink domain={c.domain} /></td>
+                        <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                Showing {pickerRows.length} of {pickerTotal.toLocaleString()} · <strong>{chosen.size}</strong> selected as seeds
+                {chosen.size > 0 && <> — {[...chosen].slice(0, 6).map((d) => seedMap[d] ?? d).join(', ')}{chosen.size > 6 ? '…' : ''}</>}
+              </p>
+            </>
+          )}
+
           <div className="toolbar" style={{ marginTop: 16, marginBottom: 0 }}>
             <label className="muted">How many to find:</label>
             <select className="select" value={size} onChange={(e) => setSize(Number(e.target.value))}>

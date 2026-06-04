@@ -13,14 +13,13 @@ export const discoverRouter = Router();
 /** Scope for Find Contacts: how many companies match the company filters + est. Airscale cost. */
 discoverRouter.get('/find-contacts/scope', rateLimit(30, 60_000), asyncHandler(async (req, res) => {
   const q = req.query;
-  const persona = String(q.persona ?? '').slice(0, 64);
-  if (!persona) { res.status(400).json({ error: 'persona required' }); return; }
+  const persona = q.persona ? String(q.persona).slice(0, 64) : undefined;
   const sel = {
     type: q.type ? String(q.type).slice(0, 64) : undefined,
     subType: q.subType ? String(q.subType).slice(0, 64) : undefined,
     country: q.country ? String(q.country).slice(0, 64) : undefined,
     persona,
-    onlyMissingPersona: q.onlyMissing === '1' || q.onlyMissing === 'true',
+    onlyMissingPersona: (q.onlyMissing === '1' || q.onlyMissing === 'true') && !!persona,
   };
   const matched = await selectCompaniesForContactSearch(sel, 100000);
   const perCompany = 2;
@@ -30,19 +29,24 @@ discoverRouter.get('/find-contacts/scope', rateLimit(30, 60_000), asyncHandler(a
     unit: sel.onlyMissingPersona ? `companies missing "${persona}"` : 'matching companies',
     estPeople, estCostUsd: estPeople * 0.1 * costs.airscaleEmailPerLookup, // find-people ~0.1cr/lead
     vendor: 'Airscale',
-    what: `Sourcing up to ${perCompany} "${persona}" contacts at each of the ${matched.length.toLocaleString()} selected companies.`,
+    what: `Sourcing up to ${perCompany} contacts at each of the ${matched.length.toLocaleString()} selected companies, matching your people filters.`,
   });
 }));
 
 const findContactsSchema = z.object({
   confirm: z.literal(true),
-  persona: z.string().min(1).max(64),
+  persona: z.string().max(64).optional(),
   type: z.string().max(64).optional(),
   subType: z.string().max(64).optional(),
   country: z.string().max(64).optional(),
   onlyMissingPersona: z.boolean().optional(),
-  titles: z.array(z.string().max(80)).max(12).optional(),
+  titlesInclude: z.array(z.string().max(120)).max(50).optional(),
+  titlesExclude: z.array(z.string().max(120)).max(50).optional(),
+  locations: z.array(z.string().max(120)).max(50).optional(),
+  keyword: z.string().max(200).optional(),
   limitCompanies: z.number().int().min(1).max(100000).optional(),
+}).refine((b) => b.persona || b.titlesInclude?.length || b.keyword, {
+  message: 'Give at least a persona, one job title, or a keyword',
 });
 
 /** Run Find Contacts (SSE). Requires confirm (spends Airscale). */
