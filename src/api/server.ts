@@ -18,6 +18,7 @@ import { connectorsRouter } from './routes/connectors.js';
 import { classifyRouter } from './routes/classify.js';
 import { hygieneRouter } from './routes/hygiene.js';
 import { outboundRouter } from './routes/outbound.js';
+import { linkedinRouter } from './routes/linkedin.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { requireAuth, authConfigured, assertAuthSafe } from './auth.js';
 import { securityHeaders, errorHandler, installProcessGuards } from './middleware.js';
@@ -64,6 +65,7 @@ app.use('/api/connectors', requireAuth, connectorsRouter);
 app.use('/api/classify', requireAuth, classifyRouter);
 app.use('/api/hygiene', requireAuth, hygieneRouter);
 app.use('/api/outbound', requireAuth, outboundRouter);
+app.use('/api/linkedin', requireAuth, linkedinRouter);
 
 // Serve the built React app (web/dist); SPA fallback to index.html.
 const here = dirname(fileURLToPath(import.meta.url));

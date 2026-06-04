@@ -312,6 +312,45 @@ export const bisonPushLog = pgTable('bison_push_log', {
   at: timestamp('at').defaultNow().notNull(),
 });
 
+// ---------------------------------------------------------------- LinkedIn (HeyReach)
+// HeyReach campaigns are built in their UI; we mirror them (read-only), push segments into ACTIVE
+// ones, and pull stats + inbox conversations. heyreachCampaignId links to theirs.
+export const heyreachCampaigns = pgTable('heyreach_campaigns', {
+  id: serial('id').primaryKey(),
+  heyreachCampaignId: integer('heyreach_campaign_id').notNull(),
+  name: text('name').notNull(),
+  status: text('status'),
+  persona: text('persona'),
+  subType: text('sub_type'),
+  statsJson: jsonb('stats_json'),
+  syncedAt: timestamp('synced_at').defaultNow().notNull(),
+}, (t) => ({ hrIdx: uniqueIndex('heyreach_campaign_idx').on(t.heyreachCampaignId) }));
+
+export const heyreachReplies = pgTable('heyreach_replies', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id'),               // our heyreach_campaigns.id (best-effort)
+  heyreachCampaignId: integer('heyreach_campaign_id'),
+  conversationId: text('conversation_id'),          // dedup key
+  leadName: text('lead_name'),
+  profileUrl: text('profile_url'),
+  company: text('company'),
+  lastMessage: text('last_message'),
+  isPositive: boolean('is_positive').default(false),
+  status: text('status').default('new').notNull(),  // new | read | handled
+  receivedAt: timestamp('received_at').defaultNow().notNull(),
+  raw: jsonb('raw'),
+}, (t) => ({ convIdx: uniqueIndex('heyreach_conv_idx').on(t.conversationId) }));
+
+export const heyreachPushLog = pgTable('heyreach_push_log', {
+  id: serial('id').primaryKey(),
+  campaignId: integer('campaign_id'),
+  leadsAdded: integer('leads_added'),
+  leadsUpdated: integer('leads_updated'),
+  leadsFailed: integer('leads_failed'),
+  segmentFilterJson: jsonb('segment_filter_json'),
+  at: timestamp('at').defaultNow().notNull(),
+});
+
 export const runs = pgTable('runs', {
   id: serial('id').primaryKey(),
   kind: text('kind').notNull(), // recipe name: verify | enrich | discover | sync | full

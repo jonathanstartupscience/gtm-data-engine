@@ -17,8 +17,19 @@ export function Performance() {
 
   return (
     <>
-      <h1 className="page-title">Performance</h1>
-      <p className="page-sub">How your campaigns and message strategies are doing. Refresh a campaign’s stats from its detail page; positive replies are counted from the Inbox.</p>
+      <h1 className="page-title">Email <em>Engine</em></h1>
+      <p className="page-sub">
+        Design, launch, and compare cold-email campaigns on top of the clean, segmented data from the
+        Data Engine. Below is how every campaign is performing — refresh a campaign’s stats from its
+        detail page; positive replies are counted from the Inbox.
+      </p>
+
+      <div className="toolbar">
+        <Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>
+        <Link to="/campaigns" className="btn">Campaigns</Link>
+        <Link to="/sequences" className="btn">Sequences</Link>
+        <Link to="/inbox" className="btn">Inbox</Link>
+      </div>
 
       <div className="cards">
         <div className="card"><div className="num">{totals.sent.toLocaleString()}</div><div className="label">Total sent</div></div>

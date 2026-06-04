@@ -107,7 +107,30 @@ export const api = {
 
   // Performance
   performance: () => get<{ campaigns: CampaignPerf[] }>('/api/outbound/performance'),
+
+  // ---- LinkedIn Engine (HeyReach) ----
+  liStatus: () => get<{ configured: boolean; keyValid?: boolean }>('/api/linkedin/status'),
+  liCampaigns: () => get<{ configured: boolean; campaigns: LiCampaign[] }>('/api/linkedin/campaigns'),
+  liSync: () => post<{ synced: number; added: number; updated: number } | { configured: false; message: string }>('/api/linkedin/sync', {}),
+  liSegmentCount: (persona: string, subType: string) =>
+    get<{ count: number }>(`/api/linkedin/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
+  liPause: (id: number) => post<{ ok: boolean }>(`/api/linkedin/campaigns/${id}/pause`, {}),
+  liResume: (id: number) => post<{ ok: boolean }>(`/api/linkedin/campaigns/${id}/resume`, {}),
+  liInbox: (positiveOnly: boolean) => get<{ configured: boolean; replies: LiReply[] }>(`/api/linkedin/inbox${positiveOnly ? '?positive=1' : ''}`),
+  liInboxSync: () => post<{ pulled: number; added: number } | { configured: false; message: string }>('/api/linkedin/inbox/sync', {}),
+  liInboxUnread: () => get<{ count: number }>('/api/linkedin/inbox/unread-count'),
+  liInboxAction: (id: number, body: { status?: string }) => post<{ ok: boolean }>(`/api/linkedin/inbox/${id}/action`, body),
 };
+
+export interface LiCampaign {
+  id: number; heyreachCampaignId: number; name: string; status: string | null;
+  persona: string | null; subType: string | null; syncedAt: string;
+}
+export interface LiReply {
+  id: number; heyreachCampaignId: number | null; conversationId: string | null;
+  leadName: string | null; profileUrl: string | null; company: string | null;
+  lastMessage: string | null; isPositive: boolean; status: string; receivedAt: string;
+}
 
 export interface SequenceTemplate {
   id: number; name: string; description: string | null; persona: string | null;

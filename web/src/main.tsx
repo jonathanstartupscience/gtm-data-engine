@@ -14,13 +14,15 @@ import { FindContacts } from './pages/FindContacts.js';
 import { Logs } from './pages/Logs.js';
 import { Sync } from './pages/Sync.js';
 import { Campaigns } from './pages/Campaigns.js';
-import { OutboundOverview } from './pages/OutboundOverview.js';
 import { CampaignBuilder } from './pages/CampaignBuilder.js';
 import { CampaignDetail } from './pages/CampaignDetail.js';
 import { Sequences } from './pages/Sequences.js';
 import { SequenceBuilder } from './pages/SequenceBuilder.js';
 import { Inbox } from './pages/Inbox.js';
 import { Performance } from './pages/Performance.js';
+import { LinkedInOverview } from './pages/LinkedInOverview.js';
+import { LinkedInCampaigns } from './pages/LinkedInCampaigns.js';
+import { LinkedInInbox } from './pages/LinkedInInbox.js';
 import { Connectors } from './pages/Connectors.js';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
@@ -43,7 +45,6 @@ const router = createBrowserRouter([
       { path: 'find-contacts', element: <FindContacts /> },
       { path: 'logs', element: <Logs /> },
       { path: 'sync', element: <Sync /> },
-      { path: 'outbound', element: <OutboundOverview /> },
       { path: 'campaigns', element: <Campaigns /> },
       { path: 'campaigns/new', element: <CampaignBuilder /> },
       { path: 'campaigns/:id', element: <CampaignDetail /> },
@@ -52,6 +53,9 @@ const router = createBrowserRouter([
       { path: 'sequences/:id', element: <SequenceBuilder /> },
       { path: 'inbox', element: <Inbox /> },
       { path: 'performance', element: <Performance /> },
+      { path: 'linkedin', element: <LinkedInOverview /> },
+      { path: 'linkedin/campaigns', element: <LinkedInCampaigns /> },
+      { path: 'linkedin/inbox', element: <LinkedInInbox /> },
       { path: 'connectors', element: <Connectors /> },
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },

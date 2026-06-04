@@ -43,6 +43,13 @@
       "when": 1780599213440,
       "tag": "0005_organic_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780600976647,
+      "tag": "0006_nebulous_fixer",
+      "breakpoints": true
     }
   ]
 }

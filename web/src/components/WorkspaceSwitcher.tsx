@@ -9,7 +9,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export type WorkspaceId = 'data' | 'outbound';
+export type WorkspaceId = 'data' | 'email' | 'linkedin';
 
 export interface Workspace {
   id: WorkspaceId;
@@ -30,19 +30,25 @@ export const WORKSPACES: Workspace[] = [
       '/classify', '/hygiene', '/runs', '/connectors', '/sync', '/logs'],
   },
   {
-    id: 'outbound',
-    name: 'Outbound Engine',
-    tagline: 'Campaigns & cold email',
-    home: '/outbound',
-    routes: ['/outbound', '/campaigns', '/sequences', '/inbox', '/performance'],
+    id: 'email',
+    name: 'Email Engine',
+    tagline: 'Cold email · Email Bison',
+    home: '/performance',
+    routes: ['/performance', '/campaigns', '/sequences', '/inbox'],
+  },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn Engine',
+    tagline: 'LinkedIn outreach · HeyReach',
+    home: '/linkedin',
+    routes: ['/linkedin', '/linkedin/campaigns', '/linkedin/inbox'],
   },
 ];
 
-/** Infer the active workspace from the current path (outbound routes win; default data). */
+/** Infer the active workspace from the current path. Most-specific (LinkedIn, then Email) wins; default Data. */
 export function workspaceForPath(pathname: string): Workspace {
-  const outbound = WORKSPACES[1];
-  if (outbound.routes.some((r) => r === pathname || (r !== '/' && pathname.startsWith(r)))) return outbound;
-  return WORKSPACES[0];
+  const match = (w: Workspace) => w.routes.some((r) => r === pathname || (r !== '/' && pathname.startsWith(r)));
+  return WORKSPACES.find((w) => w.id !== 'data' && match(w)) ?? WORKSPACES[0];
 }
 
 export function WorkspaceSwitcher({ active }: { active: Workspace }) {

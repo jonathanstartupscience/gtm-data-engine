@@ -10,13 +10,17 @@ const nav = ({ isActive }: { isActive: boolean }) => 'navlink' + (isActive ? ' a
 export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [replyBadge, setReplyBadge] = useState(0);
+  const [liBadge, setLiBadge] = useState(0);
   const { pathname } = useLocation();
   const ws = workspaceForPath(pathname);
 
-  // Poll the unread positive-reply count so the Inbox nav shows a live badge.
+  // Poll unread positive replies for the Email + LinkedIn inbox nav badges.
   useEffect(() => {
     let on = true;
-    const tick = () => api.inboxUnreadCount().then((d) => { if (on) setReplyBadge(d.count); }).catch(() => {});
+    const tick = () => {
+      api.inboxUnreadCount().then((d) => { if (on) setReplyBadge(d.count); }).catch(() => {});
+      api.liInboxUnread().then((d) => { if (on) setLiBadge(d.count); }).catch(() => {});
+    };
     tick();
     const t = setInterval(tick, 60_000);
     return () => { on = false; clearInterval(t); };
@@ -51,16 +55,25 @@ export function App() {
           </>
         )}
 
-        {ws.id === 'outbound' && (
+        {ws.id === 'email' && (
           <>
-            <NavLink to="/outbound" end className={nav}>Overview</NavLink>
+            <NavLink to="/performance" className={nav}>Performance</NavLink>
             <NavLink to="/campaigns" end className={nav}>Campaigns</NavLink>
             <NavLink to="/campaigns/new" className={nav}>New Campaign</NavLink>
             <NavLink to="/sequences" className={nav}>Sequences</NavLink>
             <NavLink to="/inbox" className={nav}>
               Inbox{replyBadge > 0 && <span className="nav-badge">{replyBadge > 99 ? '99+' : replyBadge}</span>}
             </NavLink>
-            <NavLink to="/performance" className={nav}>Performance</NavLink>
+          </>
+        )}
+
+        {ws.id === 'linkedin' && (
+          <>
+            <NavLink to="/linkedin" end className={nav}>Overview</NavLink>
+            <NavLink to="/linkedin/campaigns" className={nav}>Campaigns</NavLink>
+            <NavLink to="/linkedin/inbox" className={nav}>
+              Inbox{liBadge > 0 && <span className="nav-badge">{liBadge > 99 ? '99+' : liBadge}</span>}
+            </NavLink>
           </>
         )}
 
