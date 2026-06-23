@@ -10,7 +10,7 @@
  *   so one edit updates both. A stale KB is a bug — treat it like one.
  *   (See CLAUDE.md → "Knowledge base upkeep".)
  *
- * Last reviewed: 2026-06-23 (added AI sequence writer + variation-testing experiments).
+ * Last reviewed: 2026-06-23 (Email Engine end-to-end guide; AI writer + experiments).
  */
 
 export interface KbSection { heading: string; body: string }
@@ -45,6 +45,7 @@ export const CONCEPTS: KbSection[] = [
   { heading: 'Credit safety', body: 'Anything that spends a vendor (Ocean, Bouncer, Airscale) shows a cost preview first. Bulk operations run on everything matching; for a controlled spend, select specific rows on Companies/Contacts and use the action bar there. Free, deterministic cleanups (hygiene tasks) are always labeled “Free”.' },
   { heading: 'HubSpot is the system of record', body: 'The engine syncs both ways: pull everything in, push cleaned data back. Pushes always preview the exact field-by-field changes before writing, and never erase existing HubSpot data.' },
   { heading: 'Connecting tools (Settings)', body: 'Vendor API keys can be set in-app under Settings (encrypted, no redeploy) or as Railway env vars. The Connectors page shows what’s connected and live credit balances for metered vendors. The Anthropic key powers two things: the in-app classifier (on the fast, cheap Claude Haiku model) and the AI cold-email sequence writer (on Claude Opus, the strongest model, for copy quality).' },
+  { heading: 'Using the Email Engine (end to end)', body: 'The Email Engine turns clean contacts into running cold-email campaigns, in this order. (1) WRITE SEQUENCES — in Sequences, build a reusable message sequence by hand or with the AI writer (pick a style + persona, Claude drafts it in Greg’s voice). A sequence is a series of steps (subject, body with {{merge_tags}}, wait days). (2) BUILD CAMPAIGNS — in Campaigns → New campaign, set name, audience (persona/sub-type, deliverability-gated automatically), schedule, sender inboxes, and attach a sequence (its steps are copied in). Creating sets it up in Email Bison but sends nothing. (3) DISTRIBUTE — for a single campaign, push its audience from the campaign page; to test several sequences against one audience, use an Experiment (Campaigns → A/B experiments) which splits the segment across campaigns and pins each contact. (4) LAUNCH — launch each campaign (confirm-gated). (5) MONITOR — replies land in Inbox (positive first); compare campaigns on Performance. (6) ITERATE — in an experiment, set losers’ weights to 0 and scale winners, add new sequences as arms, add more contacts (only new ones flow). Two ways to populate sequences: the in-app AI writer, or generate them in Claude Code via the cold-email-sequence skill and bulk-load with the seeder (see the repo’s CLAUDE.md / skill).' },
   { heading: 'Variation testing (experiments)', body: 'An experiment runs several sequences head-to-head against one audience. Each "arm" is a campaign plus a weight. When you push, the engine splits the deliverable segment across the arms deterministically (equal weights = even split; higher weight = a bigger share of NEW contacts) and PINS each contact to its arm. Pinning is the important part: a contact never moves arms, so re-running only flows newly added contacts, and changing weights only changes where future contacts go. To prune a loser, set its weight to 0 (it keeps the leads it already has, gets no new ones); to scale a winner, raise its weight; to try a new idea, add an arm. Because each arm is its own Bison campaign, the Performance page compares them directly. Build it at Email Engine → Campaigns → A/B experiments.' },
   { heading: 'Cold email styles & the AI sequence writer', body: 'The Email Engine can draft a whole cold-email sequence for you. You pick a STYLE (a proven strategic skeleton — Three-Paragraph / Khare, Pain-centric, Offer-centric, Authority, Insight, Relevance/Trigger, plus newer ones like Curiosity, Compliment, Question, Benchmark, and Peer/FOMO) and a PERSONA (Founders, ESOs, Universities, Investors, Providers, Chambers, Government, Mentors, Partners — each with its own pain and value). The style fixes how many emails there are and what each one does; Claude writes the actual copy in Gregory Shepard’s voice, following a strict anti-AI-writing rulebook (no em dashes, no buzzwords, no filler). For pain-driven styles you can also target a SPECIFIC named pain for that persona (e.g. ESO → “weak outcomes after Demo Day”) or write your own. Offer styles can lead with one of our lead magnets (the Greg-authored guides/playbooks/audits). If the sending inbox is Greg, it writes in his first person; otherwise it writes as the sender and edifies Greg, since every demo is with Greg personally. Copy uses Bison merge tags ({{first_name}}, {{company}}, {{title}}, and for some styles {{trigger}}, {{magnet_link}}, {{sender_linkedin}}), so one sequence personalizes itself across the whole segment at send time. You can optionally generate an A/B variant of the first step. Generated copy lands in the editable Steps editor — review and edit before saving. The inputs that produced each sequence (style, persona, pain, offer) are saved with the template, shown as chips in the library, and filterable from the Sequences filter bar. Generating costs one Opus call (labeled “Paid”); editing and saving are free.' },
 ];
@@ -190,10 +191,12 @@ export const PAGES: Record<string, KbPage> = {
   // ---- Email Engine ----
   '/performance': {
     route: '/performance', workspace: 'email', title: 'Email Engine — Performance',
-    intro: 'The Email Engine home. Design, launch, and compare cold-email campaigns (via Email Bison) on top of your clean data.',
+    intro: 'The Email Engine home and scoreboard. Design, launch, and compare cold-email campaigns (via Email Bison) on top of your clean data.',
     sections: [
-      { heading: 'Cross-campaign comparison', body: 'Open/reply/bounce rates, positive replies, and interested counts side by side, so you can tell which messaging works for which segment.' },
-      { heading: 'Getting started', body: 'Build a campaign, manage reusable sequences, or open the inbox from the quick actions. Refresh a campaign’s stats from its detail page.' },
+      { heading: 'The Email Engine workflow', body: 'The engine runs in order: write a Sequence → build a Campaign (attach the sequence, set audience/schedule/senders) → distribute contacts (push one campaign, or run an Experiment across several) → launch → read replies in the Inbox and compare here. See the “Using the Email Engine” concept for the full end-to-end.' },
+      { heading: 'Cross-campaign comparison', body: 'Each row is a campaign with its latest open / reply / bounce rates, interested count, and positive replies, side by side. This is where you tell which messaging works for which segment — and, when running an experiment, which arm is winning.' },
+      { heading: 'Reading the numbers', body: 'Reply rate and positive replies matter most for cold email; open rate is unreliable (Apple/Google proxies inflate it). Bounce rate should stay under ~2% — if it climbs, your list needs verification (Data Engine) before sending more.' },
+      { heading: 'Keeping stats fresh', body: 'Stats are snapshots pulled from Bison; refresh a campaign’s stats from its detail page to update the comparison. Replies arrive in real time via the Bison webhook (once configured) or on demand from the Inbox.' },
     ],
   },
   '/campaigns': {
@@ -209,9 +212,18 @@ export const PAGES: Record<string, KbPage> = {
     route: '/campaigns/new', workspace: 'email', title: 'Campaign Builder',
     intro: 'A guided builder: name → audience → schedule → sender inboxes → sequence → create in Email Bison.',
     sections: [
-      { heading: 'Audience is deliverability-gated', body: 'The segment count only includes deliverable / risky-catch-all contacts — role-based, undeliverable, and unverified are excluded automatically.' },
-      { heading: 'Start from a sequence', body: 'Pick a saved sequence to copy its steps in (editable without changing the template), or build from scratch.' },
-      { heading: 'Create ≠ launch', body: 'Creating sets up the campaign in Bison; you push the audience and launch from the campaign page.' },
+      { heading: 'Audience is deliverability-gated', body: 'The segment count only includes deliverable / risky-catch-all contacts — role-based, undeliverable, and unverified are excluded automatically. Verify and classify contacts in the Data Engine first if the count looks low.' },
+      { heading: 'Start from a sequence', body: 'Pick a saved sequence to copy its steps in (editable here without changing the template), or build from scratch. One campaign carries one sequence — that is how Email Bison is structured.' },
+      { heading: 'Senders & capacity', body: 'Attach sender inboxes; total daily capacity is inboxes × each inbox’s daily limit. Make sure that covers your audience within warmup limits, or stagger launches so you don’t spike volume.' },
+      { heading: 'Create ≠ launch', body: 'Creating sets up the campaign + sequence + schedule in Bison and sends nothing. You then push the audience and launch from the campaign page.' },
+      { heading: 'Testing several sequences? Use an experiment', body: 'If this campaign is one arm of a head-to-head test, build all the arm campaigns here, then go to Campaigns → A/B experiments and let the experiment distribute contacts. Do NOT push the audience from each campaign page in that case — the experiment splits and pins contacts so the comparison stays even.' },
+    ],
+    steps: [
+      'Name the campaign (match the sequence so it’s easy to find later).',
+      'Set the audience (persona / sub-type) — the count shows deliverable contacts only.',
+      'Set the sending schedule (days, times, timezone) and attach sender inboxes.',
+      'Attach a saved sequence (or build steps from scratch).',
+      'Create the campaign in Bison. Then push the audience + launch from the campaign page — unless it’s an experiment arm, in which case distribute from the experiment instead.',
     ],
   },
   '/sequences': {
@@ -262,8 +274,9 @@ export const PAGES: Record<string, KbPage> = {
     route: '/inbox', workspace: 'email', title: 'Inbox',
     intro: 'Replies from your campaigns, with positive/interested replies surfaced first so you can respond fast.',
     sections: [
-      { heading: 'How replies arrive', body: 'In real time via the Email Bison webhook (once configured), or on demand with “Sync replies”. The nav badge counts unread positive replies.' },
-      { heading: 'Actions', body: 'Reply by email, mark a reply interested, or mark it handled.' },
+      { heading: 'How replies arrive', body: 'In real time via the Email Bison webhook (once BISON_WEBHOOK_SECRET is configured), or on demand with “Sync replies”. The nav badge counts unread positive replies so you never miss a warm one.' },
+      { heading: 'Triage', body: 'Positive/interested replies sort to the top. Work those first: reply by email, mark a reply interested (also flags the lead in Bison), or mark it handled to clear it from the queue.' },
+      { heading: 'Closing the loop', body: 'Interested replies are the signal the whole engine optimizes for. When comparing campaigns or experiment arms on Performance, positive replies — not opens — are how you judge which sequence is winning.' },
     ],
   },
   // ---- LinkedIn Engine ----

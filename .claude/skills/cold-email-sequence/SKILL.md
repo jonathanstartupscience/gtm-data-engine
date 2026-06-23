@@ -99,4 +99,38 @@ After the steps, add:
 - [ ] Merge tags only — no assumed facts a tag can't supply. Offer styles use {{magnet_link}}.
 - [ ] Follow-ups add a new angle; none say "just following up" or "did you see my email."
 - [ ] Reads like a mentor who has done it, not a marketer selling.
+
+---
+
+## Getting sequences into the app (the Claude Code → Email Engine workflow)
+
+Sequences you write here become real, reusable templates in the app's **Sequence library**
+(Email Engine → Sequences), then feed campaigns and experiments. Two ways in:
+
+**A) Bulk-load via the seeder (preferred for batches).** Emit the approved sequences as a JSON
+array matching the `/api/outbound/sequences` body — one object per sequence with `name`,
+`description`, `persona`, `steps[]`, and a `meta` block (`styleKey`, `personaKey`, `painKey`,
+`painLabel`, `leadMagnetId`, `senderMode`, `abVariant`, `rationale`, `genModel`). Save it to a
+gitignored file (e.g. `_eso-seed.json`) and run:
+
 ```
+# token never enters the transcript — set it in the shell:
+$env:API_SERVICE_TOKEN = "<the token, also set in Railway>"   # PowerShell
+npm run seed:sequences -- --file _eso-seed.json --api https://gtm.startupscience.io --dry   # preview
+npm run seed:sequences -- --file _eso-seed.json --api https://gtm.startupscience.io          # for real
+```
+
+The seeder authenticates with `API_SERVICE_TOKEN` (env-only service token; see CLAUDE.md), POSTs
+through the real validated API, skips names that already exist, and supports `--replace` to
+overwrite after edits. The saved `meta` is what powers the library's input chips + filters.
+
+**B) Paste into the app by hand.** For one or two sequences, open Email Engine → Sequences → New
+and paste each step in. Or use the in-app **"Write with AI"** generator (needs `ANTHROPIC_API_KEY`
+set) to draft directly in the UI.
+
+### Then: campaigns and experiments (in the app)
+Once sequences are in the library: build one **campaign per sequence** (each Bison campaign carries
+exactly one sequence), then to test several head-to-head create an **Experiment** (Campaigns →
+A/B experiments) with one arm per campaign. The experiment splits the audience by weight and pins
+each contact, so you prune losers (weight 0) and scale winners without reshuffling anyone. The
+in-app KB ("Using the Email Engine") documents this for app users; this section is the dev/agent view.

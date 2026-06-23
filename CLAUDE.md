@@ -48,6 +48,13 @@ routes like `/companies/:id` fall back to their list page via `helpForPath` — 
   (Companies/Contacts action bar) over whole-DB bulk. Free deterministic cleanups are labeled "Free".
 - **Reactive counts**: dropdown taxonomy/facet counts come from [`useTaxonomy`](web/src/hooks/useTaxonomy.ts);
   call `refreshTaxonomy()` after any op that changes type/sub-type/persona/country distribution.
+- **Email Engine (cold email)**: sequences → campaigns → experiments → inbox. Write sequences by hand or
+  with the AI writer (`src/engine/email/` IP: styles/personas/voice/lead-magnets; Opus via `anthropic.ts`).
+  A **campaign carries one sequence**; an **experiment** (`src/engine/experiments/allocate.ts`,
+  `stages/experiment.ts`) runs many head-to-head by deterministically splitting + **pinning** contacts
+  across arms (weights; 0 = pause). To populate the library from Claude Code, generate via the
+  **`cold-email-sequence` skill** then bulk-load with `npm run seed:sequences` (auth via `API_SERVICE_TOKEN`).
+  The skill's SKILL.md has the full agent workflow; the in-app KB ("Using the Email Engine") is the user view.
 
 ## Conventions
 
