@@ -18,6 +18,11 @@ import {
   type BisonSchedule, type BisonSequenceStep,
 } from '../../engine/adapters/emailbison.js';
 import { segmentCount, pushToBison } from '../../engine/stages/activate.js';
+import { runGenerateSequence } from '../../engine/recipes.js';
+import { isConfiguredAsync } from '../../engine/adapters/anthropic.js';
+import { COLD_EMAIL_STYLES } from '../../engine/email/styles.js';
+import { EMAIL_PERSONAS } from '../../engine/email/personas.js';
+import { LEAD_MAGNETS } from '../../engine/email/leadMagnets.js';
 import { asyncHandler } from '../middleware.js';
 import { rateLimit, validateBody } from '../validate.js';
 
@@ -205,6 +210,77 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
   } finally { if (!res.writableEnded) res.end(); }
 });
 
+// ----------------------------------------------------------------- AI sequence writer
+/** Cold-email style library (skeletons) for the generator picker. */
+outboundRouter.get('/email-styles', asyncHandler(async (_req, res) => {
+  res.json({
+    styles: COLD_EMAIL_STYLES.map((s) => ({
+      key: s.key, name: s.name, status: s.status, summary: s.summary,
+      whenToUse: s.whenToUse, supportsOffer: s.supportsOffer,
+      steps: s.steps.map((st) => ({ order: st.order, waitDays: st.waitDays, label: st.label })),
+    })),
+  });
+}));
+
+/** Persona library with pain/value, for the generator picker + hints. */
+outboundRouter.get('/email-personas', asyncHandler(async (_req, res) => {
+  res.json({
+    personas: EMAIL_PERSONAS.map((p) => ({
+      key: p.key, name: p.name, blurb: p.blurb, pain: p.pain, value: p.value,
+      pains: p.pains, presets: p.presets ?? [], icpTypes: p.icpTypes ?? [],
+    })),
+  });
+}));
+
+/** Curated lead-magnet library for offer-centric styles. */
+outboundRouter.get('/lead-magnets', asyncHandler(async (_req, res) => {
+  res.json({
+    leadMagnets: LEAD_MAGNETS.map((m) => ({
+      id: m.id, title: m.title, hook: m.hook, format: m.format, personaFit: m.personaFit,
+    })),
+  });
+}));
+
+const generateSchema = z.object({
+  styleKey: z.string().min(1).max(64),
+  persona: z.string().min(1).max(64),
+  senderMode: z.enum(['greg', 'edify']),
+  senderName: z.string().max(120).optional(),
+  leadMagnetId: z.string().max(80).optional(),
+  painKey: z.string().max(64).optional(),
+  painCustom: z.string().max(300).optional(),
+  abVariant: z.boolean().optional(),
+  extraContext: z.string().max(2000).optional(),
+});
+
+/**
+ * Generate a cold-email sequence with Claude (Opus). Returns steps the UI loads into the
+ * editable Sequence Builder. Does NOT persist — saving goes through POST /sequences.
+ * Gated on an Anthropic key being configured (DB-first, then env).
+ */
+outboundRouter.post('/sequences/generate', rateLimit(15, 60_000), validateBody(generateSchema), asyncHandler(async (req, res) => {
+  if (!(await isConfiguredAsync())) {
+    return err(res, 400, 'Anthropic API key not configured — add it under Settings to generate copy.');
+  }
+  const b = req.body as z.infer<typeof generateSchema>;
+  try {
+    const { result } = await runGenerateSequence(b);
+    res.json({
+      steps: result.steps, rationale: result.rationale,
+      style: result.styleName, persona: result.personaName,
+      // Metadata facets the UI persists onto the saved template (for the library inputs + filters).
+      meta: {
+        styleKey: result.styleKey, personaKey: result.personaKey,
+        painKey: result.painKey, painLabel: result.painLabel,
+        leadMagnetId: result.leadMagnetId, senderMode: result.senderMode,
+        abVariant: result.abVariant, genModel: 'claude-opus-4-8',
+      },
+    });
+  } catch (e) {
+    return err(res, 502, `Generation failed: ${(e as Error).message}`);
+  }
+}));
+
 // ----------------------------------------------------------------- sequence templates (library)
 const seqStepSchema = z.object({
   order: z.number().int().min(1),
@@ -214,12 +290,41 @@ const seqStepSchema = z.object({
   variant: z.string().max(20).optional(),
   thread_reply: z.boolean().optional(),
 });
+const seqMetaSchema = z.object({
+  styleKey: z.string().max(64).optional(),
+  personaKey: z.string().max(64).optional(),
+  painKey: z.string().max(64).optional(),
+  painLabel: z.string().max(300).optional(),
+  leadMagnetId: z.string().max(80).optional(),
+  senderMode: z.enum(['greg', 'edify']).optional(),
+  abVariant: z.boolean().optional(),
+  rationale: z.string().max(4000).optional(),
+  genModel: z.string().max(64).optional(),
+}).optional();
 const seqSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   persona: z.string().max(64).optional(),
   steps: z.array(seqStepSchema).min(1).max(20),
+  meta: seqMetaSchema,
 });
+
+/** Map the optional generation-meta block to DB columns (null-safe; only set when present). */
+function metaColumns(meta?: z.infer<typeof seqMetaSchema>) {
+  if (!meta) return {};
+  return {
+    styleKey: meta.styleKey ?? null,
+    personaKey: meta.personaKey ?? null,
+    painKey: meta.painKey ?? null,
+    painLabel: meta.painLabel ?? null,
+    leadMagnetId: meta.leadMagnetId ?? null,
+    senderMode: meta.senderMode ?? null,
+    abVariant: meta.abVariant ?? false,
+    rationale: meta.rationale ?? null,
+    genModel: meta.genModel ?? null,
+    generatedAt: new Date(),
+  };
+}
 
 outboundRouter.get('/sequences', asyncHandler(async (_req, res) => {
   res.json({ sequences: await db.select().from(sequenceTemplates).orderBy(desc(sequenceTemplates.id)) });
@@ -235,6 +340,7 @@ outboundRouter.post('/sequences', rateLimit(20, 60_000), validateBody(seqSchema)
   const b = req.body as z.infer<typeof seqSchema>;
   const [row] = await db.insert(sequenceTemplates).values({
     name: b.name, description: b.description, persona: b.persona, stepsJson: b.steps,
+    ...metaColumns(b.meta),
   }).returning();
   res.json({ sequence: row });
 }));
@@ -243,6 +349,7 @@ outboundRouter.put('/sequences/:id', rateLimit(20, 60_000), validateBody(seqSche
   const b = req.body as z.infer<typeof seqSchema>;
   const [row] = await db.update(sequenceTemplates).set({
     name: b.name, description: b.description, persona: b.persona, stepsJson: b.steps, updatedAt: new Date(),
+    ...metaColumns(b.meta),
   }).where(eq(sequenceTemplates.id, Number(req.params.id))).returning();
   if (!row) return err(res, 404, 'not found');
   res.json({ sequence: row });

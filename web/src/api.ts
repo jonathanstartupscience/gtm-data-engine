@@ -99,6 +99,13 @@ export const api = {
   outboundSendTest: (id: number, email: string) => post<{ ok: boolean; status: number }>(`/api/outbound/campaigns/${id}/send-test`, { email }),
   outboundRefreshStats: (id: number) => post<{ stats: CampaignStats }>(`/api/outbound/campaigns/${id}/refresh-stats`, {}),
 
+  // AI sequence writer
+  emailStyles: () => get<{ styles: EmailStyle[] }>('/api/outbound/email-styles'),
+  emailPersonas: () => get<{ personas: EmailPersonaInfo[] }>('/api/outbound/email-personas'),
+  leadMagnets: () => get<{ leadMagnets: LeadMagnetInfo[] }>('/api/outbound/lead-magnets'),
+  generateSequence: (body: GenerateSequenceBody) =>
+    post<GenerateSequenceResult>('/api/outbound/sequences/generate', body),
+
   // Sequence library
   sequences: () => get<{ sequences: SequenceTemplate[] }>('/api/outbound/sequences'),
   sequence: (id: number) => get<{ sequence: SequenceTemplate }>(`/api/outbound/sequences/${id}`),
@@ -149,11 +156,42 @@ export interface LiReply {
   lastMessage: string | null; isPositive: boolean; status: string; receivedAt: string;
 }
 
+export interface EmailStyleStep { order: number; waitDays: number; label: string }
+export interface EmailStyle {
+  key: string; name: string; status: 'core' | 'beta'; summary: string;
+  whenToUse: string; supportsOffer: boolean; steps: EmailStyleStep[];
+}
+export interface PersonaPain { key: string; label: string }
+export interface EmailPersonaInfo {
+  key: string; name: string; blurb: string; pain: string; value: string;
+  pains: PersonaPain[]; presets: string[]; icpTypes: string[];
+}
+export interface LeadMagnetInfo { id: string; title: string; hook: string; format: string; personaFit: string[] }
+export interface GenerateSequenceBody {
+  styleKey: string; persona: string; senderMode: 'greg' | 'edify';
+  senderName?: string; leadMagnetId?: string;
+  painKey?: string; painCustom?: string; abVariant?: boolean; extraContext?: string;
+}
+/** Generation-input metadata saved onto a template (drives the library inputs summary + filters). */
+export interface SequenceMeta {
+  styleKey?: string; personaKey?: string; painKey?: string; painLabel?: string;
+  leadMagnetId?: string; senderMode?: 'greg' | 'edify'; abVariant?: boolean;
+  rationale?: string; genModel?: string;
+}
+export interface GenerateSequenceResult {
+  steps: BuildStep[]; rationale: string; style: string; persona: string; meta: SequenceMeta;
+}
+
 export interface SequenceTemplate {
   id: number; name: string; description: string | null; persona: string | null;
   stepsJson: BuildStep[]; createdAt: string; updatedAt: string;
+  // Generation metadata (null for hand-built templates).
+  styleKey: string | null; personaKey: string | null;
+  painKey: string | null; painLabel: string | null; leadMagnetId: string | null;
+  senderMode: string | null; abVariant: boolean | null;
+  rationale: string | null; genModel: string | null; generatedAt: string | null;
 }
-export interface SequenceBody { name: string; description?: string; persona?: string; steps: BuildStep[] }
+export interface SequenceBody { name: string; description?: string; persona?: string; steps: BuildStep[]; meta?: SequenceMeta }
 export interface Reply {
   id: number; campaignId: number | null; bisonCampaignId: number | null;
   leadEmail: string | null; leadName: string | null; subject: string | null; body: string | null;

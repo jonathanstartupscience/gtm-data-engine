@@ -276,6 +276,18 @@ export const sequenceTemplates = pgTable('sequence_templates', {
   description: text('description'),
   persona: text('persona'),
   stepsJson: jsonb('steps_json').notNull(), // [{order, wait_in_days, email_subject, email_body, variant?, thread_reply?}]
+  // Generation metadata — set when a sequence is drafted by the AI writer; all nullable so
+  // hand-built templates are unaffected. Powers the library "inputs" summary + filters.
+  styleKey: text('style_key'),              // cold-email style, e.g. 'pain-centric'
+  personaKey: text('persona_key'),          // resolved persona key, e.g. 'eso'
+  painKey: text('pain_key'),                // selected sub-pain key, or 'custom'
+  painLabel: text('pain_label'),            // human label of the pain/angle targeted
+  leadMagnetId: text('lead_magnet_id'),     // offer asset id (offer styles)
+  senderMode: text('sender_mode'),          // 'greg' | 'edify'
+  abVariant: boolean('ab_variant').default(false),
+  rationale: text('rationale'),             // the model's strategy note
+  genModel: text('gen_model'),              // model used, e.g. 'claude-opus-4-8'
+  generatedAt: timestamp('generated_at'),   // when it was AI-generated
   createdBy: text('created_by'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

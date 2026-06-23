@@ -1,6 +1,6 @@
 import type { BuildStep } from '../api.js';
 
-export const SEQUENCE_VARS = ['{{first_name}}', '{{last_name}}', '{{company}}', '{{title}}', '{{persona}}', '{{sub_type}}'];
+export const SEQUENCE_VARS = ['{{first_name}}', '{{last_name}}', '{{company}}', '{{title}}', '{{persona}}', '{{sub_type}}', '{{trigger}}', '{{magnet_link}}', '{{sender_linkedin}}'];
 
 export function blankStep(order: number): BuildStep {
   return { order, wait_in_days: order === 1 ? 0 : 3, email_subject: '', email_body: '' };

@@ -15,6 +15,8 @@ import { pullCompanies, pullContacts } from './stages/pull.js';
 import { previewPush, executePush, type PushPreview } from './stages/push.js';
 import { pushToBison, type SegmentFilter } from './stages/activate.js';
 import { findContacts } from './stages/findContacts.js';
+import { generateSequence, type GenerateSequenceOpts, type GenerateSequenceResult } from './stages/generate-sequence.js';
+import { anthropicComplete, extractJson, MODEL_OPUS } from './adapters/anthropic.js';
 
 /** find-contacts: discover people for a persona at companies missing it (Airscale). */
 export async function runFindContacts(
@@ -59,6 +61,38 @@ export async function runPushToBison(
     return { runId, kind: 'push-email-bison', stats: { campaignId, ...r } };
   } catch (err) {
     rec.step({ provider: 'Email Bison', status: 'error', label: 'Push failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
+
+/** generate-sequence: compose a cold-email sequence (style × persona) in Greg's voice via Opus. */
+export async function runGenerateSequence(
+  opts: GenerateSequenceOpts,
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult & { result: GenerateSequenceResult }> {
+  const runId = await startRun('generate-sequence');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Composing cold-email sequence',
+      detail: [opts.styleKey, opts.persona, opts.leadMagnetId].filter(Boolean).join(' · ') });
+    const result = await generateSequence(
+      opts,
+      (prompt) => anthropicComplete({ prompt, model: MODEL_OPUS }),
+      extractJson,
+      log,
+    );
+    rec.step({ provider: 'Anthropic', status: 'ok', label: 'Generated sequence', count: result.steps.length,
+      detail: `${result.styleName} · ${result.personaName}` });
+    const stats = {
+      styleKey: result.styleKey, personaKey: result.personaKey, steps: result.steps.length,
+      painKey: result.painKey, painLabel: result.painLabel,
+      abVariant: result.abVariant, leadMagnetId: result.leadMagnetId,
+    };
+    await finishRun(runId, 'done', stats, rec.steps);
+    return { runId, kind: 'generate-sequence', stats, result };
+  } catch (err) {
+    rec.step({ provider: 'Anthropic', status: 'error', label: 'Generation failed', detail: (err as Error).message });
     await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }

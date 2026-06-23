@@ -10,7 +10,7 @@
  *   so one edit updates both. A stale KB is a bug — treat it like one.
  *   (See CLAUDE.md → "Knowledge base upkeep".)
  *
- * Last reviewed: 2026-06-04 (covers Data / Email / LinkedIn engines, hygiene, classify, scoped actions).
+ * Last reviewed: 2026-06-23 (added AI cold-email sequence writer: styles, personas, Greg voice).
  */
 
 export interface KbSection { heading: string; body: string }
@@ -44,7 +44,8 @@ export const CONCEPTS: KbSection[] = [
   { heading: 'Email status', body: '“Deliverable” = safe to cold-email. “Risky (catch-all)” = use cautiously. “Role-based” (info@) = avoid cold email, fine for ads. “Undeliverable” = never send. These come from real Bouncer verification, cached for 90 days.' },
   { heading: 'Credit safety', body: 'Anything that spends a vendor (Ocean, Bouncer, Airscale) shows a cost preview first. Bulk operations run on everything matching; for a controlled spend, select specific rows on Companies/Contacts and use the action bar there. Free, deterministic cleanups (hygiene tasks) are always labeled “Free”.' },
   { heading: 'HubSpot is the system of record', body: 'The engine syncs both ways: pull everything in, push cleaned data back. Pushes always preview the exact field-by-field changes before writing, and never erase existing HubSpot data.' },
-  { heading: 'Connecting tools (Settings)', body: 'Vendor API keys can be set in-app under Settings (encrypted, no redeploy) or as Railway env vars. The Connectors page shows what’s connected and live credit balances for metered vendors.' },
+  { heading: 'Connecting tools (Settings)', body: 'Vendor API keys can be set in-app under Settings (encrypted, no redeploy) or as Railway env vars. The Connectors page shows what’s connected and live credit balances for metered vendors. The Anthropic key powers two things: the in-app classifier (on the fast, cheap Claude Haiku model) and the AI cold-email sequence writer (on Claude Opus, the strongest model, for copy quality).' },
+  { heading: 'Cold email styles & the AI sequence writer', body: 'The Email Engine can draft a whole cold-email sequence for you. You pick a STYLE (a proven strategic skeleton — Three-Paragraph / Khare, Pain-centric, Offer-centric, Authority, Insight, Relevance/Trigger, plus newer ones like Curiosity, Compliment, Question, Benchmark, and Peer/FOMO) and a PERSONA (Founders, ESOs, Universities, Investors, Providers, Chambers, Government, Mentors, Partners — each with its own pain and value). The style fixes how many emails there are and what each one does; Claude writes the actual copy in Gregory Shepard’s voice, following a strict anti-AI-writing rulebook (no em dashes, no buzzwords, no filler). For pain-driven styles you can also target a SPECIFIC named pain for that persona (e.g. ESO → “weak outcomes after Demo Day”) or write your own. Offer styles can lead with one of our lead magnets (the Greg-authored guides/playbooks/audits). If the sending inbox is Greg, it writes in his first person; otherwise it writes as the sender and edifies Greg, since every demo is with Greg personally. Copy uses Bison merge tags ({{first_name}}, {{company}}, {{title}}, and for some styles {{trigger}}, {{magnet_link}}, {{sender_linkedin}}), so one sequence personalizes itself across the whole segment at send time. You can optionally generate an A/B variant of the first step. Generated copy lands in the editable Steps editor — review and edit before saving. The inputs that produced each sequence (style, persona, pain, offer) are saved with the template, shown as chips in the library, and filterable from the Sequences filter bar. Generating costs one Opus call (labeled “Paid”); editing and saving are free.' },
 ];
 
 export const PAGES: Record<string, KbPage> = {
@@ -217,6 +218,27 @@ export const PAGES: Record<string, KbPage> = {
     sections: [
       { heading: 'Copy-on-attach', body: 'Attaching a sequence to a campaign copies its steps; editing the campaign’s copy never changes the template.' },
       { heading: 'Steps', body: 'Each step has a subject, body (with {{variables}}), a wait, and an optional A/B variant.' },
+      { heading: 'Write with AI', body: 'New and edit sequences both have a “Write with AI” panel: pick a cold-email style and a persona and Claude drafts the whole sequence in Greg’s voice. See the sequence builder guide.' },
+      { heading: 'Filter the library', body: 'AI-generated sequences remember the inputs that produced them. Use the filter bar to narrow the library by style, persona, the specific pain/angle, and whether it leads with an offer — so you can find “ESO · pain-centric · weak post-program outcomes” instantly. Each card shows its inputs as chips; the filters only list values that actually exist in your library.' },
+    ],
+  },
+  '/sequences/new': {
+    route: '/sequences/new', workspace: 'email', title: 'Sequence Builder (with AI writer)',
+    intro: 'Build a reusable cold-email sequence — by hand, or let Claude draft it for you from a proven style and a persona, in Gregory Shepard’s voice.',
+    sections: [
+      { heading: 'Write with AI', body: 'Pick a STYLE (the strategy — e.g. Pain-centric, Offer-centric, Three-Paragraph) and a PERSONA (e.g. ESOs, Investors, Founders). The style sets how many emails there are and what each does; Claude writes the copy following Greg’s voice rules and an anti-AI-writing rulebook.' },
+      { heading: 'Target a specific pain', body: 'For pain-driven styles (Pain, Insight, Benchmark, Trigger), a “Specific pain / angle” picker appears once you choose a persona. Pick one of that persona’s named pains (e.g. ESO → “weak outcomes after Demo Day”) to make it the through-line, write your own, or let AI use the persona’s general pain. The choice is saved so you can filter the library by it later.' },
+      { heading: 'Sender & edification', body: 'If the sending inbox is Greg, check “This inbox is Greg” for first-person copy. Otherwise the email is written as the sender and edifies Greg, since every demo is with Greg personally.' },
+      { heading: 'Offers & A/B', body: 'Offer-centric styles can lead with one of our lead magnets (pick one or let AI choose the best fit for the persona). Toggle “A/B variant” to also generate an alternate first step.' },
+      { heading: 'Edit before saving', body: 'Generated steps land in the editable Steps editor — review, tweak, and adjust waits, then save. The inputs that produced the sequence (style, persona, pain, offer) are saved with it and shown under “Generated from”. Generating costs one Opus call (“Paid”); editing and saving are free. Saved templates work exactly like hand-built ones (copy-on-attach to a campaign).' },
+    ],
+    steps: [
+      'Open “Write with AI” and choose a style card.',
+      'Choose the persona you’re writing to (its pain/value shows as a hint).',
+      'For pain-driven styles, pick the specific pain/angle to lead with (or let AI choose).',
+      'For offer styles, pick a lead magnet or let AI choose.',
+      'Set the sender (or check “This inbox is Greg”), optionally turn on the A/B variant.',
+      'Click Generate, review the steps below, edit anything, then Save.',
     ],
   },
   '/inbox': {
