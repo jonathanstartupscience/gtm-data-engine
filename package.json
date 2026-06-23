@@ -19,6 +19,7 @@
     "db:studio": "drizzle-kit studio",
     "engine": "tsx src/engine/cli.ts",
     "seed:eso": "tsx scripts/seed-eso.ts",
+    "seed:sequences": "tsx scripts/seed-sequences.ts",
     "classify": "tsx scripts/classify.ts"
   },
   "dependencies": {

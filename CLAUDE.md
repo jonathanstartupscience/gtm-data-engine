@@ -57,5 +57,9 @@ routes like `/companies/:id` fall back to their list page via `helpForPath` — 
 - Don't commit scratch files (`_*.ts`, `_*.mjs` are gitignored).
 
 ## Pending env vars (set in Railway when enabling features)
-`APP_ENCRYPTION_KEY` (in-app key storage) · `ANTHROPIC_API_KEY` (in-app classifier; or set via Settings) ·
-`BISON_WEBHOOK_SECRET` (auto reply capture) · `HEYREACH_API_KEY` (via Settings) · Postgres volume bump (full HubSpot re-pull).
+`APP_ENCRYPTION_KEY` (in-app key storage) · `ANTHROPIC_API_KEY` (in-app classifier + AI sequence writer; or set via Settings) ·
+`BISON_WEBHOOK_SECRET` (auto reply capture) · `HEYREACH_API_KEY` (via Settings) · Postgres volume bump (full HubSpot re-pull) ·
+`API_SERVICE_TOKEN` (optional, env-only, >=24 chars) — a high-privilege shared secret that authenticates
+headless API callers (Claude Code, scripts, CI) via `Authorization: Bearer` or `X-Service-Token`, bypassing
+Clerk. Additive: never weakens browser auth. Powers `npm run seed:sequences` (bulk-load the sequence library
+through the real API). Keep it out of the DB secret layer — it is the credential that *grants* API access.
