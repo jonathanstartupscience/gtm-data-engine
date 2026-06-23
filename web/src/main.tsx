@@ -18,6 +18,8 @@ import { CampaignBuilder } from './pages/CampaignBuilder.js';
 import { CampaignDetail } from './pages/CampaignDetail.js';
 import { Sequences } from './pages/Sequences.js';
 import { SequenceBuilder } from './pages/SequenceBuilder.js';
+import { Experiments } from './pages/Experiments.js';
+import { ExperimentDetail } from './pages/ExperimentDetail.js';
 import { Inbox } from './pages/Inbox.js';
 import { Performance } from './pages/Performance.js';
 import { LinkedInOverview } from './pages/LinkedInOverview.js';
@@ -54,6 +56,8 @@ const router = createBrowserRouter([
       { path: 'sequences', element: <Sequences /> },
       { path: 'sequences/new', element: <SequenceBuilder /> },
       { path: 'sequences/:id', element: <SequenceBuilder /> },
+      { path: 'experiments', element: <Experiments /> },
+      { path: 'experiments/:id', element: <ExperimentDetail /> },
       { path: 'inbox', element: <Inbox /> },
       { path: 'performance', element: <Performance /> },
       { path: 'linkedin', element: <LinkedInOverview /> },

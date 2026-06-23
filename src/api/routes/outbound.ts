@@ -10,6 +10,7 @@ import { db } from '../../db/index.js';
 import {
   bisonCampaigns, bisonSequences, bisonSenderAssignments, bisonCampaignStats,
   sequenceTemplates, bisonReplies, bisonPushLog,
+  experiments, experimentArms,
 } from '../../db/schema.js';
 import {
   listCampaigns, listSenders, createCampaign, scheduleCampaign, setSequenceSteps,
@@ -18,7 +19,8 @@ import {
   type BisonSchedule, type BisonSequenceStep,
 } from '../../engine/adapters/emailbison.js';
 import { segmentCount, pushToBison } from '../../engine/stages/activate.js';
-import { runGenerateSequence } from '../../engine/recipes.js';
+import { previewExperiment } from '../../engine/stages/experiment.js';
+import { runGenerateSequence, runExperimentPush } from '../../engine/recipes.js';
 import { isConfiguredAsync } from '../../engine/adapters/anthropic.js';
 import { COLD_EMAIL_STYLES } from '../../engine/email/styles.js';
 import { EMAIL_PERSONAS } from '../../engine/email/personas.js';
@@ -359,6 +361,90 @@ outboundRouter.delete('/sequences/:id', rateLimit(20, 60_000), asyncHandler(asyn
   await db.delete(sequenceTemplates).where(eq(sequenceTemplates.id, Number(req.params.id)));
   res.json({ ok: true });
 }));
+
+// ----------------------------------------------------------------- experiments (variation testing)
+/** List experiments with their arms. */
+outboundRouter.get('/experiments', asyncHandler(async (_req, res) => {
+  const exps = await db.select().from(experiments).orderBy(desc(experiments.id));
+  const arms = await db.select().from(experimentArms);
+  const byExp = new Map<number, typeof arms>();
+  for (const a of arms) { const list = byExp.get(a.experimentId) ?? []; list.push(a); byExp.set(a.experimentId, list); }
+  res.json({ experiments: exps.map((e) => ({ ...e, arms: byExp.get(e.id) ?? [] })) });
+}));
+
+const armInputSchema = z.object({
+  campaignId: z.number().int().positive(),
+  label: z.string().max(120).optional(),
+  weight: z.number().int().min(0).max(1000).default(1),
+  sequenceTemplateId: z.number().int().positive().optional(),
+});
+const createExpSchema = z.object({
+  name: z.string().min(1).max(200),
+  persona: z.string().max(64).optional(),
+  subType: z.string().max(64).optional(),
+  arms: z.array(armInputSchema).min(1).max(50),
+});
+
+/** Create an experiment with its arms (each arm = a campaign + weight). */
+outboundRouter.post('/experiments', rateLimit(20, 60_000), validateBody(createExpSchema), asyncHandler(async (req, res) => {
+  const b = req.body as z.infer<typeof createExpSchema>;
+  const [exp] = await db.insert(experiments).values({ name: b.name, persona: b.persona, subType: b.subType }).returning();
+  await db.insert(experimentArms).values(b.arms.map((a) => ({
+    experimentId: exp.id, campaignId: a.campaignId, label: a.label ?? null,
+    weight: a.weight, sequenceTemplateId: a.sequenceTemplateId ?? null,
+  })));
+  res.json({ id: exp.id });
+}));
+
+const updateExpSchema = z.object({
+  status: z.enum(['active', 'archived']).optional(),
+  // Update weights for existing arms, and/or add new arms.
+  armWeights: z.array(z.object({ armId: z.number().int().positive(), weight: z.number().int().min(0).max(1000) })).max(50).optional(),
+  addArms: z.array(armInputSchema).max(50).optional(),
+});
+/** Adjust an experiment: set arm weights (0 = pause), add arms, or archive. */
+outboundRouter.patch('/experiments/:id', rateLimit(30, 60_000), validateBody(updateExpSchema), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body as z.infer<typeof updateExpSchema>;
+  const [exp] = await db.select().from(experiments).where(eq(experiments.id, id));
+  if (!exp) return err(res, 404, 'not found');
+  if (b.status) await db.update(experiments).set({ status: b.status, updatedAt: new Date() }).where(eq(experiments.id, id));
+  for (const w of b.armWeights ?? []) {
+    await db.update(experimentArms).set({ weight: w.weight }).where(and(eq(experimentArms.id, w.armId), eq(experimentArms.experimentId, id)));
+  }
+  if (b.addArms?.length) {
+    await db.insert(experimentArms).values(b.addArms.map((a) => ({
+      experimentId: id, campaignId: a.campaignId, label: a.label ?? null, weight: a.weight, sequenceTemplateId: a.sequenceTemplateId ?? null,
+    })));
+  }
+  res.json({ ok: true });
+}));
+
+/** Preview the allocation: segment size, how many NEW contacts would flow to each arm now. */
+outboundRouter.get('/experiments/:id/preview', asyncHandler(async (req, res) => {
+  const p = await previewExperiment(Number(req.params.id));
+  if (!p) return err(res, 404, 'not found');
+  res.json(p);
+}));
+
+/** Run the experiment: assign new contacts to arms and push each arm's unsent contacts to Bison. SSE. */
+outboundRouter.post('/experiments/:id/push', rateLimit(5, 60_000), validateBody(z.object({ confirm: z.literal(true) })), async (req, res) => {
+  const id = Number(req.params.id);
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+  const send = (event: string, data: unknown) => { if (!aborted && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
+  try {
+    const { result } = await runExperimentPush(id, (m) => send('log', { message: m }));
+    send('done', result);
+  } catch (e) {
+    console.error('[outbound/experiments/push]', (e as Error).stack ?? e);
+    send('error', { message: `Experiment push failed: ${(e as Error).message}` });
+  } finally { if (!res.writableEnded) res.end(); }
+});
 
 // ----------------------------------------------------------------- replies / inbox
 /** Count of unread positive replies — drives the nav badge. */

@@ -106,6 +106,12 @@ export const api = {
   generateSequence: (body: GenerateSequenceBody) =>
     post<GenerateSequenceResult>('/api/outbound/sequences/generate', body),
 
+  // Experiments (variation testing)
+  experiments: () => get<{ experiments: Experiment[] }>('/api/outbound/experiments'),
+  createExperiment: (body: CreateExperimentBody) => post<{ id: number }>('/api/outbound/experiments', body),
+  updateExperiment: (id: number, body: UpdateExperimentBody) => patch<{ ok: boolean }>(`/api/outbound/experiments/${id}`, body),
+  experimentPreview: (id: number) => get<ExperimentPreview>(`/api/outbound/experiments/${id}/preview`),
+
   // Sequence library
   sequences: () => get<{ sequences: SequenceTemplate[] }>('/api/outbound/sequences'),
   sequence: (id: number) => get<{ sequence: SequenceTemplate }>(`/api/outbound/sequences/${id}`),
@@ -180,6 +186,33 @@ export interface SequenceMeta {
 }
 export interface GenerateSequenceResult {
   steps: BuildStep[]; rationale: string; style: string; persona: string; meta: SequenceMeta;
+}
+
+export interface ExperimentArm {
+  id: number; experimentId: number; campaignId: number; label: string | null;
+  weight: number; sequenceTemplateId: number | null; createdAt: string;
+}
+export interface Experiment {
+  id: number; name: string; persona: string | null; subType: string | null;
+  status: string; createdAt: string; updatedAt: string; arms: ExperimentArm[];
+}
+export interface CreateExperimentBody {
+  name: string; persona?: string; subType?: string;
+  arms: { campaignId: number; label?: string; weight: number; sequenceTemplateId?: number }[];
+}
+export interface UpdateExperimentBody {
+  status?: 'active' | 'archived';
+  armWeights?: { armId: number; weight: number }[];
+  addArms?: { campaignId: number; label?: string; weight: number; sequenceTemplateId?: number }[];
+}
+export interface ExperimentArmView {
+  armId: number; campaignId: number; bisonCampaignId: number | null;
+  label: string | null; weight: number; assigned: number; pushed: number;
+}
+export interface ExperimentPreview {
+  experimentId: number; name: string; segmentSize: number; unassigned: number;
+  newByArm: { armId: number; label: string | null; count: number }[];
+  arms: ExperimentArmView[];
 }
 
 export interface SequenceTemplate {
@@ -286,6 +319,9 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 async function put<T>(url: string, body: unknown): Promise<T> {
   return mutate<T>('PUT', url, body);
+}
+async function patch<T>(url: string, body: unknown): Promise<T> {
+  return mutate<T>('PATCH', url, body);
 }
 async function del<T>(url: string): Promise<T> {
   return mutate<T>('DELETE', url);

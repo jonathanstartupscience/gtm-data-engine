@@ -34,7 +34,7 @@ export const WORKSPACES: Workspace[] = [
     name: 'Email Engine',
     tagline: 'Cold email · Email Bison',
     home: '/performance',
-    routes: ['/performance', '/campaigns', '/sequences', '/inbox'],
+    routes: ['/performance', '/campaigns', '/sequences', '/experiments', '/inbox'],
   },
   {
     id: 'linkedin',

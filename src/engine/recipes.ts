@@ -17,6 +17,7 @@ import { pushToBison, type SegmentFilter } from './stages/activate.js';
 import { findContacts } from './stages/findContacts.js';
 import { generateSequence, type GenerateSequenceOpts, type GenerateSequenceResult } from './stages/generate-sequence.js';
 import { anthropicComplete, extractJson, MODEL_OPUS } from './adapters/anthropic.js';
+import { runExperiment, type ExperimentPushResult } from './stages/experiment.js';
 
 /** find-contacts: discover people for a persona at companies missing it (Airscale). */
 export async function runFindContacts(
@@ -93,6 +94,32 @@ export async function runGenerateSequence(
     return { runId, kind: 'generate-sequence', stats, result };
   } catch (err) {
     rec.step({ provider: 'Anthropic', status: 'error', label: 'Generation failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
+
+/** experiment-push: assign new contacts to arms and push each arm's unsent contacts to Bison. */
+export async function runExperimentPush(
+  experimentId: number,
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult & { result: ExperimentPushResult }> {
+  const runId = await startRun('experiment-push');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Allocating + pushing experiment', detail: `experiment #${experimentId}` });
+    const result = await runExperiment(experimentId, log);
+    rec.step({ provider: 'Engine', status: 'ok', label: 'Assigned new contacts', count: result.assignedNew });
+    for (const a of result.perArm) {
+      rec.step({ provider: 'Email Bison', status: a.failed && !a.pushed ? 'warn' : 'ok',
+        label: `Pushed arm "${a.label ?? a.armId}"`, count: a.pushed,
+        detail: a.failed ? `${a.failed} failed` : undefined });
+    }
+    const stats = { experimentId, assignedNew: result.assignedNew, totalPushed: result.totalPushed, totalFailed: result.totalFailed };
+    await finishRun(runId, 'done', stats, rec.steps);
+    return { runId, kind: 'experiment-push', stats, result };
+  } catch (err) {
+    rec.step({ provider: 'Engine', status: 'error', label: 'Experiment push failed', detail: (err as Error).message });
     await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }

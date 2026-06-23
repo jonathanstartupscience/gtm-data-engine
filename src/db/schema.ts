@@ -293,6 +293,44 @@ export const sequenceTemplates = pgTable('sequence_templates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Variation testing — run many sequences head-to-head against one segment.
+// An EXPERIMENT distributes a segment across ARMS (each = one Bison campaign + a weight).
+// Contacts are PINNED to an arm once (assignment), so re-running flows only new contacts and
+// changing weights only affects future traffic. weight 0 = paused (keeps its leads, no new traffic).
+export const experiments = pgTable('experiments', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  persona: text('persona'),                 // segment filter (matches activate.SegmentFilter)
+  subType: text('sub_type'),
+  status: text('status').default('active').notNull(), // active | archived
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const experimentArms = pgTable('experiment_arms', {
+  id: serial('id').primaryKey(),
+  experimentId: integer('experiment_id').notNull().references(() => experiments.id, { onDelete: 'cascade' }),
+  campaignId: integer('campaign_id').notNull().references(() => bisonCampaigns.id),
+  label: text('label'),                     // human label, e.g. "Pain · Demo Day"
+  weight: integer('weight').default(1).notNull(), // share of NEW traffic; 0 = paused
+  sequenceTemplateId: integer('sequence_template_id'), // provenance (which library sequence this arm runs)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const experimentAssignments = pgTable(
+  'experiment_assignments',
+  {
+    id: serial('id').primaryKey(),
+    experimentId: integer('experiment_id').notNull().references(() => experiments.id, { onDelete: 'cascade' }),
+    contactId: integer('contact_id').notNull(),
+    armId: integer('arm_id').notNull().references(() => experimentArms.id),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+    pushedAt: timestamp('pushed_at'),        // null until this contact is pushed to its arm's Bison campaign
+  },
+  (t) => ({ uniqExpContact: uniqueIndex('uniq_experiment_contact').on(t.experimentId, t.contactId) }),
+);
+
 // Captured replies (via Bison webhook + poll). Positive/interested replies are what we jump on.
 export const bisonReplies = pgTable(
   'bison_replies',

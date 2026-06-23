@@ -10,7 +10,7 @@
  *   so one edit updates both. A stale KB is a bug — treat it like one.
  *   (See CLAUDE.md → "Knowledge base upkeep".)
  *
- * Last reviewed: 2026-06-23 (added AI cold-email sequence writer: styles, personas, Greg voice).
+ * Last reviewed: 2026-06-23 (added AI sequence writer + variation-testing experiments).
  */
 
 export interface KbSection { heading: string; body: string }
@@ -45,6 +45,7 @@ export const CONCEPTS: KbSection[] = [
   { heading: 'Credit safety', body: 'Anything that spends a vendor (Ocean, Bouncer, Airscale) shows a cost preview first. Bulk operations run on everything matching; for a controlled spend, select specific rows on Companies/Contacts and use the action bar there. Free, deterministic cleanups (hygiene tasks) are always labeled “Free”.' },
   { heading: 'HubSpot is the system of record', body: 'The engine syncs both ways: pull everything in, push cleaned data back. Pushes always preview the exact field-by-field changes before writing, and never erase existing HubSpot data.' },
   { heading: 'Connecting tools (Settings)', body: 'Vendor API keys can be set in-app under Settings (encrypted, no redeploy) or as Railway env vars. The Connectors page shows what’s connected and live credit balances for metered vendors. The Anthropic key powers two things: the in-app classifier (on the fast, cheap Claude Haiku model) and the AI cold-email sequence writer (on Claude Opus, the strongest model, for copy quality).' },
+  { heading: 'Variation testing (experiments)', body: 'An experiment runs several sequences head-to-head against one audience. Each "arm" is a campaign plus a weight. When you push, the engine splits the deliverable segment across the arms deterministically (equal weights = even split; higher weight = a bigger share of NEW contacts) and PINS each contact to its arm. Pinning is the important part: a contact never moves arms, so re-running only flows newly added contacts, and changing weights only changes where future contacts go. To prune a loser, set its weight to 0 (it keeps the leads it already has, gets no new ones); to scale a winner, raise its weight; to try a new idea, add an arm. Because each arm is its own Bison campaign, the Performance page compares them directly. Build it at Email Engine → Campaigns → A/B experiments.' },
   { heading: 'Cold email styles & the AI sequence writer', body: 'The Email Engine can draft a whole cold-email sequence for you. You pick a STYLE (a proven strategic skeleton — Three-Paragraph / Khare, Pain-centric, Offer-centric, Authority, Insight, Relevance/Trigger, plus newer ones like Curiosity, Compliment, Question, Benchmark, and Peer/FOMO) and a PERSONA (Founders, ESOs, Universities, Investors, Providers, Chambers, Government, Mentors, Partners — each with its own pain and value). The style fixes how many emails there are and what each one does; Claude writes the actual copy in Gregory Shepard’s voice, following a strict anti-AI-writing rulebook (no em dashes, no buzzwords, no filler). For pain-driven styles you can also target a SPECIFIC named pain for that persona (e.g. ESO → “weak outcomes after Demo Day”) or write your own. Offer styles can lead with one of our lead magnets (the Greg-authored guides/playbooks/audits). If the sending inbox is Greg, it writes in his first person; otherwise it writes as the sender and edifies Greg, since every demo is with Greg personally. Copy uses Bison merge tags ({{first_name}}, {{company}}, {{title}}, and for some styles {{trigger}}, {{magnet_link}}, {{sender_linkedin}}), so one sequence personalizes itself across the whole segment at send time. You can optionally generate an A/B variant of the first step. Generated copy lands in the editable Steps editor — review and edit before saving. The inputs that produced each sequence (style, persona, pain, offer) are saved with the template, shown as chips in the library, and filterable from the Sequences filter bar. Generating costs one Opus call (labeled “Paid”); editing and saving are free.' },
 ];
 
@@ -201,6 +202,7 @@ export const PAGES: Record<string, KbPage> = {
     sections: [
       { heading: 'Build vs Sync', body: 'Build creates a campaign + sequence + schedule in Bison from here. Sync mirrors campaigns you built in Bison so you can monitor them.' },
       { heading: 'Per campaign', body: 'Open a campaign to push its audience, send a test, launch/pause, and refresh stats.' },
+      { heading: 'A/B experiments', body: 'To run several sequences head-to-head against one audience, use “A/B experiments”: it splits the segment across multiple campaigns by weight and pins contacts so you can prune losers and scale winners. See the Experiments guide.' },
     ],
   },
   '/campaigns/new': {
@@ -239,6 +241,21 @@ export const PAGES: Record<string, KbPage> = {
       'For offer styles, pick a lead magnet or let AI choose.',
       'Set the sender (or check “This inbox is Greg”), optionally turn on the A/B variant.',
       'Click Generate, review the steps below, edit anything, then Save.',
+    ],
+  },
+  '/experiments': {
+    route: '/experiments', workspace: 'email', title: 'Experiments (variation testing)',
+    intro: 'Run multiple sequences head-to-head against one audience, split evenly or by weight, and prune losers / scale winners without reshuffling anyone already in flight.',
+    sections: [
+      { heading: 'Arms = campaigns + weights', body: 'Each arm is one campaign (which carries one sequence) plus a weight. Equal weights split new contacts evenly; a higher weight takes a larger share of new traffic; weight 0 pauses an arm.' },
+      { heading: 'Pinned, stable assignment', body: 'Contacts are assigned to an arm once and pinned there. Re-running the push only distributes newly added contacts, and changing weights only affects future traffic — so a running comparison is never corrupted.' },
+      { heading: 'Prune & scale', body: 'Set a weak arm’s weight to 0 to stop new traffic (it keeps its existing leads); raise a strong arm’s weight to send it more; add a new arm anytime to test a fresh iteration. Compare arms on the Performance page.' },
+    ],
+    steps: [
+      'Build one campaign per sequence you want to test (Campaigns → New campaign, attach the sequence).',
+      'Campaigns → A/B experiments → New experiment: name it, pick the audience (persona/sub-type), add an arm per campaign with a weight.',
+      'Open the experiment, check the preview (how many new contacts flow to each arm), then Distribute & push.',
+      'Watch results in Performance; set losers to weight 0 and raise winners, then push again to flow new contacts by the new weights.',
     ],
   },
   '/inbox': {

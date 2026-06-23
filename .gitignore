@@ -18,7 +18,8 @@ data/*.xlsx
 # Logs / OS
 *.log
 .DS_Store
-# Scratch / one-off runner files (any leading-underscore script)
+# Scratch / one-off runner files (any leading-underscore script or data drop)
 _*.ts
 _*.mjs
+_*.json
 *.tmp.ts

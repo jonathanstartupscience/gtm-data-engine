@@ -37,6 +37,7 @@ export function Campaigns() {
 
       <div className="toolbar">
         <Link to="/campaigns/new" className="btn btn-primary">+ New campaign</Link>
+        <Link to="/experiments" className="btn">A/B experiments</Link>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from Bison'}</button>
       </div>
 
