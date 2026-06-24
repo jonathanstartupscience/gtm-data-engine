@@ -13,14 +13,14 @@ import {
   workspaces, bisonCampaigns, sequenceTemplates, experiments, bisonReplies, bisonPushLog,
 } from './schema.js';
 
-/** The fixed set of workspaces. ESO first (default/backfill target); Community Funding inactive. */
+/** The fixed set of workspaces. ESO first (default/backfill target). Names match Email Bison exactly. */
 export const WORKSPACE_SEED = [
   { slug: 'eso',               name: 'ESOs',              persona: 'eso',       sortOrder: 1, active: true },
   { slug: 'founder',           name: 'Founders',          persona: 'founder',   sortOrder: 2, active: true },
   { slug: 'investor',          name: 'Investors',         persona: 'investor',  sortOrder: 3, active: true },
   { slug: 'provider',          name: 'Providers',         persona: 'provider',  sortOrder: 4, active: true },
   { slug: 'advisor',           name: 'Advisors',          persona: 'advisor',   sortOrder: 5, active: true },
-  { slug: 'community-funding', name: 'Community Funding', persona: null,        sortOrder: 6, active: false },
+  { slug: 'community-funding', name: 'Community Funding', persona: null,        sortOrder: 6, active: true },
 ] as const;
 
 export async function seedWorkspaces(db: PostgresJsDatabase<Record<string, never>>): Promise<void> {

@@ -43,17 +43,28 @@ async function resolveWorkspace(req: import('express').Request) {
   return w ?? null;
 }
 
-/** List active workspaces + whether each has a Bison key configured (for the sub-switcher). */
+/** List workspaces + whether each has a Bison key configured and is actively sending (sub-switcher). */
 outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
   const rows = await db.select().from(workspaces).orderBy(workspaces.sortOrder);
+  // "Sending" = the workspace has ≥1 campaign whose synced status is 'active'. One grouped query
+  // instead of N: count active campaigns per workspace.
+  const sendingRows = await db
+    .select({ workspaceId: bisonCampaigns.workspaceId, n: sql<number>`count(*)::int` })
+    .from(bisonCampaigns)
+    .where(eq(bisonCampaigns.status, 'active'))
+    .groupBy(bisonCampaigns.workspaceId);
+  const activeCampaignsByWs = new Map(sendingRows.map((r) => [r.workspaceId, Number(r.n)]));
   const out = await Promise.all(rows.map(async (w) => {
     const status = await secretStatus(`EMAILBISON_API_KEY__${w.slug}`);
     const global = await secretStatus('EMAILBISON_API_KEY');
+    const activeCampaigns = activeCampaignsByWs.get(w.id) ?? 0;
     return {
       id: w.id, slug: w.slug, name: w.name, persona: w.persona, active: w.active,
       sortOrder: w.sortOrder,
       keyConfigured: status.set || global.set,   // own key, or falls back to the global key
       keySource: status.set ? 'workspace' : (global.set ? 'global' : 'none'),
+      activeCampaigns,        // # of synced campaigns currently 'active' in Bison
+      sending: activeCampaigns > 0, // green = sending, red = not (reflects last sync)
     };
   }));
   res.json({ workspaces: out });

@@ -8,20 +8,31 @@ import { api } from './api.js';
 
 const nav = ({ isActive }: { isActive: boolean }) => 'navlink' + (isActive ? ' active' : '');
 
-/** Persona-workspace picker for the Email Engine — selects which Bison workspace you're in. */
+/** Persona-workspace picker for the Email Engine — selects which Bison workspace you're in,
+ *  with a campaigns-status light underneath (green = sending, red = no active campaign). */
 function EmailWorkspacePicker() {
-  const { workspaces, activeSlug, setActive } = useWorkspace();
+  const { workspaces, active, activeSlug, setActive } = useWorkspace();
   if (!workspaces.length) return null;
+  const sending = active?.sending ?? false;
   return (
     <div className="ws-sub">
       <label className="ws-sub-label">Workspace</label>
       <select className="ws-sub-select" value={activeSlug} onChange={(e) => setActive(e.target.value)}>
         {workspaces.map((w) => (
-          <option key={w.slug} value={w.slug} disabled={!w.active}>
-            {w.name}{w.active ? '' : ' (inactive)'}{w.keyConfigured ? '' : ' — no key'}
+          <option key={w.slug} value={w.slug}>
+            {w.name}{w.keyConfigured ? '' : ' — no key'}
           </option>
         ))}
       </select>
+      {active && (
+        <div className={'ws-status' + (sending ? ' sending' : '')}
+          title={sending
+            ? `${active.activeCampaigns} active campaign${active.activeCampaigns === 1 ? '' : 's'} sending`
+            : 'No active campaigns — nothing sending'}>
+          <span className="ws-status-dot" />
+          {sending ? 'Active — sending' : 'Inactive — not sending'}
+        </div>
+      )}
     </div>
   );
 }

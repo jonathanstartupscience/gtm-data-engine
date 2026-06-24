@@ -182,6 +182,8 @@ export interface EmailWorkspace {
   id: number; slug: string; name: string; persona: string | null;
   active: boolean; sortOrder: number;
   keyConfigured: boolean; keySource: 'workspace' | 'global' | 'none';
+  activeCampaigns: number;  // # of synced campaigns currently 'active' in Bison
+  sending: boolean;         // true = at least one active campaign (green); false = none (red)
 }
 
 export interface SecretStatus { set: boolean; source: 'db' | 'env' | 'none'; masked: string }
