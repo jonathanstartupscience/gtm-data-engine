@@ -221,8 +221,26 @@ export const hubspotSync = pgTable('hubspot_sync', {
 // ---------------------------------------------------------------- outbound (Email Bison)
 // The engine is the source of truth for campaign *definitions* (templating/clone/compare);
 // Email Bison remains the execution system. bisonCampaignId links our record to theirs.
+// ---------------------------------------------------------------- Email Engine workspaces
+// Mirrors Email Bison: ONE account, many WORKSPACES, each with its OWN API key. A workspace
+// targets a persona (its lead-scoping bind — pushes auto-filter the canonical store to it).
+// The Bison API key is a SECRET → stored in the secret layer keyed EMAILBISON_API_KEY__<slug>,
+// never here. All Email-Engine records (campaigns, sequences, experiments, replies) carry a
+// workspaceId so the UI can scope to the active workspace, mirroring "being inside" a workspace.
+export const workspaces = pgTable('workspaces', {
+  id: serial('id').primaryKey(),
+  slug: text('slug').notNull(),                 // 'eso' | 'founder' | 'investor' | 'provider' | 'advisor' | 'community-funding'
+  name: text('name').notNull(),                 // 'ESOs', 'Founders', …
+  persona: text('persona'),                     // canonical-store persona this workspace targets
+  bisonBaseUrl: text('bison_base_url'),         // optional per-workspace base; null → global EMAILBISON_BASE_URL
+  active: boolean('active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({ slugIdx: uniqueIndex('workspace_slug_idx').on(t.slug) }));
+
 export const bisonCampaigns = pgTable('bison_campaigns', {
   id: serial('id').primaryKey(),
+  workspaceId: integer('workspace_id').references(() => workspaces.id),
   bisonCampaignId: integer('bison_campaign_id'), // id in Email Bison (null until created there)
   name: text('name').notNull(),
   status: text('status').default('draft').notNull(), // draft | created | active | paused | done
@@ -272,6 +290,7 @@ export const bisonCampaignStats = pgTable('bison_campaign_stats', {
 // messaging across campaigns.
 export const sequenceTemplates = pgTable('sequence_templates', {
   id: serial('id').primaryKey(),
+  workspaceId: integer('workspace_id').references(() => workspaces.id),
   name: text('name').notNull(),
   description: text('description'),
   persona: text('persona'),
@@ -299,6 +318,7 @@ export const sequenceTemplates = pgTable('sequence_templates', {
 // changing weights only affects future traffic. weight 0 = paused (keeps its leads, no new traffic).
 export const experiments = pgTable('experiments', {
   id: serial('id').primaryKey(),
+  workspaceId: integer('workspace_id').references(() => workspaces.id),
   name: text('name').notNull(),
   persona: text('persona'),                 // segment filter (matches activate.SegmentFilter)
   subType: text('sub_type'),
@@ -336,6 +356,7 @@ export const bisonReplies = pgTable(
   'bison_replies',
   {
     id: serial('id').primaryKey(),
+    workspaceId: integer('workspace_id').references(() => workspaces.id),
     campaignId: integer('campaign_id'),            // our bison_campaigns.id (best-effort link)
     bisonCampaignId: integer('bison_campaign_id'), // raw id from the event
     bisonReplyId: text('bison_reply_id'),          // dedup key from Bison (event/message id)
@@ -345,15 +366,43 @@ export const bisonReplies = pgTable(
     body: text('body'),
     sentiment: text('sentiment'),                  // interested | positive | neutral | negative | unknown
     isPositive: boolean('is_positive').default(false),
-    status: text('status').default('new').notNull(), // new | read | handled
+    status: text('status').default('new').notNull(), // new | read | claimed | replied | handled
+    // --- rep handoff: reply through Bison from the right inbox, and track who owns the conversation
+    bisonReplyExtId: text('bison_reply_ext_id'),   // Bison's reply_id (thread anchor for POST /replies/{id}/reply); may differ from the dedup key
+    senderEmailId: integer('sender_email_id'),     // Bison sender inbox the original was sent from (→ sender_email_id when replying)
+    assignedRep: text('assigned_rep'),             // round-robin pick at notify time (display name)
+    claimedBy: text('claimed_by'),                 // Clerk sub of the rep who claimed it
+    claimedAt: timestamp('claimed_at'),
     receivedAt: timestamp('received_at').defaultNow().notNull(),
     raw: jsonb('raw'),
   },
   (t) => ({ dedup: uniqueIndex('bison_reply_dedup_idx').on(t.bisonReplyId) }),
 );
 
+// Round-robin rosters for reply notifications. A reply routes to the most specific match:
+// a campaign-scoped roster (campaignId set) beats a workspace-scoped one (workspaceId set) beats
+// the global default (both null). `reps` is the ordered list of display names; `rrCursor` advances
+// on each reply so the next rep is picked in turn.
+export const notifyRoutes = pgTable(
+  'notify_routes',
+  {
+    id: serial('id').primaryKey(),
+    workspaceId: integer('workspace_id').references(() => workspaces.id), // null → applies to all workspaces (global default)
+    campaignId: integer('campaign_id').references(() => bisonCampaigns.id), // set → per-campaign override
+    reps: jsonb('reps').notNull(),                        // string[] of rep display names, in round-robin order
+    rrCursor: integer('rr_cursor').default(0).notNull(),  // index of the last rep used; bumped atomically per reply
+    webhookUrlOverride: text('webhook_url_override'),     // optional per-scope Google Chat space URL (else the global secret)
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    wsIdx: uniqueIndex('notify_routes_ws_idx').on(t.workspaceId),
+    campIdx: uniqueIndex('notify_routes_camp_idx').on(t.campaignId),
+  }),
+);
+
 export const bisonPushLog = pgTable('bison_push_log', {
   id: serial('id').primaryKey(),
+  workspaceId: integer('workspace_id').references(() => workspaces.id),
   campaignId: integer('campaign_id').references(() => bisonCampaigns.id).notNull(),
   runId: integer('run_id'),
   leadsCreated: integer('leads_created'),

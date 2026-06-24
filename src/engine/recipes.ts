@@ -16,6 +16,7 @@ import { previewPush, executePush, type PushPreview } from './stages/push.js';
 import { pushToBison, type SegmentFilter } from './stages/activate.js';
 import { findContacts } from './stages/findContacts.js';
 import { generateSequence, type GenerateSequenceOpts, type GenerateSequenceResult } from './stages/generate-sequence.js';
+import { rewriteStep, type RewriteStepOpts, type RewriteStepResult } from './stages/rewrite-step.js';
 import { anthropicComplete, extractJson, MODEL_OPUS } from './adapters/anthropic.js';
 import { runExperiment, type ExperimentPushResult } from './stages/experiment.js';
 
@@ -46,7 +47,8 @@ export async function runFindContacts(
 
 /** push-email-bison: send a filtered campaign-ready segment to an Email Bison campaign. */
 export async function runPushToBison(
-  campaignId: number,
+  workspaceId: number | null | undefined,
+  bisonCampaignId: number,
   filter: SegmentFilter,
   log: (m: string) => void = console.log,
 ): Promise<RecipeResult> {
@@ -55,11 +57,11 @@ export async function runPushToBison(
   try {
     rec.step({ provider: 'Engine', status: 'info', label: 'Selected campaign-ready segment',
       detail: [filter.persona, filter.subType].filter(Boolean).join(' · ') || 'all personas' });
-    const r = await pushToBison(campaignId, filter, log);
+    const r = await pushToBison(workspaceId, bisonCampaignId, filter, log);
     rec.step({ provider: 'Email Bison', status: 'ok', label: 'Pushed to campaign', count: r.created,
       detail: `${r.created} leads created, ${r.attached} attached${r.failed ? `, ${r.failed} failed` : ''}` });
-    await finishRun(runId, 'done', { campaignId, ...r }, rec.steps);
-    return { runId, kind: 'push-email-bison', stats: { campaignId, ...r } };
+    await finishRun(runId, 'done', { bisonCampaignId, ...r }, rec.steps);
+    return { runId, kind: 'push-email-bison', stats: { bisonCampaignId, ...r } };
   } catch (err) {
     rec.step({ provider: 'Email Bison', status: 'error', label: 'Push failed', detail: (err as Error).message });
     await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
@@ -94,6 +96,33 @@ export async function runGenerateSequence(
     return { runId, kind: 'generate-sequence', stats, result };
   } catch (err) {
     rec.step({ provider: 'Anthropic', status: 'error', label: 'Generation failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
+
+/** rewrite-step: apply a targeted rewrite to one existing cold-email step via Opus. */
+export async function runRewriteStep(
+  opts: RewriteStepOpts,
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult & { result: RewriteStepResult }> {
+  const runId = await startRun('rewrite-step');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Rewriting cold-email step',
+      detail: [opts.action, opts.styleKey, opts.persona].filter(Boolean).join(' · ') });
+    const result = await rewriteStep(
+      opts,
+      (prompt) => anthropicComplete({ prompt, model: MODEL_OPUS }),
+      extractJson,
+      log,
+    );
+    rec.step({ provider: 'Anthropic', status: 'ok', label: 'Rewrote step', detail: result.note || opts.action });
+    const stats = { action: opts.action, styleKey: opts.styleKey ?? null };
+    await finishRun(runId, 'done', stats, rec.steps);
+    return { runId, kind: 'rewrite-step', stats, result };
+  } catch (err) {
+    rec.step({ provider: 'Anthropic', status: 'error', label: 'Rewrite failed', detail: (err as Error).message });
     await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }

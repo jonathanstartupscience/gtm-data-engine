@@ -23,6 +23,7 @@ export const SECRET_ENV: Record<string, string> = {
   AIRSCALE_API_KEY: 'AIRSCALE_API_KEY',
   OCEAN_API_KEY: 'OCEAN_API_KEY',
   ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
+  GOOGLE_CHAT_WEBHOOK_URL: 'GOOGLE_CHAT_WEBHOOK_URL', // default shared space for reply alerts
 };
 
 function encKey(): Buffer | null {
@@ -59,6 +60,27 @@ function decrypt(stored: string): string | null {
 
 // Small in-memory cache so we don't hit the DB on every adapter call. Invalidated on set/clear.
 const cache = new Map<string, string | null>();
+
+/**
+ * Resolve the Email Bison API key for a workspace. Per-workspace keys live under
+ * `EMAILBISON_API_KEY__<slug>` (set in the in-app Settings page or env). If a workspace has no
+ * key of its own, we fall back to the global `EMAILBISON_API_KEY` so an unconfigured workspace
+ * keeps working exactly as the single-workspace app did. Pass no slug for the global key.
+ */
+export async function bisonKeyFor(slug?: string): Promise<string> {
+  if (slug) {
+    const scoped = await getSecret(`EMAILBISON_API_KEY__${slug}`);
+    if (scoped) return scoped;
+  }
+  return getSecret('EMAILBISON_API_KEY');
+}
+
+/** Resolve the Email Bison base URL for a workspace (per-workspace override → global → default). */
+export async function bisonBaseFor(baseOverride?: string | null): Promise<string> {
+  if (baseOverride) return baseOverride;
+  const fromSecret = await getSecret('EMAILBISON_BASE_URL');
+  return fromSecret || 'https://dedi.emailbison.com/api';
+}
 
 /** Resolve a secret: DB (decrypted) first, then env var. Returns '' if neither. Async. */
 export async function getSecret(name: string): Promise<string> {

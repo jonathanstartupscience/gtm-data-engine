@@ -6,7 +6,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { contacts, contactCompany, companies } from '../../db/schema.js';
-import { pushLeadsToCampaign, type BisonLead } from '../adapters/emailbison.js';
+import { bisonClientFor, type BisonClient, type BisonLead } from '../adapters/emailbison.js';
 
 /** Email statuses that are safe to cold-email. */
 const SENDABLE = ['deliverable', 'risky_catchall'];
@@ -70,13 +70,12 @@ export async function segmentWithIds(filter: SegmentFilter, limit = 100000) {
 
 export type SegmentRow = Awaited<ReturnType<typeof segmentWithIds>>[number];
 
-/** Push a specific set of pre-resolved segment rows to a campaign (used by the experiment push). */
-export async function pushRowsToBison(
-  campaignId: number,
-  rows: SegmentRow[],
-  log: (m: string) => void = console.log,
-): Promise<{ segment: number; created: number; attached: number; failed: number }> {
-  const leads: BisonLead[] = rows.map((r) => ({
+/** Fields toBisonLeads reads — both segment() and segmentWithIds() rows satisfy this. */
+type LeadFields = Omit<SegmentRow, 'contactId'>;
+
+/** Map resolved segment rows to Bison lead payloads (with persona/sub_type custom vars). */
+function toBisonLeads(rows: LeadFields[]): BisonLead[] {
+  return rows.map((r) => ({
     email: r.email!, first_name: r.firstName ?? undefined, last_name: r.lastName ?? undefined,
     title: r.jobTitle ?? undefined, company: r.companyName ?? undefined,
     custom_variables: [
@@ -84,27 +83,35 @@ export async function pushRowsToBison(
       ...(r.subType ? [{ name: 'sub_type', value: r.subType }] : []),
     ],
   }));
+}
+
+/**
+ * Push a specific set of pre-resolved segment rows to a campaign in a given workspace's Bison.
+ * Pass the workspace's `BisonClient` (the experiment loop resolves one and reuses it per arm).
+ */
+export async function pushRowsToBison(
+  bison: BisonClient,
+  bisonCampaignId: number,
+  rows: SegmentRow[],
+  log: (m: string) => void = console.log,
+): Promise<{ segment: number; created: number; attached: number; failed: number }> {
+  const leads = toBisonLeads(rows);
   log(`Pushing ${leads.length} campaign-ready contacts to Email Bison…`);
-  const r = await pushLeadsToCampaign(campaignId, leads, log);
+  const r = await bison.pushLeadsToCampaign(bisonCampaignId, leads, log);
   return { segment: leads.length, ...r };
 }
 
-/** Push the segment into a Bison campaign. */
+/** Push the segment into a Bison campaign in the given workspace. */
 export async function pushToBison(
-  campaignId: number,
+  workspaceId: number | null | undefined,
+  bisonCampaignId: number,
   filter: SegmentFilter,
   log: (m: string) => void = console.log,
 ): Promise<{ segment: number; created: number; attached: number; failed: number }> {
   const rows = await segment(filter);
-  const leads: BisonLead[] = rows.map((r) => ({
-    email: r.email!, first_name: r.firstName ?? undefined, last_name: r.lastName ?? undefined,
-    title: r.jobTitle ?? undefined, company: r.companyName ?? undefined,
-    custom_variables: [
-      ...(r.persona ? [{ name: 'persona', value: r.persona }] : []),
-      ...(r.subType ? [{ name: 'sub_type', value: r.subType }] : []),
-    ],
-  }));
+  const leads = toBisonLeads(rows);
   log(`Pushing ${leads.length} campaign-ready contacts to Email Bison…`);
-  const r = await pushLeadsToCampaign(campaignId, leads, log);
+  const bison = await bisonClientFor(workspaceId);
+  const r = await bison.pushLeadsToCampaign(bisonCampaignId, leads, log);
   return { segment: leads.length, ...r };
 }

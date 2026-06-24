@@ -115,6 +115,20 @@ body {
 .ws-option { margin-bottom: 4px; }
 .ws-option.active { background: rgba(101,194,56,0.12); }
 
+/* ---- Email Engine persona-workspace sub-switcher (under the email nav) ---- */
+.ws-sub { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; }
+.ws-sub-label {
+  font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: rgba(247,246,242,0.4); padding-left: 2px;
+}
+.ws-sub-select {
+  width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; padding: 8px 10px; border-radius: var(--radius-sm);
+  font: 500 13px 'DM Sans', sans-serif; cursor: pointer;
+}
+.ws-sub-select:hover { background: rgba(255,255,255,0.1); }
+.ws-sub-select option { color: #111; }
+
 .footer-actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .help-btn {
   display: flex; align-items: center; gap: 8px;

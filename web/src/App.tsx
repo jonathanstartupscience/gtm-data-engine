@@ -3,9 +3,28 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { HelpDrawer } from './components/HelpDrawer.js';
 import { UserMenu } from './components/UserMenu.js';
 import { WorkspaceSwitcher, workspaceForPath } from './components/WorkspaceSwitcher.js';
+import { useWorkspace } from './workspace.js';
 import { api } from './api.js';
 
 const nav = ({ isActive }: { isActive: boolean }) => 'navlink' + (isActive ? ' active' : '');
+
+/** Persona-workspace picker for the Email Engine — selects which Bison workspace you're in. */
+function EmailWorkspacePicker() {
+  const { workspaces, activeSlug, setActive } = useWorkspace();
+  if (!workspaces.length) return null;
+  return (
+    <div className="ws-sub">
+      <label className="ws-sub-label">Workspace</label>
+      <select className="ws-sub-select" value={activeSlug} onChange={(e) => setActive(e.target.value)}>
+        {workspaces.map((w) => (
+          <option key={w.slug} value={w.slug} disabled={!w.active}>
+            {w.name}{w.active ? '' : ' (inactive)'}{w.keyConfigured ? '' : ' — no key'}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -13,8 +32,10 @@ export function App() {
   const [liBadge, setLiBadge] = useState(0);
   const { pathname } = useLocation();
   const ws = workspaceForPath(pathname);
+  const { activeSlug } = useWorkspace();
 
   // Poll unread positive replies for the Email + LinkedIn inbox nav badges.
+  // Re-runs when the active Email workspace changes (the badge is workspace-scoped).
   useEffect(() => {
     let on = true;
     const tick = () => {
@@ -24,7 +45,7 @@ export function App() {
     tick();
     const t = setInterval(tick, 60_000);
     return () => { on = false; clearInterval(t); };
-  }, [pathname]);
+  }, [pathname, activeSlug]);
 
   return (
     <div className="layout">
@@ -57,10 +78,12 @@ export function App() {
 
         {ws.id === 'email' && (
           <>
+            <EmailWorkspacePicker />
             <NavLink to="/performance" className={nav}>Performance</NavLink>
             <NavLink to="/campaigns" end className={nav}>Campaigns</NavLink>
             <NavLink to="/campaigns/new" className={nav}>New Campaign</NavLink>
             <NavLink to="/sequences" className={nav}>Sequences</NavLink>
+            <NavLink to="/experiments" className={nav}>Experiments</NavLink>
             <NavLink to="/inbox" className={nav}>
               Inbox{replyBadge > 0 && <span className="nav-badge">{replyBadge > 99 ? '99+' : replyBadge}</span>}
             </NavLink>
@@ -89,7 +112,9 @@ export function App() {
         <UserMenu />
       </aside>
       <main className="main">
-        <Outlet />
+        {/* Remount Email-Engine pages when the workspace changes so they re-fetch scoped data.
+            Other engines' routes are unaffected (their data isn't workspace-scoped). */}
+        <Outlet key={ws.id === 'email' ? `email:${activeSlug}` : ws.id} />
       </main>
       {helpOpen && <HelpDrawer page={pathname} onClose={() => setHelpOpen(false)} />}
     </div>

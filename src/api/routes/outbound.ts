@@ -5,22 +5,22 @@
  */
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import {
   bisonCampaigns, bisonSequences, bisonSenderAssignments, bisonCampaignStats,
   sequenceTemplates, bisonReplies, bisonPushLog,
-  experiments, experimentArms,
+  experiments, experimentArms, workspaces, notifyRoutes,
 } from '../../db/schema.js';
 import {
-  listCampaigns, listSenders, createCampaign, scheduleCampaign, setSequenceSteps,
-  attachSenders, resumeCampaign, pauseCampaign, getCampaignStats, sendTest,
-  listReplies, markInterested,
+  bisonClientFor,
   type BisonSchedule, type BisonSequenceStep,
 } from '../../engine/adapters/emailbison.js';
+import { onNewReply } from '../../engine/notify/index.js';
 import { segmentCount, pushToBison } from '../../engine/stages/activate.js';
 import { previewExperiment } from '../../engine/stages/experiment.js';
-import { runGenerateSequence, runExperimentPush } from '../../engine/recipes.js';
+import { runGenerateSequence, runRewriteStep, runExperimentPush } from '../../engine/recipes.js';
+import { secretStatus } from '../../lib/secrets.js';
 import { isConfiguredAsync } from '../../engine/adapters/anthropic.js';
 import { COLD_EMAIL_STYLES } from '../../engine/email/styles.js';
 import { EMAIL_PERSONAS } from '../../engine/email/personas.js';
@@ -32,10 +32,40 @@ export const outboundRouter = Router();
 
 const err = (res: import('express').Response, status: number, msg: string) => res.status(status).json({ error: msg });
 
+/**
+ * Resolve the active Email-Engine workspace for a request. The UI sends the active workspace as
+ * `?workspace=<slug>` (or `x-workspace` header). Defaults to ESO so legacy callers keep working.
+ * Returns the workspace row; throws 400-style null if the slug is unknown.
+ */
+async function resolveWorkspace(req: import('express').Request) {
+  const slug = String(req.query.workspace ?? req.header('x-workspace') ?? '').trim() || 'eso';
+  const [w] = await db.select().from(workspaces).where(eq(workspaces.slug, slug));
+  return w ?? null;
+}
+
+/** List active workspaces + whether each has a Bison key configured (for the sub-switcher). */
+outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
+  const rows = await db.select().from(workspaces).orderBy(workspaces.sortOrder);
+  const out = await Promise.all(rows.map(async (w) => {
+    const status = await secretStatus(`EMAILBISON_API_KEY__${w.slug}`);
+    const global = await secretStatus('EMAILBISON_API_KEY');
+    return {
+      id: w.id, slug: w.slug, name: w.name, persona: w.persona, active: w.active,
+      sortOrder: w.sortOrder,
+      keyConfigured: status.set || global.set,   // own key, or falls back to the global key
+      keySource: status.set ? 'workspace' : (global.set ? 'global' : 'none'),
+    };
+  }));
+  res.json({ workspaces: out });
+}));
+
 // ----------------------------------------------------------------- read / sync
-/** List our stored campaign definitions (joined with latest stats). */
-outboundRouter.get('/campaigns', asyncHandler(async (_req, res) => {
-  const rows = await db.select().from(bisonCampaigns).orderBy(desc(bisonCampaigns.id));
+/** List our stored campaign definitions for the active workspace. */
+outboundRouter.get('/campaigns', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const rows = await db.select().from(bisonCampaigns)
+    .where(eq(bisonCampaigns.workspaceId, ws.id)).orderBy(desc(bisonCampaigns.id));
   res.json({ campaigns: rows });
 }));
 
@@ -50,26 +80,34 @@ outboundRouter.get('/campaigns/:id', asyncHandler(async (req, res) => {
   res.json({ campaign: c, steps, senders, stats: stats ?? null });
 }));
 
-/** Pull the live campaign list from Bison and upsert into our store (read-only mirror). */
-outboundRouter.post('/sync', rateLimit(10, 60_000), asyncHandler(async (_req, res) => {
-  const live = await listCampaigns();
+/** Pull the live campaign list from this workspace's Bison and upsert into our store. */
+outboundRouter.post('/sync', rateLimit(10, 60_000), asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
+  const live = await bison.listCampaigns();
   let added = 0, updated = 0;
   for (const lc of live) {
-    const [existing] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.bisonCampaignId, lc.id));
+    // Match within this workspace (the same Bison campaign id never spans workspaces).
+    const [existing] = await db.select().from(bisonCampaigns)
+      .where(and(eq(bisonCampaigns.bisonCampaignId, lc.id), eq(bisonCampaigns.workspaceId, ws.id)));
     if (existing) {
       await db.update(bisonCampaigns).set({ name: lc.name, status: lc.status ?? existing.status, syncedAt: new Date() }).where(eq(bisonCampaigns.id, existing.id));
       updated++;
     } else {
-      await db.insert(bisonCampaigns).values({ bisonCampaignId: lc.id, name: lc.name, status: lc.status ?? 'created', syncedAt: new Date() });
+      await db.insert(bisonCampaigns).values({ workspaceId: ws.id, bisonCampaignId: lc.id, name: lc.name, status: lc.status ?? 'created', syncedAt: new Date() });
       added++;
     }
   }
   res.json({ synced: live.length, added, updated });
 }));
 
-/** Sender inboxes available in the workspace (for the builder's sender picker). */
-outboundRouter.get('/senders', asyncHandler(async (_req, res) => {
-  res.json({ senders: await listSenders() });
+/** Sender inboxes available in the active workspace (for the builder's sender picker). */
+outboundRouter.get('/senders', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
+  res.json({ senders: await bison.listSenders() });
 }));
 
 /** Preview how many deliverability-gated contacts a segment would send to. */
@@ -109,21 +147,25 @@ const buildSchema = z.object({
  */
 outboundRouter.post('/campaigns', rateLimit(10, 60_000), validateBody(buildSchema), asyncHandler(async (req, res) => {
   const b = req.body as z.infer<typeof buildSchema>;
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
 
-  const created = await createCampaign(b.name);
+  const created = await bison.createCampaign(b.name);
   if (!created) return err(res, 502, 'Bison: create campaign failed');
   const bisonId = created.id;
 
   const fails: string[] = [];
-  if (b.schedule) { const r = await scheduleCampaign(bisonId, b.schedule as BisonSchedule); if (!r.ok) fails.push(`schedule (${r.status})`); }
-  { const r = await setSequenceSteps(bisonId, b.steps as BisonSequenceStep[]); if (!r.ok) fails.push(`sequence-steps (${r.status})`); }
-  if (b.senderEmailIds?.length) { const r = await attachSenders(bisonId, b.senderEmailIds); if (!r.ok) fails.push(`attach-senders (${r.status})`); }
+  if (b.schedule) { const r = await bison.scheduleCampaign(bisonId, b.schedule as BisonSchedule); if (!r.ok) fails.push(`schedule (${r.status})`); }
+  { const r = await bison.setSequenceSteps(bisonId, b.steps as BisonSequenceStep[]); if (!r.ok) fails.push(`sequence-steps (${r.status})`); }
+  if (b.senderEmailIds?.length) { const r = await bison.attachSenders(bisonId, b.senderEmailIds); if (!r.ok) fails.push(`attach-senders (${r.status})`); }
 
   // Persist the definition locally regardless (so a partial build is visible/repairable).
   const [row] = await db.insert(bisonCampaigns).values({
-    bisonCampaignId: bisonId, name: b.name, status: 'created',
-    persona: b.persona, subType: b.subType,
+    workspaceId: ws.id, bisonCampaignId: bisonId, name: b.name, status: 'created',
+    persona: b.persona ?? ws.persona ?? undefined, subType: b.subType,
     scheduleJson: b.schedule ?? null, limitsJson: b.limits ?? null,
+    createdBy: (req as { auth?: { sub?: string } }).auth?.sub ?? null,
     syncedAt: new Date(),
   }).returning();
   await db.insert(bisonSequences).values(b.steps.map((s) => ({
@@ -144,7 +186,8 @@ const idBody = z.object({ confirm: z.literal(true) });
 outboundRouter.post('/campaigns/:id/launch', rateLimit(10, 60_000), validateBody(idBody), asyncHandler(async (req, res) => {
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) return err(res, 404, 'campaign not created in Bison');
-  const r = await resumeCampaign(c.bisonCampaignId);
+  const bison = await bisonClientFor(c.workspaceId);
+  const r = await bison.resumeCampaign(c.bisonCampaignId);
   if (!r.ok) return err(res, 502, `Bison resume failed (${r.status})`);
   await db.update(bisonCampaigns).set({ status: 'active' }).where(eq(bisonCampaigns.id, c.id));
   res.json({ ok: true, status: 'active' });
@@ -153,7 +196,8 @@ outboundRouter.post('/campaigns/:id/launch', rateLimit(10, 60_000), validateBody
 outboundRouter.post('/campaigns/:id/pause', rateLimit(10, 60_000), asyncHandler(async (req, res) => {
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) return err(res, 404, 'campaign not created in Bison');
-  const r = await pauseCampaign(c.bisonCampaignId);
+  const bison = await bisonClientFor(c.workspaceId);
+  const r = await bison.pauseCampaign(c.bisonCampaignId);
   if (!r.ok) return err(res, 502, `Bison pause failed (${r.status})`);
   await db.update(bisonCampaigns).set({ status: 'paused' }).where(eq(bisonCampaigns.id, c.id));
   res.json({ ok: true, status: 'paused' });
@@ -163,7 +207,8 @@ const testSchema = z.object({ email: z.string().email() });
 outboundRouter.post('/campaigns/:id/send-test', rateLimit(10, 60_000), validateBody(testSchema), asyncHandler(async (req, res) => {
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) return err(res, 404, 'campaign not created in Bison');
-  const r = await sendTest(c.bisonCampaignId, (req.body as z.infer<typeof testSchema>).email);
+  const bison = await bisonClientFor(c.workspaceId);
+  const r = await bison.sendTest(c.bisonCampaignId, (req.body as z.infer<typeof testSchema>).email);
   res.json({ ok: r.ok, status: r.status });
 }));
 
@@ -171,7 +216,8 @@ outboundRouter.post('/campaigns/:id/send-test', rateLimit(10, 60_000), validateB
 outboundRouter.post('/campaigns/:id/refresh-stats', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) return err(res, 404, 'campaign not created in Bison');
-  const s = await getCampaignStats(c.bisonCampaignId);
+  const bison = await bisonClientFor(c.workspaceId);
+  const s = await bison.getCampaignStats(c.bisonCampaignId);
   if (!s) return err(res, 502, 'Bison stats unavailable');
   const [row] = await db.insert(bisonCampaignStats).values({
     campaignId: c.id, sent: num(s.sent), opens: num(s.opens), replies: num(s.replies),
@@ -192,6 +238,10 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) { err(res, 404, 'campaign not created in Bison'); return; }
   const { persona, subType } = req.body as z.infer<typeof pushSchema>;
+  // The workspace's persona is the default segment bind; explicit body params narrow it.
+  const [ws] = c.workspaceId
+    ? await db.select({ persona: workspaces.persona }).from(workspaces).where(eq(workspaces.id, c.workspaceId))
+    : [undefined];
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -200,10 +250,13 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
   req.on('close', () => { aborted = true; });
   const send = (event: string, data: unknown) => { if (!aborted && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
   try {
-    const filter = { persona: persona ?? c.persona ?? undefined, subType: subType ?? c.subType ?? undefined };
-    const result = await pushToBison(c.bisonCampaignId, filter, (m) => send('log', { message: m }));
+    const filter = {
+      persona: persona ?? c.persona ?? ws?.persona ?? undefined,
+      subType: subType ?? c.subType ?? undefined,
+    };
+    const result = await pushToBison(c.workspaceId, c.bisonCampaignId, filter, (m) => send('log', { message: m }));
     await db.insert(bisonPushLog).values({
-      campaignId: c.id, leadsCreated: result.created, leadsAttached: result.attached, segmentFilterJson: filter,
+      workspaceId: c.workspaceId, campaignId: c.id, leadsCreated: result.created, leadsAttached: result.attached, segmentFilterJson: filter,
     });
     send('done', result);
   } catch (e) {
@@ -283,6 +336,40 @@ outboundRouter.post('/sequences/generate', rateLimit(15, 60_000), validateBody(g
   }
 }));
 
+const rewriteSchema = z.object({
+  emailSubject: z.string().max(300),
+  emailBody: z.string().min(1).max(20000),
+  action: z.enum(['tighten', 'shorten', 'punch-subject', 'more-greg', 'custom']),
+  instruction: z.string().max(500).optional(),
+  styleKey: z.string().max(64).optional(),
+  persona: z.string().max(64).optional(),
+  senderMode: z.enum(['greg', 'edify']).optional(),
+  senderName: z.string().max(120).optional(),
+});
+
+/**
+ * Rewrite a single existing sequence step with Claude (Opus). Returns the edited subject/body
+ * the UI swaps in place. Does NOT persist — saving goes through PUT /sequences/:id.
+ * Gated on an Anthropic key being configured (DB-first, then env).
+ */
+outboundRouter.post('/sequences/rewrite-step', rateLimit(20, 60_000), validateBody(rewriteSchema), asyncHandler(async (req, res) => {
+  if (!(await isConfiguredAsync())) {
+    return err(res, 400, 'Anthropic API key not configured — add it under Settings to rewrite copy.');
+  }
+  const b = req.body as z.infer<typeof rewriteSchema>;
+  try {
+    const { result } = await runRewriteStep({
+      emailSubject: b.emailSubject, emailBody: b.emailBody,
+      action: b.action, instruction: b.instruction,
+      senderMode: b.senderMode ?? 'edify', senderName: b.senderName,
+      styleKey: b.styleKey, persona: b.persona,
+    });
+    res.json({ email_subject: result.email_subject, email_body: result.email_body, note: result.note });
+  } catch (e) {
+    return err(res, 502, `Rewrite failed: ${(e as Error).message}`);
+  }
+}));
+
 // ----------------------------------------------------------------- sequence templates (library)
 const seqStepSchema = z.object({
   order: z.number().int().min(1),
@@ -328,8 +415,13 @@ function metaColumns(meta?: z.infer<typeof seqMetaSchema>) {
   };
 }
 
-outboundRouter.get('/sequences', asyncHandler(async (_req, res) => {
-  res.json({ sequences: await db.select().from(sequenceTemplates).orderBy(desc(sequenceTemplates.id)) });
+outboundRouter.get('/sequences', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  res.json({
+    sequences: await db.select().from(sequenceTemplates)
+      .where(eq(sequenceTemplates.workspaceId, ws.id)).orderBy(desc(sequenceTemplates.id)),
+  });
 }));
 
 outboundRouter.get('/sequences/:id', asyncHandler(async (req, res) => {
@@ -340,8 +432,11 @@ outboundRouter.get('/sequences/:id', asyncHandler(async (req, res) => {
 
 outboundRouter.post('/sequences', rateLimit(20, 60_000), validateBody(seqSchema), asyncHandler(async (req, res) => {
   const b = req.body as z.infer<typeof seqSchema>;
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
   const [row] = await db.insert(sequenceTemplates).values({
-    name: b.name, description: b.description, persona: b.persona, stepsJson: b.steps,
+    workspaceId: ws.id,
+    name: b.name, description: b.description, persona: b.persona ?? ws.persona ?? undefined, stepsJson: b.steps,
     ...metaColumns(b.meta),
   }).returning();
   res.json({ sequence: row });
@@ -363,9 +458,12 @@ outboundRouter.delete('/sequences/:id', rateLimit(20, 60_000), asyncHandler(asyn
 }));
 
 // ----------------------------------------------------------------- experiments (variation testing)
-/** List experiments with their arms. */
-outboundRouter.get('/experiments', asyncHandler(async (_req, res) => {
-  const exps = await db.select().from(experiments).orderBy(desc(experiments.id));
+/** List experiments (for the active workspace) with their arms. */
+outboundRouter.get('/experiments', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const exps = await db.select().from(experiments)
+    .where(eq(experiments.workspaceId, ws.id)).orderBy(desc(experiments.id));
   const arms = await db.select().from(experimentArms);
   const byExp = new Map<number, typeof arms>();
   for (const a of arms) { const list = byExp.get(a.experimentId) ?? []; list.push(a); byExp.set(a.experimentId, list); }
@@ -388,7 +486,11 @@ const createExpSchema = z.object({
 /** Create an experiment with its arms (each arm = a campaign + weight). */
 outboundRouter.post('/experiments', rateLimit(20, 60_000), validateBody(createExpSchema), asyncHandler(async (req, res) => {
   const b = req.body as z.infer<typeof createExpSchema>;
-  const [exp] = await db.insert(experiments).values({ name: b.name, persona: b.persona, subType: b.subType }).returning();
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const [exp] = await db.insert(experiments).values({
+    workspaceId: ws.id, name: b.name, persona: b.persona ?? ws.persona ?? undefined, subType: b.subType,
+  }).returning();
   await db.insert(experimentArms).values(b.arms.map((a) => ({
     experimentId: exp.id, campaignId: a.campaignId, label: a.label ?? null,
     weight: a.weight, sequenceTemplateId: a.sequenceTemplateId ?? null,
@@ -447,25 +549,35 @@ outboundRouter.post('/experiments/:id/push', rateLimit(5, 60_000), validateBody(
 });
 
 // ----------------------------------------------------------------- replies / inbox
-/** Count of unread positive replies — drives the nav badge. */
-outboundRouter.get('/inbox/unread-count', asyncHandler(async (_req, res) => {
+/** Count of unread positive replies in the active workspace — drives the nav badge. */
+outboundRouter.get('/inbox/unread-count', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(bisonReplies)
-    .where(and(eq(bisonReplies.status, 'new'), eq(bisonReplies.isPositive, true)));
+    .where(and(eq(bisonReplies.workspaceId, ws.id), eq(bisonReplies.status, 'new'), eq(bisonReplies.isPositive, true)));
   res.json({ count: Number(n) });
 }));
 
-/** List replies (positive first, newest first). ?positive=1 to filter to positive only. */
+/** List replies for the active workspace (positive first, newest first). ?positive=1 to filter. */
 outboundRouter.get('/inbox', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
   const positiveOnly = req.query.positive === '1';
   const rows = await db.select().from(bisonReplies)
-    .where(positiveOnly ? eq(bisonReplies.isPositive, true) : undefined)
+    .where(and(
+      eq(bisonReplies.workspaceId, ws.id),
+      positiveOnly ? eq(bisonReplies.isPositive, true) : undefined,
+    ))
     .orderBy(desc(bisonReplies.isPositive), desc(bisonReplies.receivedAt)).limit(200);
   res.json({ replies: rows });
 }));
 
-/** Pull replies from Bison and upsert into our inbox (dedup by bisonReplyId). */
-outboundRouter.post('/inbox/sync', rateLimit(20, 60_000), asyncHandler(async (_req, res) => {
-  const live = await listReplies(1);
+/** Pull replies from this workspace's Bison and upsert into our inbox (dedup by bisonReplyId). */
+outboundRouter.post('/inbox/sync', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
+  const live = await bison.listReplies(1);
   let added = 0;
   for (const r of live) {
     const email = r.lead?.email ?? r.email ?? null;
@@ -474,22 +586,30 @@ outboundRouter.post('/inbox/sync', rateLimit(20, 60_000), asyncHandler(async (_r
     const replyId = String(r.id ?? `${email}-${r.created_at ?? r.received_at ?? ''}`);
     const [existing] = await db.select({ id: bisonReplies.id }).from(bisonReplies).where(eq(bisonReplies.bisonReplyId, replyId));
     if (existing) continue;
+    // Match the reply to a campaign within THIS workspace (a Bison campaign id is workspace-local).
     const [ourCamp] = r.campaign_id
-      ? await db.select({ id: bisonCampaigns.id }).from(bisonCampaigns).where(eq(bisonCampaigns.bisonCampaignId, r.campaign_id))
+      ? await db.select({ id: bisonCampaigns.id }).from(bisonCampaigns)
+          .where(and(eq(bisonCampaigns.bisonCampaignId, r.campaign_id), eq(bisonCampaigns.workspaceId, ws.id)))
       : [undefined];
-    await db.insert(bisonReplies).values({
-      campaignId: ourCamp?.id ?? null, bisonCampaignId: r.campaign_id ?? null, bisonReplyId: replyId,
+    const extReplyId = r.id != null ? String(r.id) : null;
+    const senderEmailId = num((r as Record<string, unknown>).sender_email_id ?? (r.sender_email as { id?: unknown } | undefined)?.id);
+    const inserted = await db.insert(bisonReplies).values({
+      workspaceId: ws.id, campaignId: ourCamp?.id ?? null, bisonCampaignId: r.campaign_id ?? null, bisonReplyId: replyId,
+      bisonReplyExtId: extReplyId, senderEmailId,
       leadEmail: email, leadName: name, subject: r.subject ?? null,
       body: r.body ?? r.message ?? r.text ?? null,
       sentiment: r.sentiment ?? (positive ? 'interested' : 'unknown'), isPositive: positive, raw: r,
-    }).onConflictDoNothing();
+    }).onConflictDoNothing().returning();
+    // Newly-discovered replies notify + sync to HubSpot too (same path as the webhook), so a reply
+    // found via manual sync isn't silently skipped. Fire-and-forget; effects isolate their failures.
+    if (inserted.length) void onNewReply(inserted[0]);
     added++;
   }
   res.json({ pulled: live.length, added });
 }));
 
 /** Mark a reply read/handled, optionally flag interested in Bison. */
-const replyActionSchema = z.object({ status: z.enum(['new', 'read', 'handled']).optional(), markInterested: z.boolean().optional() });
+const replyActionSchema = z.object({ status: z.enum(['new', 'read', 'claimed', 'replied', 'handled']).optional(), markInterested: z.boolean().optional() });
 outboundRouter.post('/inbox/:id/action', rateLimit(60, 60_000), validateBody(replyActionSchema), asyncHandler(async (req, res) => {
   const b = req.body as z.infer<typeof replyActionSchema>;
   const [reply] = await db.select().from(bisonReplies).where(eq(bisonReplies.id, Number(req.params.id)));
@@ -497,17 +617,123 @@ outboundRouter.post('/inbox/:id/action', rateLimit(60, 60_000), validateBody(rep
   if (b.status) await db.update(bisonReplies).set({ status: b.status }).where(eq(bisonReplies.id, reply.id));
   let interestedOk: boolean | undefined;
   if (b.markInterested && reply.leadEmail) {
-    const r = await markInterested(reply.leadEmail, reply.bisonCampaignId ?? undefined);
+    const bison = await bisonClientFor(reply.workspaceId);
+    const r = await bison.markInterested(reply.leadEmail, reply.bisonCampaignId ?? undefined);
     interestedOk = r.ok;
     await db.update(bisonReplies).set({ isPositive: true, sentiment: 'interested' }).where(eq(bisonReplies.id, reply.id));
   }
   res.json({ ok: true, interestedOk });
 }));
 
+/**
+ * Claim a reply — assign it to the current rep so two reps don't both jump on the same lead.
+ * Idempotent for the same rep; blocks a different rep (returns who already owns it).
+ */
+outboundRouter.post('/inbox/:id/claim', rateLimit(60, 60_000), asyncHandler(async (req, res) => {
+  const userId = (req as { auth?: { sub?: string } }).auth?.sub ?? null;
+  const [reply] = await db.select().from(bisonReplies).where(eq(bisonReplies.id, Number(req.params.id)));
+  if (!reply) return err(res, 404, 'not found');
+  if (reply.claimedBy && reply.claimedBy !== userId) {
+    return res.status(409).json({ error: 'already claimed', claimedBy: reply.claimedBy });
+  }
+  await db.update(bisonReplies)
+    .set({ claimedBy: userId, claimedAt: new Date(), status: reply.status === 'handled' ? 'handled' : 'claimed' })
+    .where(eq(bisonReplies.id, reply.id));
+  res.json({ ok: true, claimedBy: userId });
+}));
+
+/** List this workspace's Bison sender inboxes — the picker for which inbox a reply is sent from. */
+outboundRouter.get('/inbox/senders', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
+  res.json({ senders: await bison.listSenders() });
+}));
+
+/**
+ * Reply to a lead THROUGH Bison (threaded on the original) from a chosen sender inbox — so the rep
+ * never needs the rotating mailbox. Requires the Bison reply id; without it, the UI falls back to
+ * the Bison unibox deep-link. On success the reply is marked 'replied'.
+ */
+const replySendSchema = z.object({
+  message: z.string().min(1).max(20000),
+  senderEmailId: z.number().int().positive().optional(),
+  contentType: z.enum(['html', 'text']).optional(),
+});
+outboundRouter.post('/inbox/:id/reply', rateLimit(30, 60_000), validateBody(replySendSchema), asyncHandler(async (req, res) => {
+  const b = req.body as z.infer<typeof replySendSchema>;
+  const [reply] = await db.select().from(bisonReplies).where(eq(bisonReplies.id, Number(req.params.id)));
+  if (!reply) return err(res, 404, 'not found');
+  if (!reply.bisonReplyExtId) return err(res, 422, 'no Bison reply id on this record — open it in Bison to respond');
+  if (!reply.leadEmail) return err(res, 422, 'no lead email on this record');
+  const senderEmailId = b.senderEmailId ?? reply.senderEmailId;
+  if (!senderEmailId) return err(res, 422, 'no sender inbox known — pick one to reply from');
+
+  const bison = await bisonClientFor(reply.workspaceId);
+  const resp = await bison.sendReply(reply.bisonReplyExtId, {
+    message: b.message,
+    sender_email_id: senderEmailId,
+    to_emails: [{ name: reply.leadName ?? undefined, email_address: reply.leadEmail }],
+    content_type: b.contentType ?? 'html',
+    inject_previous_email_body: true,
+  });
+  if (!resp.ok) return err(res, 502, `Bison reply failed (${resp.status})`);
+  await db.update(bisonReplies).set({ status: 'replied' }).where(eq(bisonReplies.id, reply.id));
+  res.json({ ok: true });
+}));
+
+// ----------------------------------------------------------------- reply routing (round-robin rosters)
+/**
+ * List the reply-notification rosters relevant to the active workspace: the global default
+ * (workspaceId null, campaignId null) and this workspace's roster. Per-campaign overrides are
+ * managed by passing campaignId on the PUT.
+ */
+outboundRouter.get('/notify-routes', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const rows = await db.select().from(notifyRoutes);
+  const global = rows.find((r) => r.workspaceId === null && r.campaignId === null) ?? null;
+  const workspace = rows.find((r) => r.workspaceId === ws.id && r.campaignId === null) ?? null;
+  const campaigns = rows.filter((r) => r.campaignId !== null);
+  res.json({ workspaceId: ws.id, global, workspace, campaigns });
+}));
+
+const routeSchema = z.object({
+  scope: z.enum(['global', 'workspace', 'campaign']),
+  campaignId: z.number().int().positive().optional(),  // required when scope === 'campaign'
+  reps: z.array(z.string().trim().min(1).max(120)).max(50),
+  webhookUrlOverride: z.string().trim().url().max(500).nullable().optional(),
+});
+/** Upsert a roster for a scope. Resets the round-robin cursor when the roster changes. */
+outboundRouter.put('/notify-routes', rateLimit(30, 60_000), validateBody(routeSchema), asyncHandler(async (req, res) => {
+  const b = req.body as z.infer<typeof routeSchema>;
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  if (b.scope === 'campaign' && !b.campaignId) return err(res, 400, 'campaignId required for campaign scope');
+
+  const workspaceId = b.scope === 'workspace' ? ws.id : null;
+  const campaignId = b.scope === 'campaign' ? b.campaignId! : null;
+  const match = campaignId != null
+    ? eq(notifyRoutes.campaignId, campaignId)
+    : workspaceId != null
+      ? and(eq(notifyRoutes.workspaceId, workspaceId), isNull(notifyRoutes.campaignId))
+      : and(isNull(notifyRoutes.workspaceId), isNull(notifyRoutes.campaignId));
+
+  const [existing] = await db.select().from(notifyRoutes).where(match);
+  const values = { workspaceId, campaignId, reps: b.reps, webhookUrlOverride: b.webhookUrlOverride ?? null, rrCursor: 0, updatedAt: new Date() };
+  const [row] = existing
+    ? await db.update(notifyRoutes).set(values).where(eq(notifyRoutes.id, existing.id)).returning()
+    : await db.insert(notifyRoutes).values(values).returning();
+  res.json({ ok: true, route: row });
+}));
+
 // ----------------------------------------------------------------- performance (cross-campaign)
-/** Latest stats snapshot per campaign + derived rates, for the comparison view. */
-outboundRouter.get('/performance', asyncHandler(async (_req, res) => {
-  const camps = await db.select().from(bisonCampaigns).orderBy(desc(bisonCampaigns.id));
+/** Latest stats snapshot per campaign + derived rates (active workspace), for the comparison view. */
+outboundRouter.get('/performance', asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const camps = await db.select().from(bisonCampaigns)
+    .where(eq(bisonCampaigns.workspaceId, ws.id)).orderBy(desc(bisonCampaigns.id));
   const out = [];
   for (const c of camps) {
     const [s] = await db.select().from(bisonCampaignStats).where(eq(bisonCampaignStats.campaignId, c.id))

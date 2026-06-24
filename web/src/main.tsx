@@ -33,6 +33,7 @@ import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
 import { Hygiene } from './pages/Hygiene.js';
 import { setTokenGetter } from './api.js';
+import { WorkspaceProvider } from './workspace.js';
 import './styles.css';
 
 const router = createBrowserRouter([
@@ -91,7 +92,9 @@ function AuthedApp() {
   return (
     <>
       <TokenBridge />
-      <RouterProvider router={router} />
+      <WorkspaceProvider>
+        <RouterProvider router={router} />
+      </WorkspaceProvider>
     </>
   );
 }
@@ -141,11 +144,17 @@ if (PUBLISHABLE_KEY) {
     .then((cfg: { authRequired?: boolean }) => {
       root.render(
         <React.StrictMode>
-          {cfg.authRequired ? <ConfigError /> : <RouterProvider router={router} />}
+          {cfg.authRequired ? <ConfigError /> : (
+            <WorkspaceProvider><RouterProvider router={router} /></WorkspaceProvider>
+          )}
         </React.StrictMode>,
       );
     })
     .catch(() => {
-      root.render(<React.StrictMode><RouterProvider router={router} /></React.StrictMode>);
+      root.render(
+        <React.StrictMode>
+          <WorkspaceProvider><RouterProvider router={router} /></WorkspaceProvider>
+        </React.StrictMode>,
+      );
     });
 }

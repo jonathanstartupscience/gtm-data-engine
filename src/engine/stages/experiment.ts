@@ -5,9 +5,10 @@
  */
 import { and, eq, isNull, inArray } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { experiments, experimentArms, experimentAssignments, bisonCampaigns } from '../../db/schema.js';
+import { experiments, experimentArms, experimentAssignments, bisonCampaigns, workspaces } from '../../db/schema.js';
 import { segmentWithIds, pushRowsToBison, type SegmentRow, type SegmentFilter } from './activate.js';
 import { allocate, type ArmWeight } from '../experiments/allocate.js';
+import { bisonClientFor } from '../adapters/emailbison.js';
 
 export interface ArmView {
   armId: number; campaignId: number; bisonCampaignId: number | null;
@@ -24,10 +25,23 @@ async function loadArms(experimentId: number) {
   return db.select().from(experimentArms).where(eq(experimentArms.experimentId, experimentId));
 }
 
-async function filterFor(experimentId: number): Promise<{ name: string; filter: SegmentFilter } | null> {
+async function filterFor(
+  experimentId: number,
+): Promise<{ name: string; workspaceId: number | null; filter: SegmentFilter } | null> {
   const [e] = await db.select().from(experiments).where(eq(experiments.id, experimentId));
   if (!e) return null;
-  return { name: e.name, filter: { persona: e.persona ?? undefined, subType: e.subType ?? undefined } };
+  // The segment is bound to the workspace's persona; the experiment's own persona (if set) and
+  // subType narrow it further. Workspace persona wins as the default so a workspace can't leak
+  // contacts from another persona into its arms.
+  let persona = e.persona ?? undefined;
+  if (e.workspaceId) {
+    const [w] = await db.select({ persona: workspaces.persona }).from(workspaces).where(eq(workspaces.id, e.workspaceId));
+    persona = w?.persona ?? persona;
+  }
+  return {
+    name: e.name, workspaceId: e.workspaceId,
+    filter: { persona, subType: e.subType ?? undefined },
+  };
 }
 
 /** Compute (without writing) what a push would do right now. */
@@ -105,7 +119,9 @@ export async function runExperiment(
     log('No new contacts to assign.');
   }
 
-  // 2) Push each arm's not-yet-pushed assigned contacts to its Bison campaign.
+  // 2) Push each arm's not-yet-pushed assigned contacts to its Bison campaign — all through this
+  // workspace's Bison client (one account, this workspace's key).
+  const bison = await bisonClientFor(meta.workspaceId);
   const perArm: ExperimentPushResult['perArm'] = [];
   let totalPushed = 0, totalFailed = 0;
   for (const arm of arms) {
@@ -121,7 +137,7 @@ export async function runExperiment(
       continue;
     }
     const rows = unsent.map((u) => rowById.get(u.contactId)).filter(Boolean) as SegmentRow[];
-    const r = await pushRowsToBison(camp.bisonCampaignId, rows, (m) => log(`  [${arm.label ?? arm.id}] ${m}`));
+    const r = await pushRowsToBison(bison, camp.bisonCampaignId, rows, (m) => log(`  [${arm.label ?? arm.id}] ${m}`));
     // Mark pushed (best-effort: those we attempted to create+attach).
     await db.update(experimentAssignments)
       .set({ pushedAt: new Date() })

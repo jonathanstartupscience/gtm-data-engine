@@ -71,6 +71,20 @@
       "when": 1782254709760,
       "tag": "0009_clear_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782274791312,
+      "tag": "0010_lyrical_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782275126125,
+      "tag": "0011_small_penance",
+      "breakpoints": true
     }
   ]
 }

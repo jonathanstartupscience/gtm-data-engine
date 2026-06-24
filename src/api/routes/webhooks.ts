@@ -10,6 +10,7 @@ import { db } from '../../db/index.js';
 import { bisonReplies, bisonCampaigns } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
 import { asyncHandler } from '../middleware.js';
+import { onNewReply } from '../../engine/notify/index.js';
 
 export const webhooksRouter = Router();
 
@@ -32,13 +33,22 @@ webhooksRouter.post('/bison/:secret', asyncHandler(async (req, res) => {
   if (isReplyish && email) {
     const campaignId = num(e.campaign_id);
     const [ourCamp] = campaignId
-      ? await db.select({ id: bisonCampaigns.id }).from(bisonCampaigns).where(eq(bisonCampaigns.bisonCampaignId, campaignId))
+      ? await db.select({ id: bisonCampaigns.id, workspaceId: bisonCampaigns.workspaceId })
+          .from(bisonCampaigns).where(eq(bisonCampaigns.bisonCampaignId, campaignId))
       : [undefined];
     const replyId = String(e.id ?? e.reply_id ?? `${email}-${e.created_at ?? ''}`);
-    await db.insert(bisonReplies).values({
+    // Field names vary by Bison instance — parse defensively (confirm against a live sample).
+    const senderObj = (e.sender_email ?? e.sender ?? {}) as Record<string, unknown>;
+    const extReplyId = (e.reply_id ?? e.id) != null ? String(e.reply_id ?? e.id) : null;
+    const senderEmailId = num(e.sender_email_id ?? senderObj.id);
+
+    const inserted = await db.insert(bisonReplies).values({
+      workspaceId: ourCamp?.workspaceId ?? null,
       campaignId: ourCamp?.id ?? null,
       bisonCampaignId: campaignId ?? null,
       bisonReplyId: replyId,
+      bisonReplyExtId: extReplyId,
+      senderEmailId,
       leadEmail: email,
       leadName: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null,
       subject: (e.subject as string) ?? null,
@@ -46,7 +56,11 @@ webhooksRouter.post('/bison/:secret', asyncHandler(async (req, res) => {
       sentiment: interested ? 'interested' : 'positive',
       isPositive: true,
       raw: e,
-    }).onConflictDoNothing();
+    }).onConflictDoNothing().returning();
+
+    // Only fire side-effects for a genuinely NEW reply — a dedup no-op (Bison redelivery) returns [].
+    // Fire-and-forget so the webhook acks fast; onNewReply isolates its own failures.
+    if (inserted.length) void onNewReply(inserted[0]);
   }
   res.json({ ok: true });
 }));

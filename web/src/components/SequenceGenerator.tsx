@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  api, type BuildStep, type EmailStyle, type EmailPersonaInfo, type LeadMagnetInfo, type SequenceMeta,
+  api, type BuildStep, type EmailStyle, type SequenceMeta,
 } from '../api.js';
+import { useEmailLibraries } from '../hooks/useEmailLibraries.js';
 import { CostBadge } from './CostBadge.js';
 
 /** Styles where a specific pain/angle is the central lever (so we show the Pain picker). */
@@ -13,23 +14,22 @@ const PAIN_DRIVEN_STYLES = new Set(['pain-centric', 'insight-centric', 'benchmar
  * via onGenerated so the parent loads it into the editable SequenceStepsEditor. This panel
  * never persists anything itself — saving is the parent's existing flow.
  *
+ * This is the FROM-SCRATCH writer, shown only when creating a new sequence. Editing an existing
+ * sequence uses SequenceRewriter (regenerate / per-step rewrite) instead — drafting tools don't
+ * belong on the edit screen.
+ *
  * Self-contained so it can be dropped into the Campaign Builder later with one line.
  */
 export function SequenceGenerator({
-  persona, onPersonaChange, hasExistingSteps, onGenerated,
+  persona, onPersonaChange, onGenerated,
 }: {
   /** Persona currently selected in the parent (kept in sync). */
   persona: string;
   onPersonaChange: (p: string) => void;
-  /** Whether the parent already has non-empty steps (so we confirm before replacing). */
-  hasExistingSteps: boolean;
   /** Called with the generated steps + metadata when generation succeeds. */
   onGenerated: (r: { steps: BuildStep[]; rationale: string; style: string; persona: string; meta: SequenceMeta }) => void;
 }) {
-  const [styles, setStyles] = useState<EmailStyle[]>([]);
-  const [personas, setPersonas] = useState<EmailPersonaInfo[]>([]);
-  const [magnets, setMagnets] = useState<LeadMagnetInfo[]>([]);
-  const [loadErr, setLoadErr] = useState('');
+  const { styles, personas, magnets, error: loadErr } = useEmailLibraries();
 
   const [styleKey, setStyleKey] = useState('');
   const [personaKey, setPersonaKey] = useState('');
@@ -45,12 +45,6 @@ export function SequenceGenerator({
   const [error, setError] = useState('');
   const [lastRationale, setLastRationale] = useState('');
   const [showRationale, setShowRationale] = useState(false);
-
-  useEffect(() => {
-    Promise.all([api.emailStyles(), api.emailPersonas(), api.leadMagnets()])
-      .then(([s, p, m]) => { setStyles(s.styles); setPersonas(p.personas); setMagnets(m.leadMagnets); })
-      .catch((e) => setLoadErr(String(e)));
-  }, []);
 
   // Sync the parent persona (preset/label) → our persona key when possible.
   useEffect(() => {
@@ -84,7 +78,6 @@ export function SequenceGenerator({
   const showsPain = !!style && PAIN_DRIVEN_STYLES.has(style.key);
 
   async function generate() {
-    if (hasExistingSteps && !confirm('Replace the current steps with a freshly generated sequence?')) return;
     setGenerating(true); setError('');
     try {
       const showsPain = !!style && PAIN_DRIVEN_STYLES.has(style.key);
@@ -226,7 +219,7 @@ export function SequenceGenerator({
 
       <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
         <button className="btn btn-primary" disabled={!canGenerate} onClick={generate}>
-          {generating ? <><span className="spinner" /> Writing…</> : (hasExistingSteps ? 'Regenerate' : 'Generate sequence')}
+          {generating ? <><span className="spinner" /> Writing…</> : 'Generate sequence'}
         </button>
         {lastRationale && !generating && (
           <button className="btn" onClick={() => setShowRationale((v) => !v)} style={{ padding: '4px 10px' }}>

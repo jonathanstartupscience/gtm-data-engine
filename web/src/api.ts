@@ -33,11 +33,27 @@ export async function authToken(): Promise<string | null> {
   return tokenGetter ? tokenGetter() : null;
 }
 
+/**
+ * Active Email-Engine workspace slug, set by the WorkspaceProvider. Email-Engine API calls
+ * (/api/outbound, /api/bison) are scoped to it server-side; we append it as ?workspace=<slug>
+ * so every request lands in the right Bison workspace without editing each call site.
+ */
+let activeWorkspace = 'eso';
+export function setActiveWorkspace(slug: string) { activeWorkspace = slug; }
+export function getActiveWorkspace(): string { return activeWorkspace; }
+
+/** Append ?workspace=<slug> to Email-Engine URLs (no-op for other engines' URLs). */
+export function withWorkspace(url: string): string {
+  if (!/^\/api\/(outbound|bison)\b/.test(url)) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}workspace=${encodeURIComponent(activeWorkspace)}`;
+}
+
 async function get<T>(url: string): Promise<T> {
   const headers: Record<string, string> = {};
   const token = tokenGetter ? await tokenGetter() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
-  const r = await fetch(url, { headers });
+  const r = await fetch(withWorkspace(url), { headers });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json() as Promise<T>;
 }
@@ -87,6 +103,7 @@ export const api = {
   verifyScope: (ids: number[]) => post<SelectionScope>('/api/actions/verify-contacts/scope', { ids }),
 
   // ---- Outbound Engine (Email Bison) ----
+  outboundWorkspaces: () => get<{ workspaces: EmailWorkspace[] }>('/api/outbound/workspaces'),
   outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
   outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
   outboundSync: () => post<{ synced: number; added: number; updated: number }>('/api/outbound/sync', {}),
@@ -105,6 +122,8 @@ export const api = {
   leadMagnets: () => get<{ leadMagnets: LeadMagnetInfo[] }>('/api/outbound/lead-magnets'),
   generateSequence: (body: GenerateSequenceBody) =>
     post<GenerateSequenceResult>('/api/outbound/sequences/generate', body),
+  rewriteStep: (body: RewriteStepBody) =>
+    post<RewriteStepResult>('/api/outbound/sequences/rewrite-step', body),
 
   // Experiments (variation testing)
   experiments: () => get<{ experiments: Experiment[] }>('/api/outbound/experiments'),
@@ -125,6 +144,15 @@ export const api = {
   inboxSync: () => post<{ pulled: number; added: number }>('/api/outbound/inbox/sync', {}),
   inboxAction: (id: number, body: { status?: string; markInterested?: boolean }) =>
     post<{ ok: boolean; interestedOk?: boolean }>(`/api/outbound/inbox/${id}/action`, body),
+  inboxClaim: (id: number) => post<{ ok: boolean; claimedBy: string | null }>(`/api/outbound/inbox/${id}/claim`, {}),
+  inboxSenders: () => get<{ senders: BisonSenderOption[] }>('/api/outbound/inbox/senders'),
+  inboxReply: (id: number, body: { message: string; senderEmailId?: number; contentType?: 'html' | 'text' }) =>
+    post<{ ok: boolean }>(`/api/outbound/inbox/${id}/reply`, body),
+
+  // Reply routing (round-robin rosters)
+  notifyRoutes: () => get<{ workspaceId: number; global: NotifyRoute | null; workspace: NotifyRoute | null; campaigns: NotifyRoute[] }>('/api/outbound/notify-routes'),
+  saveNotifyRoute: (body: { scope: 'global' | 'workspace' | 'campaign'; campaignId?: number; reps: string[]; webhookUrlOverride?: string | null }) =>
+    put<{ ok: boolean; route: NotifyRoute }>('/api/outbound/notify-routes', body),
 
   // Performance
   performance: () => get<{ campaigns: CampaignPerf[] }>('/api/outbound/performance'),
@@ -148,6 +176,13 @@ export const api = {
   clearSecret: (key: string) => del<{ ok: boolean } & SecretStatus>(`/api/settings/${key}`),
   testSecret: (key: string) => post<{ ok: boolean; status: number; detail: string }>(`/api/settings/${key}/test`, {}),
 };
+
+/** An Email-Engine workspace (a Bison workspace, one per persona). */
+export interface EmailWorkspace {
+  id: number; slug: string; name: string; persona: string | null;
+  active: boolean; sortOrder: number;
+  keyConfigured: boolean; keySource: 'workspace' | 'global' | 'none';
+}
 
 export interface SecretStatus { set: boolean; source: 'db' | 'env' | 'none'; masked: string }
 export interface ManagedKey extends SecretStatus { key: string; label: string; help: string; testable: boolean }
@@ -187,6 +222,14 @@ export interface SequenceMeta {
 export interface GenerateSequenceResult {
   steps: BuildStep[]; rationale: string; style: string; persona: string; meta: SequenceMeta;
 }
+
+/** One-click rewrite actions for a single existing step (plus free-text custom). */
+export type RewriteAction = 'tighten' | 'shorten' | 'punch-subject' | 'more-greg' | 'custom';
+export interface RewriteStepBody {
+  emailSubject: string; emailBody: string; action: RewriteAction; instruction?: string;
+  styleKey?: string; persona?: string; senderMode?: 'greg' | 'edify'; senderName?: string;
+}
+export interface RewriteStepResult { email_subject: string; email_body: string; note: string }
 
 export interface ExperimentArm {
   id: number; experimentId: number; campaignId: number; label: string | null;
@@ -229,6 +272,13 @@ export interface Reply {
   id: number; campaignId: number | null; bisonCampaignId: number | null;
   leadEmail: string | null; leadName: string | null; subject: string | null; body: string | null;
   sentiment: string | null; isPositive: boolean; status: string; receivedAt: string;
+  bisonReplyExtId: string | null; senderEmailId: number | null;
+  assignedRep: string | null; claimedBy: string | null; claimedAt: string | null;
+}
+export interface BisonSenderOption { id: number; email: string; name?: string }
+export interface NotifyRoute {
+  id: number; workspaceId: number | null; campaignId: number | null;
+  reps: string[]; rrCursor: number; webhookUrlOverride: string | null; updatedAt: string;
 }
 export interface CampaignPerf {
   id: number; name: string; status: string; persona: string | null; subType: string | null;
@@ -330,7 +380,7 @@ async function mutate<T>(method: string, url: string, body?: unknown): Promise<T
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenGetter ? await tokenGetter() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
-  const r = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const r = await fetch(withWorkspace(url), { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json() as Promise<T>;
 }
@@ -361,7 +411,7 @@ export async function postStream(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenGetter ? await tokenGetter() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
-  const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  const resp = await fetch(withWorkspace(url), { method: 'POST', headers, body: JSON.stringify(body) });
   if (!resp.body) throw new Error('no stream');
   const reader = resp.body.getReader();
   const dec = new TextDecoder();

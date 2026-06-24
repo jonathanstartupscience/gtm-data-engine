@@ -164,13 +164,23 @@ gitignored file (e.g. `_eso-seed.json`) and run:
 ```
 # token never enters the transcript — set it in the shell:
 $env:API_SERVICE_TOKEN = "<the token, also set in Railway>"   # PowerShell
-npm run seed:sequences -- --file _eso-seed.json --api https://gtm.startupscience.io --dry   # preview
-npm run seed:sequences -- --file _eso-seed.json --api https://gtm.startupscience.io          # for real
+npm run seed:sequences -- --file _eso-seed.json --workspace eso --api https://gtm.startupscience.io --dry   # preview
+npm run seed:sequences -- --file _eso-seed.json --workspace eso --api https://gtm.startupscience.io          # for real
 ```
 
+**Pick the right workspace.** The Email Engine mirrors Email Bison: one account, a separate
+workspace per persona (`eso`, `founder`, `investor`, `provider`, `advisor`; plus inactive
+`community-funding`), each with its own Bison API key, sequences, campaigns, and inbox. The seeder
+loads into the workspace given by `--workspace <slug>` (default `eso`). Match the workspace to the
+sequences' persona — ESO sequences → `--workspace eso`, Founder sequences → `--workspace founder`,
+etc. For a mixed file, add a per-sequence `"workspace": "<slug>"` field and it overrides the flag,
+so one file can fan out to every persona's workspace in a single run. Skip/replace dedup is scoped
+per workspace (the same sequence name can exist in two workspaces).
+
 The seeder authenticates with `API_SERVICE_TOKEN` (env-only service token; see CLAUDE.md), POSTs
-through the real validated API, skips names that already exist, and supports `--replace` to
-overwrite after edits. The saved `meta` is what powers the library's input chips + filters.
+through the real validated API, skips names that already exist (within the target workspace), and
+supports `--replace` to overwrite after edits. The saved `meta` is what powers the library's input
+chips + filters.
 
 **B) Paste into the app by hand.** For one or two sequences, open Email Engine → Sequences → New
 and paste each step in. Or use the in-app **"Write with AI"** generator (needs `ANTHROPIC_API_KEY`

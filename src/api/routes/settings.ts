@@ -9,39 +9,60 @@ import { asyncHandler } from '../middleware.js';
 import { rateLimit, validateBody } from '../validate.js';
 import { secretStatus, setSecret, clearSecret, canStoreSecrets } from '../../lib/secrets.js';
 import { checkApiKey as heyreachCheck } from '../../engine/adapters/heyreach.js';
+import { db } from '../../db/index.js';
+import { workspaces } from '../../db/schema.js';
 
 export const settingsRouter = Router();
 
-// Keys this page can manage. (The store supports more — see SECRET_ENV.)
+// Fixed keys this page can manage. (The store supports more — see SECRET_ENV.)
 const MANAGED = [
   { key: 'HEYREACH_API_KEY', label: 'HeyReach API key', help: 'HeyReach → Settings → API. Enables the LinkedIn Engine.', testable: true },
   { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', help: 'console.anthropic.com → API keys. Enables running the AI classifier from the app (Classify tab).', testable: false },
+  { key: 'GOOGLE_CHAT_WEBHOOK_URL', label: 'Google Chat webhook (reply alerts)', help: 'Google Chat space → Apps & integrations → Webhooks → copy URL. Reply notifications post here; channel membership controls who is alerted.', testable: false },
+  { key: 'EMAILBISON_API_KEY', label: 'Email Bison API key (global / fallback)', help: 'Email Bison → workspace → API. Used by any Email-Engine workspace that has no key of its own.', testable: false },
 ];
+
+/** Per-workspace Bison keys (EMAILBISON_API_KEY__<slug>), built from the workspaces table. */
+async function workspaceBisonKeys() {
+  const rows = await db.select().from(workspaces).orderBy(workspaces.sortOrder);
+  return rows.map((w) => ({
+    key: `EMAILBISON_API_KEY__${w.slug}`,
+    label: `Email Bison key — ${w.name}`,
+    help: `The Email Bison API key for the ${w.name} workspace. Falls back to the global key if unset.`,
+    testable: false,
+  }));
+}
+
+/** Is this a valid managed key? (fixed list OR a per-workspace Bison key) */
+function isManagedKey(key: string): boolean {
+  return MANAGED.some((m) => m.key === key) || /^EMAILBISON_API_KEY__[a-z0-9-]{1,40}$/.test(key);
+}
 
 /** Status of each managed key: whether set, where it resolves from, masked preview. */
 settingsRouter.get('/', asyncHandler(async (_req, res) => {
-  const keys = await Promise.all(MANAGED.map(async (m) => ({ ...m, ...(await secretStatus(m.key)) })));
+  const all = [...MANAGED, ...(await workspaceBisonKeys())];
+  const keys = await Promise.all(all.map(async (m) => ({ ...m, ...(await secretStatus(m.key)) })));
   res.json({ canStore: canStoreSecrets(), keys });
 }));
 
-const setSchema = z.object({ key: z.enum(['HEYREACH_API_KEY', 'ANTHROPIC_API_KEY']), value: z.string().min(8).max(500) });
+const setSchema = z.object({ key: z.string().min(1).max(80), value: z.string().min(8).max(500) });
 settingsRouter.post('/', rateLimit(20, 60_000), validateBody(setSchema), asyncHandler(async (req, res) => {
   if (!canStoreSecrets()) {
     res.status(400).json({ error: 'APP_ENCRYPTION_KEY is not set on the server, so keys can’t be stored securely. Add it in Railway once, then keys can be managed here.' });
     return;
   }
   const { key, value } = req.body as z.infer<typeof setSchema>;
+  if (!isManagedKey(key)) { res.status(400).json({ error: 'unknown key' }); return; }
   const userId = (req as { auth?: { sub?: string } }).auth?.sub;
   await setSecret(key, value.trim(), userId);
   res.json({ ok: true, ...(await secretStatus(key)) });
 }));
 
-const keyParam = z.object({ key: z.enum(['HEYREACH_API_KEY', 'ANTHROPIC_API_KEY']) });
 settingsRouter.delete('/:key', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
-  const parsed = keyParam.safeParse({ key: req.params.key });
-  if (!parsed.success) { res.status(400).json({ error: 'unknown key' }); return; }
-  await clearSecret(parsed.data.key);
-  res.json({ ok: true, ...(await secretStatus(parsed.data.key)) });
+  const key = String(req.params.key);
+  if (!isManagedKey(key)) { res.status(400).json({ error: 'unknown key' }); return; }
+  await clearSecret(key);
+  res.json({ ok: true, ...(await secretStatus(key)) });
 }));
 
 /** Test a key live (currently HeyReach). Uses whatever is resolved (DB or env). */

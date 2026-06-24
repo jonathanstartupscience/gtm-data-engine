@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api, type BuildStep, type SequenceMeta } from '../api.js';
+import { api, type BuildStep, type RewriteAction, type SequenceMeta } from '../api.js';
 import { SequenceStepsEditor, blankStep } from '../components/SequenceStepsEditor.js';
 import { SequenceGenerator } from '../components/SequenceGenerator.js';
+import { SequenceRewriter } from '../components/SequenceRewriter.js';
+import { useEmailLibraries } from '../hooks/useEmailLibraries.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 
@@ -11,6 +13,7 @@ export function SequenceBuilder() {
   const { id } = useParams();
   const editing = id && id !== 'new' ? Number(id) : null;
   const navigate = useNavigate();
+  const { styleName, personaName, magnetName } = useEmailLibraries();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -41,7 +44,6 @@ export function SequenceBuilder() {
     }).catch((e) => setError(String(e))).finally(() => setLoaded(true));
   }, [editing]);
 
-  const hasSteps = steps.some((s) => s.email_subject.trim() || s.email_body.trim());
   const valid = name.trim() && steps.every((s) => s.email_subject.trim() && s.email_body.trim());
 
   /** Load an AI-generated sequence into the editor; prefill name/description + capture inputs. */
@@ -50,6 +52,19 @@ export function SequenceBuilder() {
     if (!name.trim()) setName(`${r.persona} · ${r.style}${r.meta.painLabel ? ` · ${r.meta.painLabel}` : ''}`);
     if (!description.trim() && r.rationale) setDescription(r.rationale.split('. ')[0]);
     setMeta({ ...r.meta, rationale: r.rationale });
+  }
+
+  /** Per-step AI rewrite (edit screen): call the API and patch the returned copy back in. */
+  async function rewriteStep(index: number, action: RewriteAction, instruction?: string) {
+    const step = steps[index];
+    const r = await api.rewriteStep({
+      emailSubject: step.email_subject, emailBody: step.email_body,
+      action, instruction,
+      styleKey: meta?.styleKey, persona: meta?.personaKey ?? (persona || undefined),
+      senderMode: meta?.senderMode,
+    });
+    setSteps((prev) => prev.map((s, i) =>
+      i === index ? { ...s, email_subject: r.email_subject, email_body: r.email_body } : s));
   }
 
   async function save() {
@@ -91,10 +106,10 @@ export function SequenceBuilder() {
         <div className="panel" style={{ marginBottom: 16 }}>
           <h3 style={{ marginTop: 0 }}>Generated from</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: meta.rationale ? 10 : 0 }}>
-            {meta.styleKey && <MetaChip>Style: {meta.styleKey}</MetaChip>}
-            {meta.personaKey && <MetaChip>Persona: {meta.personaKey}</MetaChip>}
+            {meta.styleKey && <MetaChip>Style: {styleName(meta.styleKey)}</MetaChip>}
+            {meta.personaKey && <MetaChip>Persona: {personaName(meta.personaKey)}</MetaChip>}
             {meta.painLabel && <MetaChip>Pain: {meta.painLabel}</MetaChip>}
-            {meta.leadMagnetId && <MetaChip>Offer: {meta.leadMagnetId}</MetaChip>}
+            {meta.leadMagnetId && <MetaChip>Offer: {magnetName(meta.leadMagnetId)}</MetaChip>}
             {meta.senderMode && <MetaChip>{meta.senderMode === 'greg' ? 'As Greg' : 'Edify Greg'}</MetaChip>}
             {meta.abVariant && <MetaChip>A/B</MetaChip>}
           </div>
@@ -102,17 +117,21 @@ export function SequenceBuilder() {
         </div>
       )}
 
-      <SequenceGenerator
-        persona={persona}
-        onPersonaChange={setPersona}
-        hasExistingSteps={hasSteps}
-        onGenerated={applyGenerated}
-      />
+      {/* From-scratch AI writer is for NEW sequences only. Editing uses inline + regenerate rewrite. */}
+      {!editing && (
+        <SequenceGenerator
+          persona={persona}
+          onPersonaChange={setPersona}
+          onGenerated={applyGenerated}
+        />
+      )}
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>Steps</h3>
-        <SequenceStepsEditor steps={steps} onChange={setSteps} />
+        <SequenceStepsEditor steps={steps} onChange={setSteps} onRewrite={editing ? rewriteStep : undefined} />
       </div>
+
+      {editing && <SequenceRewriter meta={meta} onRegenerated={applyGenerated} />}
 
       <div className="panel">
         {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
