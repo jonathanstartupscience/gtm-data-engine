@@ -22,6 +22,7 @@ import { Experiments } from './pages/Experiments.js';
 import { ExperimentDetail } from './pages/ExperimentDetail.js';
 import { Inbox } from './pages/Inbox.js';
 import { Performance } from './pages/Performance.js';
+import { Workspaces } from './pages/Workspaces.js';
 import { LinkedInOverview } from './pages/LinkedInOverview.js';
 import { LinkedInCampaigns } from './pages/LinkedInCampaigns.js';
 import { LinkedInInbox } from './pages/LinkedInInbox.js';
@@ -61,6 +62,7 @@ const router = createBrowserRouter([
       { path: 'experiments/:id', element: <ExperimentDetail /> },
       { path: 'inbox', element: <Inbox /> },
       { path: 'performance', element: <Performance /> },
+      { path: 'email/workspaces', element: <Workspaces /> },
       { path: 'linkedin', element: <LinkedInOverview /> },
       { path: 'linkedin/campaigns', element: <LinkedInCampaigns /> },
       { path: 'linkedin/inbox', element: <LinkedInInbox /> },

@@ -98,6 +98,7 @@ export function App() {
             <NavLink to="/inbox" className={nav}>
               Inbox{replyBadge > 0 && <span className="nav-badge">{replyBadge > 99 ? '99+' : replyBadge}</span>}
             </NavLink>
+            <NavLink to="/email/workspaces" className={nav}>Workspaces</NavLink>
           </>
         )}
 

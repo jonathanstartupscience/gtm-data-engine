@@ -9,8 +9,6 @@ import { asyncHandler } from '../middleware.js';
 import { rateLimit, validateBody } from '../validate.js';
 import { secretStatus, setSecret, clearSecret, canStoreSecrets } from '../../lib/secrets.js';
 import { checkApiKey as heyreachCheck } from '../../engine/adapters/heyreach.js';
-import { db } from '../../db/index.js';
-import { workspaces } from '../../db/schema.js';
 
 export const settingsRouter = Router();
 
@@ -22,26 +20,19 @@ const MANAGED = [
   { key: 'EMAILBISON_API_KEY', label: 'Email Bison API key (global / fallback)', help: 'Email Bison → workspace → API. Used by any Email-Engine workspace that has no key of its own.', testable: false },
 ];
 
-/** Per-workspace Bison keys (EMAILBISON_API_KEY__<slug>), built from the workspaces table. */
-async function workspaceBisonKeys() {
-  const rows = await db.select().from(workspaces).orderBy(workspaces.sortOrder);
-  return rows.map((w) => ({
-    key: `EMAILBISON_API_KEY__${w.slug}`,
-    label: `Email Bison key — ${w.name}`,
-    help: `The Email Bison API key for the ${w.name} workspace. Falls back to the global key if unset.`,
-    testable: false,
-  }));
-}
-
-/** Is this a valid managed key? (fixed list OR a per-workspace Bison key) */
+/**
+ * Is this a valid managed key? (fixed list OR a per-workspace Bison key)
+ * The per-workspace Bison keys (EMAILBISON_API_KEY__<slug>) are NOT listed on this global page —
+ * they are managed contextually on the Email-Engine Workspaces page (/email/workspaces) — but they
+ * remain settable/clearable through these same endpoints, so the regex stays in the allow-list.
+ */
 function isManagedKey(key: string): boolean {
   return MANAGED.some((m) => m.key === key) || /^EMAILBISON_API_KEY__[a-z0-9-]{1,40}$/.test(key);
 }
 
 /** Status of each managed key: whether set, where it resolves from, masked preview. */
 settingsRouter.get('/', asyncHandler(async (_req, res) => {
-  const all = [...MANAGED, ...(await workspaceBisonKeys())];
-  const keys = await Promise.all(all.map(async (m) => ({ ...m, ...(await secretStatus(m.key)) })));
+  const keys = await Promise.all(MANAGED.map(async (m) => ({ ...m, ...(await secretStatus(m.key)) })));
   res.json({ canStore: canStoreSecrets(), keys });
 }));
 
