@@ -90,12 +90,41 @@ outboundRouter.get('/campaigns/:id', asyncHandler(async (req, res) => {
   res.json({ campaign: c, steps, senders, stats: stats ?? null });
 }));
 
+/**
+ * Delete our local mirror of a campaign (and its child rows). Does NOT delete the campaign in
+ * Email Bison — this only removes it from the app's view (e.g. a legacy campaign homed to the wrong
+ * workspace). An experiment arm referencing it blocks deletion (resolve the experiment first).
+ */
+outboundRouter.delete('/campaigns/:id', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, id));
+  if (!c) return err(res, 404, 'not found');
+  const [arm] = await db.select({ id: experimentArms.id }).from(experimentArms).where(eq(experimentArms.campaignId, id));
+  if (arm) return err(res, 409, 'Campaign is an experiment arm — remove it from the experiment first.');
+  // Clear children (FK-not-null) and soft links (FK-nullable) before deleting the campaign row.
+  await db.delete(bisonSequences).where(eq(bisonSequences.campaignId, id));
+  await db.delete(bisonSenderAssignments).where(eq(bisonSenderAssignments.campaignId, id));
+  await db.delete(bisonCampaignStats).where(eq(bisonCampaignStats.campaignId, id));
+  await db.delete(bisonPushLog).where(eq(bisonPushLog.campaignId, id));
+  await db.update(notifyRoutes).set({ campaignId: null }).where(eq(notifyRoutes.campaignId, id));
+  await db.update(bisonReplies).set({ campaignId: null }).where(eq(bisonReplies.campaignId, id));
+  await db.delete(bisonCampaigns).where(eq(bisonCampaigns.id, id));
+  res.json({ ok: true });
+}));
+
 /** Pull the live campaign list from this workspace's Bison and upsert into our store. */
 outboundRouter.post('/sync', rateLimit(10, 60_000), asyncHandler(async (req, res) => {
   const ws = await resolveWorkspace(req);
   if (!ws) return err(res, 400, 'unknown workspace');
   const bison = await bisonClientFor(ws.id);
-  const live = await bison.listCampaigns();
+  let live;
+  try {
+    live = await bison.listCampaigns();
+  } catch (e) {
+    // Surface the real Bison status/body so the UI can show why (bad key, wrong instance URL,
+    // unexpected response shape) instead of a blank 500.
+    return err(res, 502, `Bison campaign sync failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
   let added = 0, updated = 0;
   for (const lc of live) {
     // Match within this workspace (the same Bison campaign id never spans workspaces).

@@ -26,8 +26,18 @@ export function Campaigns() {
       const r = await api.outboundSync();
       setNote(`Synced ${r.synced} campaigns from Bison (${r.added} new, ${r.updated} updated).`);
       load();
-    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check the Email Bison key/instance URL in the Data Engine → Logs & Health.'); }
+    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check the Email Bison key/instance URL on the Workspaces page.'); }
     setSyncing(false);
+  }
+
+  async function remove(c: OutboundCampaign) {
+    if (!confirm(`Remove “${c.name}” from this workspace’s view? This deletes the app’s local copy only — it does NOT delete the campaign in Email Bison.`)) return;
+    setErr(''); setNote('');
+    try {
+      await api.outboundDeleteCampaign(c.id);
+      setNote(`Removed “${c.name}” from the app.`);
+      load();
+    } catch (e) { setErr('Delete failed: ' + String(e)); }
   }
 
   return (
@@ -51,7 +61,7 @@ export function Campaigns() {
       ) : (
         <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
           <table>
-            <thead><tr><th>Campaign</th><th>Status</th><th>Persona</th><th>Sub-type</th><th>In Bison</th><th>Created</th></tr></thead>
+            <thead><tr><th>Campaign</th><th>Status</th><th>Persona</th><th>Sub-type</th><th>In Bison</th><th>Created</th><th></th></tr></thead>
             <tbody>
               {campaigns.map((c) => (
                 <tr key={c.id}>
@@ -61,6 +71,7 @@ export function Campaigns() {
                   <td>{c.subType ?? <span className="muted">—</span>}</td>
                   <td>{c.bisonCampaignId ? `#${c.bisonCampaignId}` : <span className="muted">not created</span>}</td>
                   <td className="muted">{new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td><button className="btn btn-sm" onClick={() => remove(c)} style={{ color: 'var(--coral)' }} title="Remove from this workspace (does not delete in Bison)">Delete</button></td>
                 </tr>
               ))}
             </tbody>

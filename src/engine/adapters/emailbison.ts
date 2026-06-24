@@ -80,17 +80,28 @@ export function bisonClient(ctx: BisonCtx) {
   const BASE = ctx.base;
   const headers = () => ({ Authorization: `Bearer ${ctx.key}`, 'Content-Type': 'application/json' });
 
-  /** List ALL campaigns in this workspace, following Laravel pagination. */
-  async function listCampaigns(): Promise<BisonCampaign[]> {
+  /**
+   * List ALL campaigns in this workspace, following Laravel pagination. Tolerant of response-shape
+   * variation across Bison instances (`data` | `items` | bare array) and surfaces the real Bison
+   * status/body on failure instead of letting a generic 500 bubble up. Page-capped as a backstop.
+   */
+  async function listCampaigns(maxPages = 100): Promise<BisonCampaign[]> {
     const all: BisonCampaign[] = [];
-    let page = 1;
-    for (;;) {
-      const j = await requestJson<{ data?: BisonCampaign[]; meta?: { current_page: number; last_page: number } }>(
-        `${BASE}/campaigns?page=${page}`, { headers: headers(), limiter });
-      all.push(...(j.data ?? []));
-      const meta = j.meta;
-      if (!meta || meta.current_page >= meta.last_page || !j.data?.length) break;
-      page++;
+    for (let page = 1; page <= maxPages; page++) {
+      const resp = await request(`${BASE}/campaigns?page=${page}`, { headers: headers(), limiter });
+      if (!resp.ok) {
+        const body = (await resp.text()).slice(0, 300);
+        throw new Error(`Bison GET /campaigns?page=${page} → ${resp.status}: ${body}`);
+      }
+      const j = (await resp.json()) as
+        | { data?: BisonCampaign[]; items?: BisonCampaign[]; meta?: { current_page?: number; last_page?: number } }
+        | BisonCampaign[];
+      const rows = Array.isArray(j) ? j : (j.data ?? j.items ?? []);
+      all.push(...rows);
+      const meta = Array.isArray(j) ? undefined : j.meta;
+      if (rows.length === 0) break;                                  // ran past the end
+      if (meta?.last_page != null && page >= meta.last_page) break;  // Laravel meta says done
+      if (!meta) break;                                              // no pagination meta → single page
     }
     return all;
   }

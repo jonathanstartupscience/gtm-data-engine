@@ -107,6 +107,7 @@ export const api = {
   outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
   outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
   outboundSync: () => post<{ synced: number; added: number; updated: number }>('/api/outbound/sync', {}),
+  outboundDeleteCampaign: (id: number) => del<{ ok: boolean }>(`/api/outbound/campaigns/${id}`),
   outboundSenders: () => get<{ senders: Sender[] }>('/api/outbound/senders'),
   outboundSegmentCount: (persona: string, subType: string) =>
     get<{ count: number }>(`/api/outbound/segment-count?persona=${encodeURIComponent(persona)}&subType=${encodeURIComponent(subType)}`),
