@@ -51,20 +51,6 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  // Per-workspace Bison instance URL (base). Empty → uses the shared default (Settings).
-  const [baseUrl, setBaseUrl] = useState(ws.bisonBaseUrl ?? '');
-  const [baseBusy, setBaseBusy] = useState(false);
-  const [baseMsg, setBaseMsg] = useState('');
-
-  async function saveBaseUrl() {
-    setBaseBusy(true); setBaseMsg('');
-    try {
-      await api.saveWorkspaceSettings({ bisonBaseUrl: baseUrl.trim() || null });
-      setBaseMsg('Saved ✓'); onKeyChange();
-    } catch (e) { setBaseMsg(String(e)); }
-    setBaseBusy(false);
-  }
-
   async function save() {
     const value = draft.trim();
     if (value.length < 8) { setMsg('Key looks too short.'); return; }
@@ -121,22 +107,6 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
         </button>
         {keySet && <button className="btn" disabled={busy} onClick={clear} style={{ color: 'var(--coral)' }}>Remove</button>}
         {msg && <span className="muted">{msg}</span>}
-      </div>
-
-      <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>
-        <strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>Bison instance URL</strong>
-        <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
-          The API base for this workspace’s Bison instance (e.g. <code>https://send.yourdomain.com/api</code>).
-          Leave blank to use the shared default set on Settings.
-        </p>
-        <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
-          <input className="input" type="url" placeholder="https://send.yourdomain.com/api"
-            value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} style={{ minWidth: 320 }} />
-          <button className="btn btn-primary" disabled={baseBusy} onClick={saveBaseUrl}>
-            {baseBusy ? 'Saving…' : 'Save URL'}
-          </button>
-          {baseMsg && <span className="muted">{baseMsg}</span>}
-        </div>
       </div>
 
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>

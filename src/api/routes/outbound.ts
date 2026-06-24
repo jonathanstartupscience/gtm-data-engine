@@ -62,22 +62,11 @@ outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
       sortOrder: w.sortOrder,
       keyConfigured: status.set,   // each workspace authenticates as itself — no global fallback
       keySource: (status.set ? 'workspace' : 'none') as 'workspace' | 'none',
-      bisonBaseUrl: w.bisonBaseUrl,  // per-workspace Bison instance URL (null → shared default)
       activeCampaigns,        // # of synced campaigns currently 'active' in Bison
       sending: activeCampaigns > 0, // green = sending, red = not (reflects last sync)
     };
   }));
   res.json({ workspaces: out });
-}));
-
-/** Update the active workspace's Bison instance URL (per-workspace base; null/'' → shared default). */
-const wsSettingsSchema = z.object({ bisonBaseUrl: z.string().trim().url().max(300).nullable() });
-outboundRouter.patch('/workspaces', rateLimit(20, 60_000), validateBody(wsSettingsSchema), asyncHandler(async (req, res) => {
-  const ws = await resolveWorkspace(req);
-  if (!ws) return err(res, 400, 'unknown workspace');
-  const { bisonBaseUrl } = req.body as z.infer<typeof wsSettingsSchema>;
-  await db.update(workspaces).set({ bisonBaseUrl: bisonBaseUrl || null }).where(eq(workspaces.id, ws.id));
-  res.json({ ok: true, bisonBaseUrl: bisonBaseUrl || null });
 }));
 
 // ----------------------------------------------------------------- read / sync

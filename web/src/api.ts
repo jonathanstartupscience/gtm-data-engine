@@ -104,8 +104,6 @@ export const api = {
 
   // ---- Outbound Engine (Email Bison) ----
   outboundWorkspaces: () => get<{ workspaces: EmailWorkspace[] }>('/api/outbound/workspaces'),
-  saveWorkspaceSettings: (body: { bisonBaseUrl: string | null }) =>
-    patch<{ ok: boolean; bisonBaseUrl: string | null }>('/api/outbound/workspaces', body),
   outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
   outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
   outboundSync: () => post<{ synced: number; added: number; updated: number }>('/api/outbound/sync', {}),
@@ -184,7 +182,6 @@ export interface EmailWorkspace {
   id: number; slug: string; name: string; persona: string | null;
   active: boolean; sortOrder: number;
   keyConfigured: boolean; keySource: 'workspace' | 'none';
-  bisonBaseUrl: string | null;  // per-workspace Bison instance URL (null → shared default)
   activeCampaigns: number;  // # of synced campaigns currently 'active' in Bison
   sending: boolean;         // true = at least one active campaign (green); false = none (red)
 }
