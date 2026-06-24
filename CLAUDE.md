@@ -50,6 +50,9 @@ routes like `/companies/:id` fall back to their list page via `helpForPath` — 
   call `refreshTaxonomy()` after any op that changes type/sub-type/persona/country distribution.
 - **Email Engine (cold email)**: sequences → campaigns → experiments → inbox. Write sequences by hand or
   with the AI writer (`src/engine/email/` IP: styles/personas/voice/lead-magnets; Opus via `anthropic.ts`).
+  The from-scratch writer (`SequenceGenerator`) shows on **new** sequences only; **editing** is steps-first
+  with per-step rewrites (`stages/rewrite-step.ts` → `/sequences/rewrite-step`) + whole-sequence regenerate
+  (`SequenceRewriter`). Rewrites preserve merge tags and add no sign-off (Bison injects it per sender).
   A **campaign carries one sequence**; an **experiment** (`src/engine/experiments/allocate.ts`,
   `stages/experiment.ts`) runs many head-to-head by deterministically splitting + **pinning** contacts
   across arms (weights; 0 = pause). To populate the library from Claude Code, generate via the
