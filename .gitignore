@@ -27,3 +27,6 @@ _*.md
 # Claude Code scratch dirs (review/fix intermediates) and local memory
 .claude/_*
 memory/
+
+# Scratch/debug files
+scratch_*
