@@ -16,9 +16,10 @@ export const settingsRouter = Router();
 const MANAGED = [
   { key: 'HEYREACH_API_KEY', label: 'HeyReach API key', help: 'HeyReach → Settings → API. Enables the LinkedIn Engine.', testable: true },
   { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', help: 'console.anthropic.com → API keys. Enables running the AI classifier from the app (Classify tab).', testable: false },
-  { key: 'GOOGLE_CHAT_WEBHOOK_URL', label: 'Google Chat webhook (reply alerts)', help: 'Google Chat space → Apps & integrations → Webhooks → copy URL. Reply notifications post here; channel membership controls who is alerted.', testable: false },
-  { key: 'EMAILBISON_API_KEY', label: 'Email Bison API key (global / fallback)', help: 'Email Bison → workspace → API. Used by any Email-Engine workspace that has no key of its own.', testable: false },
+  { key: 'GOOGLE_CHAT_WEBHOOK_URL', label: 'Google Chat webhook (default reply-alert space)', help: 'Google Chat space → Apps & integrations → Webhooks → copy URL. Reply alerts post here unless a workspace sets its own space on the Workspaces page; channel membership controls who is alerted.', testable: false },
 ];
+// NOTE: there is no global Email Bison key — each workspace authenticates as itself. Set per-workspace
+// keys on the Workspaces page (EMAILBISON_API_KEY__<slug>, still settable through these endpoints).
 
 /**
  * Is this a valid managed key? (fixed list OR a per-workspace Bison key)

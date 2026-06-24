@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api, type ManagedKey } from '../api.js';
-import { ReplyRouting } from '../components/ReplyRouting.js';
 
 /** Settings — manage vendor API keys at runtime (stored encrypted server-side). No redeploy needed. */
 export function Settings() {
@@ -75,7 +74,11 @@ export function Settings() {
         </div>
       )}
 
-      <ReplyRouting />
+      <p className="page-sub" style={{ marginTop: 24 }}>
+        Reply routing (the round-robin rep roster and Google Chat space for replies) is set per
+        workspace on the Email Engine → Workspaces page. The Google Chat webhook above is the shared
+        default space used when a workspace sets none of its own.
+      </p>
     </>
   );
 }

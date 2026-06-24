@@ -3,9 +3,11 @@
  * the most specific roster that matches it:
  *   1. campaign-scoped roster  (notify_routes.campaignId === reply.campaignId)
  *   2. workspace-scoped roster (notify_routes.workspaceId === reply.workspaceId)
- *   3. global default          (both null)
+ * There is no global roster — each workspace owns its own rep list (mirrors how each workspace owns
+ * its sending identity). No roster → no rep is tagged (the alert still posts, unassigned).
  * The matched roster's `rrCursor` is bumped atomically so concurrent webhooks don't hand the same
- * lead to two reps. The chosen Google Chat space is the roster's override URL, else the global secret.
+ * lead to two reps. The Google Chat space is the roster's override URL, else the shared default
+ * space (GOOGLE_CHAT_WEBHOOK_URL) — the space is a notification channel, not a sending identity.
  */
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
@@ -37,7 +39,7 @@ export async function pickRep(opts: { workspaceId?: number | null; campaignId?: 
   return { rep: reps[idx], webhookUrl };
 }
 
-/** Find the most specific roster for a reply: campaign > workspace > global. */
+/** Find the most specific roster for a reply: campaign > workspace. No global roster. */
 async function matchRoute(opts: { workspaceId?: number | null; campaignId?: number | null }) {
   if (opts.campaignId) {
     const [c] = await db.select().from(notifyRoutes).where(eq(notifyRoutes.campaignId, opts.campaignId));
@@ -48,7 +50,5 @@ async function matchRoute(opts: { workspaceId?: number | null; campaignId?: numb
       .where(and(eq(notifyRoutes.workspaceId, opts.workspaceId), isNull(notifyRoutes.campaignId)));
     if (w) return w;
   }
-  const [g] = await db.select().from(notifyRoutes)
-    .where(and(isNull(notifyRoutes.workspaceId), isNull(notifyRoutes.campaignId)));
-  return g ?? null;
+  return null;
 }

@@ -2,8 +2,9 @@
 import { Router } from 'express';
 import { desc } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { runs } from '../../db/schema.js';
+import { runs, workspaces } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
+import { getSecret } from '../../lib/secrets.js';
 import { asyncHandler } from '../middleware.js';
 
 export const logsRouter = Router();
@@ -23,11 +24,14 @@ logsRouter.get('/', asyncHandler(async (_req, res) => {
       at: r.finishedAt ?? r.startedAt,
     };
   });
+  // Email Bison has no global key — it's "connected" if ANY workspace has its own key set.
+  const wsRows = await db.select({ slug: workspaces.slug }).from(workspaces);
+  const wsKeys = await Promise.all(wsRows.map((w) => getSecret(`EMAILBISON_API_KEY__${w.slug}`)));
   res.json({
     events,
     integrations: {
       hubspot: !!config.hubspotToken, airscale: !!config.airscaleKey, bouncer: !!config.bouncerKey,
-      ocean: !!config.oceanKey, emailBison: !!config.emailBisonKey, heyreach: !!config.heyreachKey,
+      ocean: !!config.oceanKey, emailBison: wsKeys.some((k) => !!k), heyreach: !!config.heyreachKey,
     },
   });
 }));

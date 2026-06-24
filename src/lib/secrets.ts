@@ -62,17 +62,15 @@ function decrypt(stored: string): string | null {
 const cache = new Map<string, string | null>();
 
 /**
- * Resolve the Email Bison API key for a workspace. Per-workspace keys live under
- * `EMAILBISON_API_KEY__<slug>` (set in the in-app Settings page or env). If a workspace has no
- * key of its own, we fall back to the global `EMAILBISON_API_KEY` so an unconfigured workspace
- * keeps working exactly as the single-workspace app did. Pass no slug for the global key.
+ * Resolve the Email Bison API key for a workspace. Each workspace authenticates as ITSELF —
+ * its key lives under `EMAILBISON_API_KEY__<slug>` (set on the Workspaces page or via env).
+ * There is no global/account-wide Bison key: Bison has no shared sending identity, so a workspace
+ * with no key of its own simply cannot send (callers see an empty key and fail clearly). Returns ''
+ * when the slug is missing or the workspace has no key.
  */
 export async function bisonKeyFor(slug?: string): Promise<string> {
-  if (slug) {
-    const scoped = await getSecret(`EMAILBISON_API_KEY__${slug}`);
-    if (scoped) return scoped;
-  }
-  return getSecret('EMAILBISON_API_KEY');
+  if (!slug) return '';
+  return getSecret(`EMAILBISON_API_KEY__${slug}`);
 }
 
 /** Resolve the Email Bison base URL for a workspace (per-workspace override → global → default). */

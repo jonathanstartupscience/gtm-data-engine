@@ -56,13 +56,12 @@ outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
   const activeCampaignsByWs = new Map(sendingRows.map((r) => [r.workspaceId, Number(r.n)]));
   const out = await Promise.all(rows.map(async (w) => {
     const status = await secretStatus(`EMAILBISON_API_KEY__${w.slug}`);
-    const global = await secretStatus('EMAILBISON_API_KEY');
     const activeCampaigns = activeCampaignsByWs.get(w.id) ?? 0;
     return {
       id: w.id, slug: w.slug, name: w.name, persona: w.persona, active: w.active,
       sortOrder: w.sortOrder,
-      keyConfigured: status.set || global.set,   // own key, or falls back to the global key
-      keySource: status.set ? 'workspace' : (global.set ? 'global' : 'none'),
+      keyConfigured: status.set,   // each workspace authenticates as itself — no global fallback
+      keySource: (status.set ? 'workspace' : 'none') as 'workspace' | 'none',
       activeCampaigns,        // # of synced campaigns currently 'active' in Bison
       sending: activeCampaigns > 0, // green = sending, red = not (reflects last sync)
     };
@@ -695,27 +694,27 @@ outboundRouter.post('/inbox/:id/reply', rateLimit(30, 60_000), validateBody(repl
 
 // ----------------------------------------------------------------- reply routing (round-robin rosters)
 /**
- * List the reply-notification rosters relevant to the active workspace: the global default
- * (workspaceId null, campaignId null) and this workspace's roster. Per-campaign overrides are
- * managed by passing campaignId on the PUT.
+ * List the reply-notification rosters relevant to the active workspace: this workspace's roster
+ * and any per-campaign overrides. There is no global roster — each workspace owns its own. The
+ * Google Chat space falls back to the shared default secret (GOOGLE_CHAT_WEBHOOK_URL) when a roster
+ * sets no override; that default is managed on Settings, not here.
  */
 outboundRouter.get('/notify-routes', asyncHandler(async (req, res) => {
   const ws = await resolveWorkspace(req);
   if (!ws) return err(res, 400, 'unknown workspace');
   const rows = await db.select().from(notifyRoutes);
-  const global = rows.find((r) => r.workspaceId === null && r.campaignId === null) ?? null;
   const workspace = rows.find((r) => r.workspaceId === ws.id && r.campaignId === null) ?? null;
   const campaigns = rows.filter((r) => r.campaignId !== null);
-  res.json({ workspaceId: ws.id, global, workspace, campaigns });
+  res.json({ workspaceId: ws.id, workspace, campaigns });
 }));
 
 const routeSchema = z.object({
-  scope: z.enum(['global', 'workspace', 'campaign']),
+  scope: z.enum(['workspace', 'campaign']),
   campaignId: z.number().int().positive().optional(),  // required when scope === 'campaign'
   reps: z.array(z.string().trim().min(1).max(120)).max(50),
   webhookUrlOverride: z.string().trim().url().max(500).nullable().optional(),
 });
-/** Upsert a roster for a scope. Resets the round-robin cursor when the roster changes. */
+/** Upsert a roster for a scope (workspace or campaign). Resets the round-robin cursor when the roster changes. */
 outboundRouter.put('/notify-routes', rateLimit(30, 60_000), validateBody(routeSchema), asyncHandler(async (req, res) => {
   const b = req.body as z.infer<typeof routeSchema>;
   const ws = await resolveWorkspace(req);
@@ -726,9 +725,7 @@ outboundRouter.put('/notify-routes', rateLimit(30, 60_000), validateBody(routeSc
   const campaignId = b.scope === 'campaign' ? b.campaignId! : null;
   const match = campaignId != null
     ? eq(notifyRoutes.campaignId, campaignId)
-    : workspaceId != null
-      ? and(eq(notifyRoutes.workspaceId, workspaceId), isNull(notifyRoutes.campaignId))
-      : and(isNull(notifyRoutes.workspaceId), isNull(notifyRoutes.campaignId));
+    : and(eq(notifyRoutes.workspaceId, workspaceId!), isNull(notifyRoutes.campaignId));
 
   const [existing] = await db.select().from(notifyRoutes).where(match);
   const values = { workspaceId, campaignId, reps: b.reps, webhookUrlOverride: b.webhookUrlOverride ?? null, rrCursor: 0, updatedAt: new Date() };

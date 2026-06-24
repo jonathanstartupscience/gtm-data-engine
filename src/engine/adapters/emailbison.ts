@@ -20,7 +20,7 @@ const limiter = new RateLimiter(500, 60_000); // conservative; docs imply ~10/s
 /** Per-workspace Bison connection: a base URL + an API key. */
 export interface BisonCtx { base: string; key: string; }
 
-/** Resolve a workspace's Bison ctx (key + base, with global fallbacks). */
+/** Resolve a workspace's Bison ctx (its own key + base). No global key — an unconfigured workspace gets an empty key and can't send. */
 export async function ctxForWorkspace(workspaceId?: number | null): Promise<BisonCtx> {
   let slug: string | undefined;
   let baseOverride: string | null = null;

@@ -150,8 +150,8 @@ export const api = {
     post<{ ok: boolean }>(`/api/outbound/inbox/${id}/reply`, body),
 
   // Reply routing (round-robin rosters)
-  notifyRoutes: () => get<{ workspaceId: number; global: NotifyRoute | null; workspace: NotifyRoute | null; campaigns: NotifyRoute[] }>('/api/outbound/notify-routes'),
-  saveNotifyRoute: (body: { scope: 'global' | 'workspace' | 'campaign'; campaignId?: number; reps: string[]; webhookUrlOverride?: string | null }) =>
+  notifyRoutes: () => get<{ workspaceId: number; workspace: NotifyRoute | null; campaigns: NotifyRoute[] }>('/api/outbound/notify-routes'),
+  saveNotifyRoute: (body: { scope: 'workspace' | 'campaign'; campaignId?: number; reps: string[]; webhookUrlOverride?: string | null }) =>
     put<{ ok: boolean; route: NotifyRoute }>('/api/outbound/notify-routes', body),
 
   // Performance
@@ -181,7 +181,7 @@ export const api = {
 export interface EmailWorkspace {
   id: number; slug: string; name: string; persona: string | null;
   active: boolean; sortOrder: number;
-  keyConfigured: boolean; keySource: 'workspace' | 'global' | 'none';
+  keyConfigured: boolean; keySource: 'workspace' | 'none';
   activeCampaigns: number;  // # of synced campaigns currently 'active' in Bison
   sending: boolean;         // true = at least one active campaign (green); false = none (red)
 }

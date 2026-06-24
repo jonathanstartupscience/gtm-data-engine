@@ -2,9 +2,9 @@
 import { Router } from 'express';
 import { and, count, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, contacts, runs } from '../../db/schema.js';
+import { companies, contacts, runs, workspaces } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
-import { getSecretSync } from '../../lib/secrets.js';
+import { getSecret, getSecretSync } from '../../lib/secrets.js';
 import { testConnection } from '../../engine/adapters/hubspot.js';
 import { creditBalance as oceanBalance } from '../../engine/adapters/ocean.js';
 import { credits as bouncerCredits } from '../../engine/adapters/bouncer.js';
@@ -54,10 +54,14 @@ connectorsRouter.get('/credits', asyncHandler(async (_req, res) => {
 /** Overview: each connector + connected status + role. Status is DB-first (in-app Settings) then env. */
 connectorsRouter.get('/', asyncHandler(async (_req, res) => {
   const has = (name: string) => !!getSecretSync(name);
+  // Email Bison has no global key — it's connected if ANY workspace has its own key set.
+  const wsRows = await db.select({ slug: workspaces.slug }).from(workspaces);
+  const wsKeys = await Promise.all(wsRows.map((w) => getSecret(`EMAILBISON_API_KEY__${w.slug}`)));
+  const bisonConnected = wsKeys.some((k) => !!k);
   res.json({
     connectors: [
       { id: 'hubspot', name: 'HubSpot', role: 'System of record — sync companies & contacts both ways', connected: has('HUBSPOT_TOKEN') },
-      { id: 'emailbison', name: 'Email Bison', role: 'Cold email — push campaign-ready segments to campaigns', connected: has('EMAILBISON_API_KEY') },
+      { id: 'emailbison', name: 'Email Bison', role: 'Cold email — push campaign-ready segments to campaigns', connected: bisonConnected },
       { id: 'heyreach', name: 'HeyReach', role: 'LinkedIn outreach — sync, push & monitor campaigns', connected: has('HEYREACH_API_KEY') },
       { id: 'ocean', name: 'Ocean.io', role: 'Discovery & company enrichment', connected: has('OCEAN_API_KEY') },
       { id: 'bouncer', name: 'Bouncer', role: 'Email verification', connected: has('BOUNCER_API_KEY') },
