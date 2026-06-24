@@ -92,7 +92,6 @@ export function App() {
             <EmailWorkspacePicker />
             <NavLink to="/performance" className={nav}>Performance</NavLink>
             <NavLink to="/campaigns" end className={nav}>Campaigns</NavLink>
-            <NavLink to="/campaigns/new" className={nav}>New Campaign</NavLink>
             <NavLink to="/sequences" className={nav}>Sequences</NavLink>
             <NavLink to="/experiments" className={nav}>Experiments</NavLink>
             <NavLink to="/inbox" className={nav}>

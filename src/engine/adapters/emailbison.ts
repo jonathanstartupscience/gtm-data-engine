@@ -173,21 +173,53 @@ export function bisonClient(ctx: BisonCtx) {
     });
   }
 
+  // Candidate reply endpoints (Bison's exact path varies by instance). The first that responds wins.
+  const REPLY_PATHS = ['/replies', '/unibox', '/inbox'];
+
   /**
-   * List recent replies from the unibox/inbox. Bison's exact path varies by instance — try the
-   * documented `/replies` then fall back to `/unibox`. Returns [] if neither responds (so the
-   * UI degrades gracefully). Verify the live shape on deploy.
+   * Fetch ONE page of replies, discovering which endpoint this instance uses. Returns the rows plus
+   * the resolved base path and pagination meta so a caller can page through. Returns null path if no
+   * endpoint responds (so the UI degrades gracefully rather than erroring).
+   */
+  async function repliesPage(page: number): Promise<{ rows: BisonReply[]; path: string | null; lastPage: number | null }> {
+    for (const path of REPLY_PATHS) {
+      const resp = await request(`${BASE}${path}?page=${page}`, { headers: headers(), limiter });
+      if (resp.ok) {
+        const j = (await resp.json()) as { data?: BisonReply[]; items?: BisonReply[]; meta?: { current_page?: number; last_page?: number } };
+        const rows = j.data ?? j.items ?? [];
+        return { rows, path, lastPage: j.meta?.last_page ?? null };
+      }
+      if (resp.status !== 404) break; // non-404 = endpoint exists but failed (e.g. auth) — don't try alternates
+    }
+    return { rows: [], path: null, lastPage: null };
+  }
+
+  /**
+   * List recent replies (single page) — used by the webhook/quick-check path.
+   * For a full retroactive backfill use `listAllReplies()`.
    */
   async function listReplies(page = 1): Promise<BisonReply[]> {
-    for (const path of [`/replies?page=${page}`, `/unibox?page=${page}`, `/inbox?page=${page}`]) {
-      const resp = await request(`${BASE}${path}`, { headers: headers(), limiter });
-      if (resp.ok) {
-        const j = (await resp.json()) as { data?: BisonReply[]; items?: BisonReply[] };
-        return j.data ?? j.items ?? [];
-      }
-      if (resp.status !== 404) break; // a non-404 error means the path exists but failed — stop trying alternates
+    return (await repliesPage(page)).rows;
+  }
+
+  /**
+   * Pull the FULL reply history by paging through Bison's reply endpoint (Laravel-style meta when
+   * present; otherwise page until an empty page). Caller dedups by reply id on insert, so paging
+   * the whole history is safe to re-run. `maxPages` is a safety cap against a misbehaving instance.
+   */
+  async function listAllReplies(maxPages = 100): Promise<BisonReply[]> {
+    const all: BisonReply[] = [];
+    let resolvedPath: string | null = null;
+    for (let page = 1; page <= maxPages; page++) {
+      const { rows, path, lastPage } = await repliesPage(page);
+      if (page === 1) resolvedPath = path;
+      if (!path) break;                       // no working endpoint — give up gracefully
+      all.push(...rows);
+      if (rows.length === 0) break;           // ran past the end
+      if (lastPage != null && page >= lastPage) break; // Laravel meta says we're done
+      void resolvedPath;
     }
-    return [];
+    return all;
   }
 
   /** Mark a lead/reply as interested in Bison (best-effort; path unverified). */
@@ -261,7 +293,7 @@ export function bisonClient(ctx: BisonCtx) {
   return {
     listCampaigns, getCampaign, createCampaign, updateCampaign, scheduleCampaign,
     setSequenceSteps, listSenders, attachSenders, pauseCampaign, resumeCampaign,
-    getCampaignStats, sendTest, listReplies, markInterested, sendReply, createWebhook, pushLeadsToCampaign,
+    getCampaignStats, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook, pushLeadsToCampaign,
   };
 }
 
