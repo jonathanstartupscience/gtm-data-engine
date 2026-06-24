@@ -22,4 +22,8 @@ data/*.xlsx
 _*.ts
 _*.mjs
 _*.json
+_*.md
 *.tmp.ts
+# Claude Code scratch dirs (review/fix intermediates) and local memory
+.claude/_*
+memory/

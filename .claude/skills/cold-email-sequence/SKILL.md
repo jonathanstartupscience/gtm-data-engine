@@ -61,6 +61,16 @@ If a critical input is genuinely ambiguous, ask one tight question. Otherwise pr
 Follow the chosen style's skeleton **exactly**: the number of emails and each step's job are fixed by the
 style. You write the copy. Apply, in priority order:
 
+> **Each step must do ITS step's job, not a generic one.** The most common failure is defaulting the
+> middle and final steps to "restate the pain, then invite a demo with Greg" no matter the style. Do not.
+> A pain-centric step 2 is a concrete **proof point** (a real result, a named peer, a Greg credential),
+> not a pain restatement; pain-centric step 3 **reframes the cost of inaction** tied to {{company}}, not
+> a "see it with Greg" invite. An insight step 3 invites **peer push-back** with Greg, not a one-way demo.
+> A trigger step 2 ties the trigger to a **specific outcome + one proof point**. A benchmark step leads
+> with a **real figure**, never "the data shows." Re-read the step's row in `references/styles.md` before
+> writing it, and make that step do that job.
+
+
 1. **Voice & anti-patterns** (`references/voice.md`) — this is the biggest quality lever. Every email must
    pass the anti-AI-writing rules. No em dashes anywhere. No buzzwords, no AI-tell vocabulary, no "not X
    but Y," no rhetorical-question hooks, no filler transitions.
@@ -68,8 +78,9 @@ style. You write the copy. Apply, in priority order:
    personally; his reputation carries the email). Use ONE sharp proof point, never a stack.
 3. **Persona** — open in the reader's world. Use the persona's pain/value and Lifecycle angle; never describe
    features generically.
-4. **House rules** — each email under ~90 words, exactly one low-friction CTA, merge tags only, a short human
-   signature ending with {{sender_linkedin}}. Later steps add a new angle, never "just bumping this."
+4. **House rules** — each email under ~90 words, exactly one low-friction CTA, merge tags only, and
+   **no sign-off** (no name, no {{sender_linkedin}}, no closing). Email Bison injects the signature
+   per sender inbox, so the copy must end on the CTA. Later steps add a new angle, never "just bumping this."
 
 ### Output format
 
@@ -79,7 +90,7 @@ Present the sequence as clean, copy-pasteable steps. For each step:
 Step N  ·  wait: D days  ·  [variant: A/B if used]
 Subject: <subject line>
 
-<email body, with merge tags and a signature>
+<email body, with merge tags, ending on the CTA — no sign-off (Bison adds the signature)>
 ```
 
 After the steps, add:
@@ -96,9 +107,41 @@ After the steps, add:
 - [ ] Each email is under ~90 words with exactly one low-friction CTA.
 - [ ] First sentence is about the reader, not us.
 - [ ] One sharp proof point, not a stack. Greg edified correctly per sender mode.
-- [ ] Merge tags only — no assumed facts a tag can't supply. Offer styles use {{magnet_link}}.
+- [ ] Merge tags only — no assumed facts a tag can't supply. Offer styles use NO link: describe the asset and ask to send it (reply-to-receive, manual fulfillment).
+- [ ] No sign-off — body ends on the CTA (no name, no {{sender_linkedin}}; Bison adds the signature).
 - [ ] Follow-ups add a new angle; none say "just following up" or "did you see my email."
 - [ ] Reads like a mentor who has done it, not a marketer selling.
+
+The checklist above is YOUR self-review. It is not a substitute for the independent reviewer below.
+
+---
+
+## Phase 3 — Independent review and corrections (REQUIRED before you present or seed)
+
+Every sequence you draft must pass the **`cold-email-review`** skill before you show it to the user or
+load it into the app. This is a hard step, not optional: the reviewer is an independent judge held to
+the same IP you write against, and it catches what self-review misses. The reviewer **only assesses** —
+it never edits your copy. Applying corrections is YOUR job. The loop is:
+
+1. **Submit** the full drafted sequence to the `cold-email-review` skill. Pass the steps and, if you have
+   it, the `meta` block (`styleKey`, `personaKey`, `painKey`, `senderMode`, `abVariant`) so it grades
+   against your declared intent rather than guessing.
+2. **Read the verdict** it returns (`PASS` / `REVISE` / `REJECT`) plus its `suggestedFixes` and `revisions`.
+3. **Apply the corrections yourself:**
+   - For each entry in `suggestedFixes` (single-correct-fix items — em dashes, illegal merge tags, a
+     missing `{{sender_linkedin}}`), apply the exact `find`→`replace` it gives you.
+   - For each entry in `revisions` (judgment items — over-length bodies, stacked proof points, a weak
+     opener, a fabricated trigger, wrong step count/style), **rewrite the copy yourself** to resolve it.
+     The reviewer deliberately does not hand you replacement prose for these; that is your craft to fix.
+4. **Re-submit the corrected sequence** to `cold-email-review`. Repeat steps 2–4 until the verdict is
+   `PASS`. Cap the loop at **3 rounds**: if it still is not `PASS` after three, present the latest draft
+   to the user *with the reviewer's outstanding findings shown plainly* and let them decide — never
+   silently ship a sequence the reviewer flagged.
+5. Only a `PASS` (or an explicit user override after seeing the findings) may proceed to "present,"
+   save via `POST /sequences`, or the seeder. A `REJECT` means redo from the brief — do not patch it.
+
+Do not describe the review to the user as a formality. Show them the final verdict and, if you used the
+override, exactly what remained open.
 
 ---
 

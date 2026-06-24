@@ -45,7 +45,7 @@ Mirrors `src/engine/email/voice.ts`. Read this every time before writing.
 
 ## ANTI-PATTERNS — eliminate every one of these
 1. **NO em dashes.** Rewrite with a period or comma. (The single most common AI tell.)
-2. **NO "not X, but Y"** ("This isn't a tool, it's a system"). State the thing directly.
+2. **NO "not X, but Y"** in either form: the two-sentence version ("This isn't a tool, it's a system") AND the inline trailing-contrast clause ("track progress by phase, not activity"; "durable, not just fundable"). State the thing directly. (Sole exception: Greg's signature line "funding is an outcome, not a plan.")
 3. **NO fragmented one-line-per-thought** formatting for drama. Write complete sentences.
 4. **NO AI transition words:** Furthermore, Moreover, Additionally, Ultimately, Importantly, Notably, That said, In conclusion, At the end of the day.
 5. **NO hollow relatable openers:** "We've all been there," "Let's be honest," "Here's the truth no one talks about."

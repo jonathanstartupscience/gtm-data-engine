@@ -1,8 +1,9 @@
 # Lead Magnets (offer assets)
 
-Greg-authored downloadable assets the offer-centric style draws from. For an offer email,
-the user picks one or you pick the best fit for the persona. In copy, attribute the asset to
-Greg and put the download behind a {{magnet_link}} tag. Mirrors `src/engine/email/leadMagnets.ts`.
+Greg-authored assets the offer-centric style draws from. For an offer email, the user picks one
+or you pick the best fit for the persona. In copy, attribute the asset to Greg, describe its value
+compellingly, and **ask if they want it sent** — the offer is reply-to-receive and fulfilled manually.
+Do NOT put a download link or `{{magnet_link}}` in the copy. Mirrors `src/engine/email/leadMagnets.ts`.
 
 `Fit` lists the persona keys (see personas.md) each asset resonates with most.
 

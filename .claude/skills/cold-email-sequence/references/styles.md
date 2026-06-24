@@ -8,12 +8,12 @@ You write the copy; the skeleton keeps strategy consistent. Mirrors `src/engine/
 ## Shared house rules (apply to EVERY style)
 - Each email under ~90 words. Shorter is better.
 - Exactly one CTA per email, low-friction ("Worth a quick look?" beats "book a 30-min discovery call").
-- Merge tags only: {{first_name}}, {{company}}, {{title}} (plus {{trigger}}, {{magnet_link}}, {{sender_linkedin}} where relevant). Never assume a fact a tag can't supply — same copy ships to the whole segment.
+- Merge tags only: {{first_name}}, {{company}}, {{title}} (plus {{trigger}} for the trigger style). Never assume a fact a tag can't supply, same copy ships to the whole segment. Offers do NOT use a link tag (see offer-centric: reply-to-receive).
 - Lead with the reader's world. First sentence is about them, not us.
 - One sharp proof point beats three hedged claims. Greg's credibility is the proof, not a feature list.
-- End with a short human signature including {{sender_linkedin}}.
+- **No sign-off.** End each email on the CTA. Do not add a name, a closing, or {{sender_linkedin}}: Email Bison injects the signature per sender inbox, so a sign-off in the copy would duplicate it (and {{sender_name}} is not even a real tag).
 - Later steps are short follow-ups with a NEW angle or lighter ask. Banned: "just bumping this," "did you see my last email."
-- **Format for a phone screen:** break each body into 1-2 sentence beats separated by a blank line, so it's 2-3 short blocks plus the signature. Never one dense paragraph. (Exception: the Three-Paragraph / Khare style keeps its explicit three-paragraph form.)
+- **Format for a phone screen:** break each body into 1-2 sentence beats separated by a blank line, so it's 2-3 short blocks. Never one dense paragraph. (Exception: the Three-Paragraph / Khare style keeps its explicit three-paragraph form.)
 
 ---
 
@@ -56,17 +56,18 @@ You write the copy; the skeleton keeps strategy consistent. Mirrors `src/engine/
 **Good for:** when you have a lead magnet that fits the persona and want to open by giving value.
 **Subject:** reference the asset and its payoff for the persona. Specific value.
 **Style rules:**
-- Step 1 leads with the resource and the single most useful thing the reader gets. The ask is just "want me to send it?" or a direct {{magnet_link}}.
+- **Reply-to-receive, never a link.** The asset is NOT delivered by a URL or a merge variable. Describe it compellingly and ASK if they want it sent ("Want me to send it over?"). A human fulfills the request manually on reply. Do NOT use `{{magnet_link}}` or any URL anywhere in the copy. The reply IS the conversion.
+- Step 1 leads with the resource and the single most useful thing the reader gets, then the send-it ask.
 - The offer is genuinely free and useful — no bait-and-switch into a hard pitch.
 - Tie the resource to the persona's actual problem so it isn't generic content marketing.
 - Greg authored these; attribute the resource to him for authority.
 
 | Step | Wait | Job |
 |---|---|---|
-| 1 | 0 | Open with the lead magnet + the one thing it helps this persona do; attribute to Greg; make accepting frictionless ({{magnet_link}}). |
-| 2 | 4 | Share one concrete, useful insight from inside the resource as a teaser; re-offer it. |
+| 1 | 0 | Open with the lead magnet + the one thing it helps this persona do; attribute to Greg; ask if they want it sent. No link. |
+| 2 | 4 | Share one concrete, useful insight from inside the resource as a teaser; re-offer to send it. |
 | 3 | 5 | Bridge from the resource to a light conversation ("happy to walk you through how this applies to {{company}}"). |
-| 4 | 7 | Short final note leaving the resource on the table and the door open, no pressure. |
+| 4 | 7 | Short final note leaving the resource on the table and the door open, no pressure; re-offer to send it, no link. |
 
 ### 4. Authority / Social-proof — `authority-centric`
 **Summary:** Lead with credibility: Greg's track record, peer organizations, real results.

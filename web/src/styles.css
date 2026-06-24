@@ -164,6 +164,71 @@ body {
 .card .label { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ---- Sequence library cards: scannable persona / style / CTA hierarchy ---- */
+.seq-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.seq-card {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; box-shadow: var(--card-shadow);
+  text-decoration: none; color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  min-width: 0; /* let children truncate inside the grid track */
+}
+.seq-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 28px rgba(77,77,157,0.12), 0 1px 4px rgba(80,120,140,0.06);
+  transform: translateY(-1px);
+}
+/* Primary scan line: persona + style pills */
+.seq-card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.seq-pill {
+  font-size: 11px; font-weight: 600; line-height: 1.4;
+  padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+}
+.seq-pill-persona { background: var(--accent); color: #fff; }
+.seq-pill-style { background: var(--accent-light); color: var(--accent); }
+.seq-pill-ab {
+  background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border); margin-left: auto;
+}
+.seq-card-name {
+  font-weight: 600; font-size: 15px; line-height: 1.3; color: var(--text);
+}
+/* CTA / hook = the first email's subject line */
+.seq-card-cta {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--bg); border-radius: var(--radius-sm);
+  padding: 8px 10px; min-width: 0;
+}
+.seq-card-cta-label {
+  font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.seq-card-cta-text {
+  font-size: 13px; color: var(--text); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Secondary tags: pain + named offer, each truncating within the card */
+.seq-card-tags { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.seq-tag {
+  font-size: 11px; font-weight: 500; line-height: 1.4;
+  padding: 3px 9px; border-radius: var(--radius-sm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.seq-tag-pain { background: rgba(212,168,67,0.16); color: #8a6d1f; }
+.seq-tag-offer { background: rgba(101,194,56,0.14); color: var(--green-deep); }
+.seq-card-foot {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 4px;
+  font-size: 12px; color: var(--text-muted);
+}
+
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--card-shadow); }
 .panel h3 {
   margin: 0 0 16px; font-family: 'Courier Prime', monospace; font-size: 11px;

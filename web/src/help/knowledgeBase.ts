@@ -10,7 +10,7 @@
  *   so one edit updates both. A stale KB is a bug — treat it like one.
  *   (See CLAUDE.md → "Knowledge base upkeep".)
  *
- * Last reviewed: 2026-06-23 (Email Engine end-to-end guide; AI writer + experiments).
+ * Last reviewed: 2026-06-23 (Email Engine end-to-end guide; AI writer + experiments; Sequences card redesign).
  */
 
 export interface KbSection { heading: string; body: string }
@@ -233,7 +233,8 @@ export const PAGES: Record<string, KbPage> = {
       { heading: 'Copy-on-attach', body: 'Attaching a sequence to a campaign copies its steps; editing the campaign’s copy never changes the template.' },
       { heading: 'Steps', body: 'Each step has a subject, body (with {{variables}}), a wait, and an optional A/B variant.' },
       { heading: 'Write with AI', body: 'New and edit sequences both have a “Write with AI” panel: pick a cold-email style and a persona and Claude drafts the whole sequence in Greg’s voice. See the sequence builder guide.' },
-      { heading: 'Filter the library', body: 'AI-generated sequences remember the inputs that produced them. Use the filter bar to narrow the library by style, persona, the specific pain/angle, and whether it leads with an offer — so you can find “ESO · pain-centric · weak post-program outcomes” instantly. Each card shows its inputs as chips; the filters only list values that actually exist in your library.' },
+      { heading: 'Filter the library', body: 'AI-generated sequences remember the inputs that produced them. Use the filter bar to narrow the library by style, persona, the specific pain/angle, and whether it leads with an offer — so you can find “ESO · pain-centric · weak post-program outcomes” instantly. The filters only list values that actually exist in your library (so the persona list grows as you add sequences for new personas), and the pain/angle list narrows to the selected persona’s pains.' },
+      { heading: 'Reading a card', body: 'Each card is built to scan top to bottom: a persona pill (filled) and a style pill (tinted) on the first line, then the sequence name, then the first email’s SUBJECT line (the hook the reader sees), then the pain/angle and the named lead-magnet offer (if any), and a footer with the step count and sender mode (From Greg / Edify Greg). Long pain labels and offer names truncate with “…” and show the full text on hover.' },
     ],
   },
   '/sequences/new': {
