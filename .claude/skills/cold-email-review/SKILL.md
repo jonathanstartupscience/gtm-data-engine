@@ -62,7 +62,7 @@ and grade against that — but lower confidence and say so.
 
 1. **Load the rubric.** Read the five reference files above. They are the standard.
 2. **Parse the sequence.** Split into steps; for each step capture subject, body, wait-days, variant. Read the `meta` block (or infer intent and declare it).
-3. **Tier 1 — hard gates.** Walk every gate below, step by step. For each failure, **quote the exact offending text** and record the step number. Hard-gate failures are defects, not preferences.
+3. **Tier 1 — hard gates.** Walk every gate below, step by step, checking **both the subject line and the body** of each step (subjects are a common blind spot for em dashes and the "not X, but Y" forms). For each failure, **quote the exact offending text** and record the step number. Hard-gate failures are defects, not preferences.
 4. **Tier 2 — craft scores.** Score each craft dimension 1–5 with a one-line justification that **quotes evidence** from the copy.
 5. **Decide the verdict** (see Verdict logic).
 6. **Emit the report** — the JSON contract first (so it can gate a save/seed step), then a short human-readable summary.
@@ -87,7 +87,7 @@ declared (or inferred) `styleKey`, `personaKey`, `senderMode`.
 
 ### C. Anti-AI-writing (the 15 voice rules — each a hard gate; see voice.md / rubric.md)
 - **C1 Zero em dashes** anywhere, subject or body. The single highest-signal AI tell. (An en dash or "--" used as an em dash counts.)
-- **C2** No "not X, but Y" contrarian constructions.
+- **C2** No "not X, but Y" contrarian constructions, in ANY of its three forms (two-sentence "X is not Y. It is Z"; inline "X, not Y"; negate-then-assert "X do not Z. They Y…"). See rubric.md. **Check subject lines as well as bodies** — subjects are where this and em dashes most often slip through.
 - **C3** No banned buzzwords (unlock, leverage, game-changer, disrupt, empower, transformative, innovative, synergy, robust, holistic, world-class, best-in-class, cutting-edge, move the needle, double down).
 - **C4** No AI-tell vocabulary (delve, tapestry, landscape [figurative], testament, pivotal, crucial, foster, underscore, showcase, vibrant, intricate, interplay, garner, enduring, nestled, renowned, "valuable insights," "key takeaways").
 - **C5** No AI transition words (Furthermore, Moreover, Additionally, Ultimately, Importantly, Notably, That said, In conclusion, At the end of the day).
@@ -118,6 +118,7 @@ Score each 1 (broken) to 5 (excellent). Quote evidence. These are matters of deg
 - **T5 Voice authenticity** — reads like a mentor who has done it twelve times, not a marketer. Apply voice.md's calibration test: could a line sit on a page of *The Startup Lifecycle*?
 - **T6 Subject lines** — specific and aligned to the style's subject rule (pain names the problem; offer references the asset's payoff; curiosity teases without clickbait); no wordplay where the style forbids it.
 - **T7 Deliverability & spam hygiene** — no spam-trigger phrasing ("FREE!!!", "act now," "100% guaranteed"), no ALL-CAPS or gimmicky subject, no link/image overload. *(This dimension is not in the writer's IP; you add it because it is table-stakes for cold email and the writer does not check it.)*
+- **T8 CTA earns a reply** — the success metric is positive REPLY rate, so the CTA's job is to make replying easy, not to book a meeting. Score down: a **meeting/call ask on step 1** (premature — earn the reply first; meeting asks belong in later steps once interest shows), an **over-specific question** that is hard to answer in one line ("how do you read phase in diligence today?"), or a passive yes/no that invites no response ("Worth a look?"). Score up: a broad reaction question the reader can answer in a word ("Does that match what you see at {{company}}?"), or for offers the reply-to-receive ask ("Want me to send it over?"). A reply of "yes, let's talk" is fine *when the chain is at the right point* for it.
 
 ---
 
@@ -156,6 +157,7 @@ Emit this JSON object first (machine-readable, so it can gate a save/seed step),
     "T5_voiceAuthenticity": { "score": 4, "note": "..." },
     "T6_subjectLines": { "score": 3, "note": "..." },
     "T7_deliverability": { "score": 5, "note": "..." },
+    "T8_ctaEarnsReply": { "score": 4, "note": "..." },
     "average": 4.0
   },
   "revisions": [

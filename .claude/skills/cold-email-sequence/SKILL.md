@@ -81,6 +81,11 @@ style. You write the copy. Apply, in priority order:
 4. **House rules** — each email under ~90 words, exactly one low-friction CTA, merge tags only, and
    **no sign-off** (no name, no {{sender_linkedin}}, no closing). Email Bison injects the signature
    per sender inbox, so the copy must end on the CTA. Later steps add a new angle, never "just bumping this."
+5. **CTA earns a reply.** Success is measured by positive REPLY rate, so the CTA's job is to make
+   replying easy, not to book a meeting. Prefer a broad reaction question answerable in a word ("Does
+   that match what you see at {{company}}?") over a passive "Worth a look?" or a premature meeting ask.
+   Save meeting/call asks for later steps once interest shows; for offers, ask to send the asset. Keep
+   questions broad, not so specific they require a composed answer.
 
 ### Output format
 
