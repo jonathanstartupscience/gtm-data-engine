@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, inArray, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import {
   bisonCampaigns, bisonSequences, bisonSenderAssignments, bisonCampaignStats,
@@ -14,8 +14,9 @@ import {
 } from '../../db/schema.js';
 import {
   bisonClientFor,
-  type BisonSchedule, type BisonSequenceStep,
+  type BisonSequenceStep,
 } from '../../engine/adapters/emailbison.js';
+import { formatStepsForBison } from '../../engine/email/bisonFormat.js';
 import { onNewReply } from '../../engine/notify/index.js';
 import { segmentCount, pushToBison } from '../../engine/stages/activate.js';
 import { previewExperiment } from '../../engine/stages/experiment.js';
@@ -60,6 +61,7 @@ outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
     return {
       id: w.id, slug: w.slug, name: w.name, persona: w.persona, active: w.active,
       sortOrder: w.sortOrder,
+      personaMatch: w.personaMatch,         // persona-set scope (LIKE pattern) — null → exact persona
       keyConfigured: status.set,   // each workspace authenticates as itself — no global fallback
       keySource: (status.set ? 'workspace' : 'none') as 'workspace' | 'none',
       activeCampaigns,        // # of synced campaigns currently 'active' in Bison
@@ -67,6 +69,44 @@ outboundRouter.get('/workspaces', asyncHandler(async (_req, res) => {
     };
   }));
   res.json({ workspaces: out });
+}));
+
+/**
+ * Per-workspace Email-Engine settings (persona scope). The Bison base URL is NOT here — it is one
+ * shared setting for the whole account (Settings → "Email Bison instance URL"); a workspace is
+ * chosen by its API key, not its URL. See secrets.bisonBaseFor.
+ */
+const wsSettingsSchema = z.object({
+  personaMatch: z.string().trim().max(120).nullable().optional(),
+});
+/** Update a workspace's non-secret Email settings (the persona-match scope pattern). */
+outboundRouter.patch('/workspaces/:slug/settings', rateLimit(30, 60_000), validateBody(wsSettingsSchema), asyncHandler(async (req, res) => {
+  const slug = String(req.params.slug);
+  const b = req.body as z.infer<typeof wsSettingsSchema>;
+  if (b.personaMatch === undefined) return err(res, 400, 'nothing to update');
+  const [row] = await db.update(workspaces).set({ personaMatch: b.personaMatch || null }).where(eq(workspaces.slug, slug)).returning();
+  if (!row) return err(res, 404, 'unknown workspace');
+  res.json({ ok: true, workspace: { slug: row.slug, personaMatch: row.personaMatch } });
+}));
+
+/**
+ * Test a workspace's Bison connection: resolve its key + the shared base and hit a cheap
+ * authenticated GET.
+ * Surfaces 401/403 (bad key or wrong base) distinctly from a working empty list — the single check
+ * that would have caught the entire ESO setup failure. Read-only; spends nothing.
+ */
+outboundRouter.post('/workspaces/:slug/test-connection', rateLimit(20, 60_000), asyncHandler(async (req, res) => {
+  const slug = String(req.params.slug);
+  const [w] = await db.select().from(workspaces).where(eq(workspaces.slug, slug));
+  if (!w) return err(res, 404, 'unknown workspace');
+  const bison = await bisonClientFor(w.id);
+  try {
+    const senders = await bison.listSenders();   // throws on 401/403, [] only on a genuine empty list
+    const totalDaily = senders.reduce((sum, s) => sum + (s.daily_limit ?? 0), 0);
+    res.json({ ok: true, senderCount: senders.length, totalDailyCapacity: totalDaily });
+  } catch (e) {
+    res.json({ ok: false, detail: e instanceof Error ? e.message : String(e) });
+  }
 }));
 
 // ----------------------------------------------------------------- read / sync
@@ -195,8 +235,11 @@ outboundRouter.post('/campaigns', rateLimit(10, 60_000), validateBody(buildSchem
   const bisonId = created.id;
 
   const fails: string[] = [];
-  if (b.schedule) { const r = await bison.scheduleCampaign(bisonId, b.schedule as BisonSchedule); if (!r.ok) fails.push(`schedule (${r.status})`); }
-  { const r = await bison.setSequenceSteps(bisonId, b.steps as BisonSequenceStep[]); if (!r.ok) fails.push(`sequence-steps (${r.status})`); }
+  if (b.schedule) { const r = await bison.scheduleCampaign(bisonId, b.schedule); if (!r.ok) fails.push(`schedule (${r.status})`); }
+  // Format steps for THIS instance: canonicalize merge tags, convert beats → spaced HTML, strip
+  // sign-offs, clamp wait_in_days. sequence-steps APPENDS, so this fires exactly once on the fresh
+  // campaign. The local store keeps the canonical (pre-HTML) copy below.
+  { const fmt = formatStepsForBison(b.steps); const r = await bison.setSequenceSteps(bisonId, fmt as BisonSequenceStep[], b.name); if (!r.ok) fails.push(`sequence-steps (${r.status})`); }
   if (b.senderEmailIds?.length) { const r = await bison.attachSenders(bisonId, b.senderEmailIds); if (!r.ok) fails.push(`attach-senders (${r.status})`); }
 
   // Persist the definition locally regardless (so a partial build is visible/repairable).
@@ -277,9 +320,10 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
   const [c] = await db.select().from(bisonCampaigns).where(eq(bisonCampaigns.id, Number(req.params.id)));
   if (!c?.bisonCampaignId) { err(res, 404, 'campaign not created in Bison'); return; }
   const { persona, subType } = req.body as z.infer<typeof pushSchema>;
-  // The workspace's persona is the default segment bind; explicit body params narrow it.
+  // The workspace's persona scope is the default segment bind; explicit body params narrow it. A
+  // workspace with a `personaMatch` LIKE pattern (e.g. 'ESO %') scopes to a SET of personas.
   const [ws] = c.workspaceId
-    ? await db.select({ persona: workspaces.persona }).from(workspaces).where(eq(workspaces.id, c.workspaceId))
+    ? await db.select({ persona: workspaces.persona, personaMatch: workspaces.personaMatch }).from(workspaces).where(eq(workspaces.id, c.workspaceId))
     : [undefined];
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -289,11 +333,15 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
   req.on('close', () => { aborted = true; });
   const send = (event: string, data: unknown) => { if (!aborted && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
   try {
+    // An explicit persona (body or campaign) is an exact match; otherwise fall back to the
+    // workspace scope, preferring its personaMatch set over an exact persona.
+    const explicitPersona = persona ?? c.persona ?? undefined;
     const filter = {
-      persona: persona ?? c.persona ?? ws?.persona ?? undefined,
+      persona: explicitPersona ?? (ws?.personaMatch ? undefined : ws?.persona ?? undefined),
+      personaMatch: explicitPersona ? undefined : ws?.personaMatch ?? undefined,
       subType: subType ?? c.subType ?? undefined,
     };
-    const result = await pushToBison(c.workspaceId, c.bisonCampaignId, filter, (m) => send('log', { message: m }));
+    const result = await pushToBison(c.workspaceId, c.bisonCampaignId, filter, (m) => send('log', { message: m }), c.id);
     await db.insert(bisonPushLog).values({
       workspaceId: c.workspaceId, campaignId: c.id, leadsCreated: result.created, leadsAttached: result.attached, segmentFilterJson: filter,
     });
@@ -559,6 +607,89 @@ outboundRouter.patch('/experiments/:id', rateLimit(30, 60_000), validateBody(upd
     })));
   }
   res.json({ ok: true });
+}));
+
+/**
+ * Build an experiment end-to-end from N sequence templates: create one Bison campaign per template
+ * (create → schedule → formatted sequence-steps → attach that arm's senders), mirror each locally,
+ * then wire an experiment with one arm per campaign. This is the single call that replaces the N
+ * manual steps the ESO build had to script by hand. Does NOT push leads or launch — the returned
+ * experiment is ready to preview + push from its detail page.
+ *
+ * `senderMapping` partitions senders across arms (one entry per arm, parallel to sequenceTemplateIds)
+ * so each arm gets its own inboxes — the deliverability/attribution isolation the experiment needs.
+ * Omit it (or leave an entry empty) to attach no senders to that arm yet.
+ */
+const buildExpSchema = z.object({
+  name: z.string().min(1).max(200),
+  persona: z.string().max(64).optional(),
+  subType: z.string().max(64).optional(),
+  sequenceTemplateIds: z.array(z.number().int().positive()).min(1).max(12),
+  weights: z.array(z.number().int().min(0).max(1000)).optional(),       // parallel to sequenceTemplateIds; default 1 each
+  senderMapping: z.array(z.array(z.number().int().positive()).max(50)).optional(), // parallel to sequenceTemplateIds
+  schedule: scheduleSchema.optional(),
+  labels: z.array(z.string().max(120)).optional(),                       // parallel; default = template name
+});
+outboundRouter.post('/experiments/build', rateLimit(5, 60_000), validateBody(buildExpSchema), asyncHandler(async (req, res) => {
+  const b = req.body as z.infer<typeof buildExpSchema>;
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const bison = await bisonClientFor(ws.id);
+
+  // Load the chosen templates (must all belong to this workspace).
+  const tpls = await db.select().from(sequenceTemplates)
+    .where(and(inArray(sequenceTemplates.id, b.sequenceTemplateIds), eq(sequenceTemplates.workspaceId, ws.id)));
+  const tplById = new Map(tpls.map((t) => [t.id, t]));
+  const missing = b.sequenceTemplateIds.filter((id) => !tplById.has(id));
+  if (missing.length) return err(res, 400, `sequence template(s) not found in this workspace: ${missing.join(', ')}`);
+
+  const armsOut: { campaignId: number; bisonCampaignId: number | null; label: string; partialFailures: string[] }[] = [];
+  const armInputs: { campaignId: number; label: string; weight: number; sequenceTemplateId: number }[] = [];
+
+  for (let i = 0; i < b.sequenceTemplateIds.length; i++) {
+    const tpl = tplById.get(b.sequenceTemplateIds[i])!;
+    const label = b.labels?.[i] || tpl.name;
+    const steps = (tpl.stepsJson as { order: number; wait_in_days: number; email_subject: string; email_body: string; variant?: string; thread_reply?: boolean }[]) ?? [];
+    const fails: string[] = [];
+
+    const created = await bison.createCampaign(label);
+    if (!created) { armsOut.push({ campaignId: -1, bisonCampaignId: null, label, partialFailures: ['create campaign failed'] }); continue; }
+    const bisonId = created.id;
+
+    if (b.schedule) { const r = await bison.scheduleCampaign(bisonId, b.schedule); if (!r.ok) fails.push(`schedule (${r.status})`); }
+    { const fmt = formatStepsForBison(steps); const r = await bison.setSequenceSteps(bisonId, fmt as BisonSequenceStep[], label); if (!r.ok) fails.push(`sequence-steps (${r.status})`); }
+    const senderIds = b.senderMapping?.[i] ?? [];
+    if (senderIds.length) { const r = await bison.attachSenders(bisonId, senderIds); if (!r.ok) fails.push(`attach-senders (${r.status})`); }
+
+    const [row] = await db.insert(bisonCampaigns).values({
+      workspaceId: ws.id, bisonCampaignId: bisonId, name: label, status: 'created',
+      persona: b.persona ?? ws.persona ?? undefined, subType: b.subType,
+      scheduleJson: b.schedule ?? null,
+      createdBy: (req as { auth?: { sub?: string } }).auth?.sub ?? null, syncedAt: new Date(),
+    }).returning();
+    await db.insert(bisonSequences).values(steps.map((s) => ({
+      campaignId: row.id, stepOrder: s.order, waitInDays: s.wait_in_days,
+      subject: s.email_subject, body: s.email_body, variant: s.variant ?? null, threadReply: s.thread_reply ?? false,
+    })));
+    if (senderIds.length) {
+      await db.insert(bisonSenderAssignments).values(senderIds.map((sid) => ({ campaignId: row.id, senderEmailId: sid })));
+    }
+
+    armsOut.push({ campaignId: row.id, bisonCampaignId: bisonId, label, partialFailures: fails });
+    armInputs.push({ campaignId: row.id, label, weight: b.weights?.[i] ?? 1, sequenceTemplateId: tpl.id });
+  }
+
+  const builtArms = armInputs.filter((a) => a.campaignId > 0);
+  if (!builtArms.length) return err(res, 502, 'no campaigns could be created in Bison');
+
+  const [exp] = await db.insert(experiments).values({
+    workspaceId: ws.id, name: b.name, persona: b.persona ?? ws.persona ?? undefined, subType: b.subType,
+  }).returning();
+  await db.insert(experimentArms).values(builtArms.map((a) => ({
+    experimentId: exp.id, campaignId: a.campaignId, label: a.label, weight: a.weight, sequenceTemplateId: a.sequenceTemplateId,
+  })));
+
+  res.json({ experimentId: exp.id, arms: armsOut });
 }));
 
 /** Preview the allocation: segment size, how many NEW contacts would flow to each arm now. */

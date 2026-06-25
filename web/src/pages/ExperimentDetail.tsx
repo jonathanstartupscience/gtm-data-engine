@@ -94,6 +94,7 @@ export function ExperimentDetail() {
                 <th style={{ width: 90 }}>Weight</th>
                 <th style={{ width: 90 }}>Assigned</th><th style={{ width: 80 }}>Pushed</th>
                 <th style={{ width: 90 }}>New now</th>
+                <th style={{ width: 120 }}>Capacity/day</th>
               </tr>
             </thead>
             <tbody>
@@ -102,13 +103,20 @@ export function ExperimentDetail() {
                 const paused = (weights[a.id] ?? a.weight) === 0;
                 return (
                   <tr key={a.id} style={{ borderTop: '1px solid var(--border)', opacity: paused ? 0.6 : 1 }}>
-                    <td style={{ padding: '8px' }}>{a.label ?? `Arm ${a.id}`}{paused && <span className="muted" style={{ fontSize: 11 }}> · paused</span>}</td>
+                    <td style={{ padding: '8px' }}>
+                      {a.label ?? `Arm ${a.id}`}{paused && <span className="muted" style={{ fontSize: 11 }}> · paused</span>}
+                      {view?.unfillableTags?.length ? <span title={`Uses merge tag(s) the push can't fill: ${view.unfillableTags.map((t) => `{${t}}`).join(', ')}`} style={{ color: 'var(--coral)', fontSize: 11, marginLeft: 6 }}>⚠ blank tags</span> : null}
+                    </td>
                     <td>{view?.bisonCampaignId ? <Link to={`/campaigns/${a.campaignId}`}>{campName(a.campaignId)}</Link> : <span style={{ color: 'var(--coral)' }}>{campName(a.campaignId)} (not in Bison)</span>}</td>
                     <td><input className="input" type="number" min={0} max={1000} value={weights[a.id] ?? a.weight}
                       onChange={(e) => setWeights((w) => ({ ...w, [a.id]: Number(e.target.value) }))} style={{ width: 70 }} /></td>
                     <td>{view?.assigned ?? 0}</td>
                     <td>{view?.pushed ?? 0}</td>
                     <td>{paused ? '—' : `+${newByArm.get(a.id) ?? 0}`}</td>
+                    <td>
+                      {view ? <>{view.dailyCapacity}/day <span className="muted" style={{ fontSize: 11 }}>({view.senderCount} inbox{view.senderCount === 1 ? '' : 'es'})</span></> : '—'}
+                      {view?.sharesSenders ? <span title="Shares ≥1 sender inbox with another arm — quota is pooled and arms compete" style={{ color: 'var(--coral)', fontSize: 11, display: 'block' }}>⚠ shared</span> : null}
+                    </td>
                   </tr>
                 );
               })}
@@ -132,6 +140,16 @@ export function ExperimentDetail() {
         </p>
         {preview && preview.unassigned > 0 && (
           <p style={{ fontSize: 14 }}><strong>{preview.unassigned.toLocaleString()}</strong> new contact(s) would be distributed: {preview.newByArm.filter((n) => n.count > 0).map((n) => `${n.label ?? 'arm ' + n.armId} +${n.count}`).join(', ') || '—'}</p>
+        )}
+        {preview?.diagnostics && (
+          <div style={{ fontSize: 13, marginBottom: 8 }}>
+            <p style={{ margin: '0 0 6px' }}>
+              Program send capacity: <strong>{preview.diagnostics.totalDailyCapacity}/day</strong> across all distinct sender inboxes.
+            </p>
+            {preview.diagnostics.warnings.map((w, i) => (
+              <p key={i} style={{ margin: '4px 0', color: 'var(--coral)' }}>⚠ {w}</p>
+            ))}
+          </div>
         )}
         {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
         <button className="btn btn-primary" disabled={pushing} onClick={push}>{pushing ? <><span className="spinner" /> Pushing…</> : 'Distribute & push'}</button>

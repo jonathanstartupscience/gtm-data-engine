@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import type { BuildStep, RewriteAction } from '../api.js';
 
-export const SEQUENCE_VARS = ['{{first_name}}', '{{last_name}}', '{{company}}', '{{title}}', '{{persona}}', '{{sub_type}}', '{{trigger}}', '{{magnet_link}}', '{{sender_linkedin}}'];
+// Single-brace UPPERCASE — the dialect this Bison instance renders. ({TRIGGER} has no value on push
+// (renders blank); {MAGNET_LINK} is offer-only and offers are reply-to-receive — so neither is shown
+// in the picker, though both still resolve if hand-typed.)
+export const SEQUENCE_VARS = ['{FIRST_NAME}', '{LAST_NAME}', '{COMPANY}', '{TITLE}', '{PERSONA}', '{SUB_TYPE}'];
 
 export function blankStep(order: number): BuildStep {
   return { order, wait_in_days: order === 1 ? 0 : 3, email_subject: '', email_body: '' };
@@ -57,7 +60,7 @@ export function SequenceStepsEditor({
           <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Subject line"
             value={s.email_subject} onChange={(e) => setStep(i, { email_subject: e.target.value })} />
           <textarea className="input" style={{ width: '100%', minHeight: 140, fontFamily: 'inherit', resize: 'vertical' }}
-            placeholder="Email body…  Hi {{first_name}}, …"
+            placeholder="Email body…  Hi {FIRST_NAME}, …"
             value={s.email_body} onChange={(e) => setStep(i, { email_body: e.target.value })} />
           {onRewrite && <StepRewriteBar index={i} step={s} onRewrite={onRewrite} />}
         </div>

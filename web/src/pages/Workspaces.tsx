@@ -109,6 +109,8 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
         {msg && <span className="muted">{msg}</span>}
       </div>
 
+      <WorkspaceScope ws={ws} onSaved={onKeyChange} />
+
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>
         <strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>Reply routing</strong>
         <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
@@ -117,6 +119,67 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
         </p>
         <ReplyRouting reloadKey={ws.slug} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Workspace persona scope + a "Test connection" button. The Bison base URL is NOT here — it's one
+ * shared account-wide setting (Settings → "Email Bison instance URL"); a workspace is distinguished
+ * by its API key, not its URL. The persona scope is a LIKE pattern mapping the workspace to a SET of
+ * contact personas. Test connection hits an authenticated Bison GET (using this workspace's key +
+ * the shared base) and surfaces a bad key immediately, instead of it looking like "no senders."
+ */
+function WorkspaceScope({ ws, onSaved }: { ws: EmailWorkspace; onSaved: () => void }) {
+  const [scope, setScope] = useState(ws.personaMatch ?? '');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [test, setTest] = useState<{ ok: boolean; senderCount?: number; totalDailyCapacity?: number; detail?: string } | null>(null);
+
+  async function save() {
+    setBusy(true); setMsg('');
+    try {
+      await api.outboundWorkspaceSettings(ws.slug, { personaMatch: scope.trim() || null });
+      setMsg('Saved ✓'); onSaved();
+    } catch (e) { setMsg(String(e)); }
+    setBusy(false);
+  }
+
+  async function testConn() {
+    setBusy(true); setMsg(''); setTest(null);
+    try {
+      setTest(await api.outboundTestConnection(ws.slug));
+    } catch (e) { setTest({ ok: false, detail: String(e) }); }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>
+      <strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>Persona scope &amp; connection</strong>
+      <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
+        Persona scope — a pattern that maps this workspace to a set of contact personas. Use
+        <code> ESO %</code> to match every <code>ESO …</code> persona, or leave blank to use the
+        workspace’s exact persona (<code>{ws.persona ?? '—'}</code>). The Bison instance URL is shared
+        across all workspaces (set on <strong>Settings</strong>) — a workspace is chosen by its key.
+      </p>
+      <div className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
+        <input className="input" placeholder="e.g. ESO % (blank = exact persona)"
+          value={scope} onChange={(e) => setScope(e.target.value)} style={{ minWidth: 320 }} />
+      </div>
+
+      <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+        <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+        <button className="btn" disabled={busy} onClick={testConn}>Test connection</button>
+        {msg && <span className="muted">{msg}</span>}
+      </div>
+
+      {test && (
+        <p className={'muted'} style={{ marginTop: 8, fontSize: 13, color: test.ok ? 'var(--green, #1a7f37)' : 'var(--coral)' }}>
+          {test.ok
+            ? `Connected ✓ — ${test.senderCount} sender inbox${test.senderCount === 1 ? '' : 'es'}, ${test.totalDailyCapacity}/day total capacity.`
+            : `Connection failed — ${test.detail}`}
+        </p>
+      )}
     </div>
   );
 }

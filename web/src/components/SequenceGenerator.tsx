@@ -38,7 +38,6 @@ export function SequenceGenerator({
   const [leadMagnetId, setLeadMagnetId] = useState('');     // '' = let AI pick
   const [sendingAsGreg, setSendingAsGreg] = useState(false); // default: edify Greg
   const [senderName, setSenderName] = useState('');
-  const [abVariant, setAbVariant] = useState(false);
   const [extraContext, setExtraContext] = useState('');
 
   const [generating, setGenerating] = useState(false);
@@ -88,7 +87,6 @@ export function SequenceGenerator({
         leadMagnetId: style?.supportsOffer && leadMagnetId ? leadMagnetId : undefined,
         painKey: showsPain && painKey ? painKey : undefined,
         painCustom: showsPain && painCustom.trim() ? painCustom.trim() : undefined,
-        abVariant: abVariant || undefined,
         extraContext: extraContext.trim() || undefined,
       });
       setLastRationale(r.rationale); setShowRationale(false);
@@ -203,13 +201,13 @@ export function SequenceGenerator({
           : 'Written as the sender, edifying Greg — every demo is with Greg personally, so his reputation carries the email.'}
       </p>
 
-      {/* Options */}
-      <div className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input type="checkbox" checked={abVariant} onChange={(e) => setAbVariant(e.target.checked)} />
-          Also generate an A/B variant (step 1)
-        </label>
-      </div>
+      {/* Options. In-step subject A/B variants are intentionally not offered: our Bison instance has
+          no variant mechanism (a second step at the same order 422s; variant flags are ignored). Test
+          subjects at the SEQUENCE level — make two sequences and run them as arms of an Experiment. */}
+      <p className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+        Testing subject lines? Generate two sequences and pit them head-to-head as arms of an{' '}
+        <a href="/experiments">Experiment</a> — this Bison instance can’t A/B subjects within a single step.
+      </p>
       <textarea className="input" style={{ width: '100%', minHeight: 60, fontFamily: 'inherit', resize: 'vertical', marginBottom: 12 }}
         placeholder="Optional: extra context — a real trigger, an angle to emphasize, a constraint…"
         value={extraContext} onChange={(e) => setExtraContext(e.target.value)} />

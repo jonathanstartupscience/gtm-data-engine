@@ -17,29 +17,73 @@ import { request, requestJson, RateLimiter } from '../../lib/http.js';
 
 const limiter = new RateLimiter(500, 60_000); // conservative; docs imply ~10/s
 
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+/**
+ * Convert the legacy `{timezone, days:[{day,from,to}]}` schedule (what the API/UI still build) into
+ * the instance shape: per-day booleans + a single H:i window + save_as_template. Times are coerced
+ * to H:i (the instance rejects H:i:s). The window is taken from the first day with a from/to (the
+ * instance applies one window to all enabled days).
+ */
+export function scheduleFromDays(s: { timezone: string; days: { day: string; from: string; to: string }[] }): BisonSchedule {
+  const hi = (t?: string) => (t ?? '').slice(0, 5); // 'HH:MM:SS' | 'HH:MM' → 'HH:MM'
+  const enabled = new Set(s.days.map((d) => d.day.toLowerCase()));
+  const first = s.days[0];
+  const out: BisonSchedule = {
+    start_time: hi(first?.from) || '08:00',
+    end_time: hi(first?.to) || '17:00',
+    timezone: s.timezone,
+    save_as_template: false,
+  };
+  for (const k of DAY_KEYS) out[k] = enabled.has(k);
+  return out;
+}
+
 /** Per-workspace Bison connection: a base URL + an API key. */
 export interface BisonCtx { base: string; key: string; }
 
-/** Resolve a workspace's Bison ctx (its own key + base). No global key — an unconfigured workspace gets an empty key and can't send. */
+/**
+ * Resolve a workspace's Bison ctx: its OWN key + the ONE shared base URL. The base is account-wide
+ * (the whole Email Bison account lives on one host); a workspace is distinguished by its API key,
+ * not its URL — so there is no per-workspace base override. No global key either: an unconfigured
+ * workspace gets an empty key and can't send.
+ */
 export async function ctxForWorkspace(workspaceId?: number | null): Promise<BisonCtx> {
   let slug: string | undefined;
-  let baseOverride: string | null = null;
   if (workspaceId) {
-    const [w] = await db.select({ slug: workspaces.slug, bisonBaseUrl: workspaces.bisonBaseUrl })
-      .from(workspaces).where(eq(workspaces.id, workspaceId));
+    const [w] = await db.select({ slug: workspaces.slug }).from(workspaces).where(eq(workspaces.id, workspaceId));
     slug = w?.slug;
-    baseOverride = w?.bisonBaseUrl ?? null;
   }
-  const [key, base] = await Promise.all([bisonKeyFor(slug), bisonBaseFor(baseOverride)]);
+  const [key, base] = await Promise.all([bisonKeyFor(slug), bisonBaseFor()]);
   return { key, base: base.replace(/\/$/, '') };
 }
 
 export interface BisonCampaign { id: number; name: string; status?: string }
+/**
+ * Sending schedule in the shape THIS instance accepts (verified live): per-day booleans + H:i
+ * (NOT H:i:s) start/end times + a required `save_as_template`. The older `{timezone, days:[…]}`
+ * shape 422'd on the live instance — see scheduleCampaign / scheduleFromDays.
+ */
+export interface BisonSchedule {
+  monday?: boolean; tuesday?: boolean; wednesday?: boolean; thursday?: boolean;
+  friday?: boolean; saturday?: boolean; sunday?: boolean;
+  start_time: string;  // 'H:i', e.g. '08:00'
+  end_time: string;    // 'H:i', e.g. '17:00'
+  timezone: string;
+  save_as_template?: boolean;
+}
+/** Legacy per-day window shape some callers still send; scheduleFromDays converts it. */
 export interface BisonScheduleDay { day: string; from: string; to: string }
-export interface BisonSchedule { timezone: string; days: BisonScheduleDay[] }
 export interface BisonSequenceStep {
   email_subject: string; email_body: string; wait_in_days: number; order: number;
-  thread_reply?: boolean; variant?: string;
+  thread_reply?: boolean;
+  /**
+   * DEAD for this Bison flavor. The instance exposes no in-step variant mechanism: a second step at
+   * the same `order` 422s ("duplicate order"), and `variant`/`variant_from_step` flags are ignored
+   * (they silently create a normal follow-up step). To A/B test subjects, run two SEQUENCES as
+   * separate experiment arms instead — never in-step variants. Kept only so stored copy round-trips.
+   */
+  variant?: string;
 }
 export interface BisonSender { id: number; email: string; name?: string; daily_limit?: number }
 export interface BisonStats {
@@ -132,23 +176,58 @@ export function bisonClient(ctx: BisonCtx) {
     });
   }
 
-  /** Set a campaign's sending schedule (days/times/timezone). */
-  function scheduleCampaign(id: number, schedule: BisonSchedule): Promise<Response> {
+  /**
+   * Delete a campaign in Bison (async on the instance). This is the ONLY way to remove sequence
+   * steps, since the sequence-steps endpoint append-only with no per-step delete — "editing" a
+   * sequence is modeled as delete + recreate.
+   */
+  function deleteCampaign(id: number): Promise<Response> {
+    return request(`${BASE}/campaigns/${id}`, { method: 'DELETE', headers: headers(), limiter });
+  }
+
+  /**
+   * Set a campaign's sending schedule. The instance wants per-day booleans + H:i start/end + a
+   * required `save_as_template` (the older `{timezone, days:[{day,from,to}]}` shape 422s). Callers
+   * may pass EITHER shape — a legacy day-window object is converted first.
+   */
+  function scheduleCampaign(id: number, schedule: BisonSchedule | { timezone: string; days: BisonScheduleDay[] }): Promise<Response> {
+    const body = 'days' in schedule ? scheduleFromDays(schedule) : { save_as_template: false, ...schedule };
     return request(`${BASE}/campaigns/${id}/schedule`, {
-      method: 'POST', headers: headers(), limiter, body: JSON.stringify(schedule),
+      method: 'POST', headers: headers(), limiter, body: JSON.stringify(body),
     });
   }
 
-  /** Replace/define the sequence steps for a campaign (array of steps). */
-  function setSequenceSteps(id: number, steps: BisonSequenceStep[]): Promise<Response> {
+  /**
+   * Define the sequence steps for a campaign. The instance wants `{ title, sequence_steps:[…] }`
+   * with each step `{ order, wait_in_days, email_subject, email_body }` and `wait_in_days >= 1`.
+   *
+   * ⚠️ This endpoint APPENDS — re-posting duplicates steps, and there is no per-step DELETE (only
+   * `DELETE /campaigns/:id`). So it is only safe to call ONCE per campaign, on a freshly-created
+   * campaign with no steps. To "edit" a sequence, delete+recreate the campaign. `title` defaults to
+   * the campaign name when omitted.
+   */
+  function setSequenceSteps(id: number, steps: BisonSequenceStep[], title = 'Sequence'): Promise<Response> {
+    const sequence_steps = steps.map((s) => ({
+      order: s.order,
+      wait_in_days: Math.max(1, Math.floor(s.wait_in_days || 0)), // instance rejects 0
+      email_subject: s.email_subject,
+      email_body: s.email_body,
+    }));
     return request(`${BASE}/campaigns/${id}/sequence-steps`, {
-      method: 'POST', headers: headers(), limiter, body: JSON.stringify({ steps }),
+      method: 'POST', headers: headers(), limiter, body: JSON.stringify({ title, sequence_steps }),
     });
   }
 
-  /** List sender inboxes available in this workspace. */
+  /**
+   * List sender inboxes available in this workspace. Surfaces auth failures (401/403) as a thrown
+   * error — a wrong key/base must NOT look like "no senders configured" (that bug wasted hours in
+   * the ESO build). A genuine empty list still returns []. */
   async function listSenders(): Promise<BisonSender[]> {
     const resp = await request(`${BASE}/sender-emails`, { headers: headers(), limiter });
+    if (resp.status === 401 || resp.status === 403) {
+      const body = (await resp.text()).slice(0, 200);
+      throw new Error(`Bison GET /sender-emails → ${resp.status} (bad key or wrong instance URL): ${body}`);
+    }
     if (!resp.ok) return [];
     const j = (await resp.json()) as { data?: BisonSender[] };
     return j.data ?? [];
@@ -260,14 +339,72 @@ export function bisonClient(ctx: BisonCtx) {
     });
   }
 
+  // Custom variables this client has ensured this process-run, so we POST /custom-variables once.
+  const ensuredVars = new Set<string>();
+
+  /**
+   * Ensure each named custom variable exists in this workspace before a lead references it.
+   * `createLead` 422s if `custom_variables:[{name:'persona',…}]` names a variable that doesn't
+   * exist yet, so we create them first (idempotent — a duplicate-name POST is tolerated as already
+   * existing). Caches per process-run to avoid re-POSTing on every lead.
+   */
+  async function ensureCustomVariables(names: string[]): Promise<void> {
+    for (const name of names) {
+      if (!name || ensuredVars.has(name)) continue;
+      const resp = await request(`${BASE}/custom-variables`, {
+        method: 'POST', headers: headers(), limiter, body: JSON.stringify({ name }),
+      });
+      // 200/201 = created; 422/409 = already exists. Either way it's now present.
+      ensuredVars.add(name);
+      if (!resp.ok && resp.status !== 422 && resp.status !== 409) {
+        const body = (await resp.text()).slice(0, 200);
+        throw new Error(`Bison POST /custom-variables {${name}} → ${resp.status}: ${body}`);
+      }
+    }
+  }
+
   /** Create a lead; returns its id (response shape varies — pull id defensively). */
   async function createLead(lead: BisonLead): Promise<number | null> {
+    // The instance rejects a lead referencing a custom variable that doesn't exist yet — create
+    // any referenced vars first (cached, so this is effectively free after the first lead).
+    const varNames = (lead.custom_variables ?? []).map((v) => v.name).filter(Boolean);
+    if (varNames.length) await ensureCustomVariables(varNames);
     const resp = await request(`${BASE}/leads`, {
       method: 'POST', headers: headers(), limiter, body: JSON.stringify(lead),
     });
     if (!resp.ok) return null;
     const j = (await resp.json()) as { id?: number; data?: { id?: number } };
     return j.id ?? j.data?.id ?? null;
+  }
+
+  /** Remove a lead. The `/campaigns/:id/leads/detach-leads` path is 404 on this instance — delete the lead. */
+  function detachLead(leadId: number): Promise<Response> {
+    return request(`${BASE}/leads/${leadId}`, { method: 'DELETE', headers: headers(), limiter });
+  }
+
+  /**
+   * List a campaign's leads (email + sequence status), paging through Laravel-style pagination.
+   * Used to build a cross-campaign suppression set so a push never double-emails someone already
+   * in another active campaign. Tolerant of response-shape variation; page-capped as a backstop.
+   */
+  async function listCampaignLeads(campaignId: number, maxPages = 200): Promise<{ email: string; status: string | null }[]> {
+    const out: { email: string; status: string | null }[] = [];
+    for (let page = 1; page <= maxPages; page++) {
+      const resp = await request(`${BASE}/campaigns/${campaignId}/leads?page=${page}`, { headers: headers(), limiter });
+      if (!resp.ok) break;  // a campaign with no lead list just yields nothing — don't fail the push
+      const j = (await resp.json()) as { data?: Record<string, unknown>[]; items?: Record<string, unknown>[]; meta?: { last_page?: number } } | Record<string, unknown>[];
+      const rows = Array.isArray(j) ? j : (j.data ?? j.items ?? []);
+      for (const r of rows) {
+        const lead = (r.lead as Record<string, unknown> | undefined) ?? r;
+        const email = String((lead.email as string) ?? (r.email as string) ?? '').toLowerCase().trim();
+        if (email) out.push({ email, status: (r.status as string) ?? (r.sequence_status as string) ?? null });
+      }
+      const meta = Array.isArray(j) ? undefined : j.meta;
+      if (rows.length === 0) break;
+      if (meta?.last_page != null && page >= meta.last_page) break;
+      if (!meta) break;
+    }
+    return out;
   }
 
   /** Attach lead ids to a campaign. */
@@ -302,9 +439,10 @@ export function bisonClient(ctx: BisonCtx) {
   }
 
   return {
-    listCampaigns, getCampaign, createCampaign, updateCampaign, scheduleCampaign,
+    listCampaigns, getCampaign, createCampaign, updateCampaign, deleteCampaign, scheduleCampaign,
     setSequenceSteps, listSenders, attachSenders, pauseCampaign, resumeCampaign,
-    getCampaignStats, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook, pushLeadsToCampaign,
+    getCampaignStats, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook,
+    ensureCustomVariables, createLead, detachLead, listCampaignLeads, pushLeadsToCampaign,
   };
 }
 

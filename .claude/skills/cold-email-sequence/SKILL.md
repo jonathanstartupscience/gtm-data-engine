@@ -20,9 +20,11 @@ interactive twin of the in-app generator: same IP, same output shape, but you wr
 directly in the conversation so the user can iterate before any Anthropic key is wired into the app.
 
 **Default output:** a reusable **merge-tag template** — one sequence that personalizes itself
-across a whole segment at send time via Bison tags ({{first_name}}, {{company}}, {{title}}, and
-where relevant {{trigger}}, {{magnet_link}}, {{sender_linkedin}}). Do not write one-off copy for a
-single named prospect unless the user explicitly asks for that.
+across a whole segment at send time via Bison tags. Use single-brace UPPERCASE tags, the dialect
+this Bison instance renders: {FIRST_NAME}, {COMPANY}, {TITLE}, {LAST_NAME}, and where relevant
+{MAGNET_LINK}. Note {TRIGGER} has no populated value on push (it renders blank) — avoid it unless
+the segment actually supplies it. Do not write one-off copy for a single named prospect unless the
+user explicitly asks for that.
 
 Read the reference files before generating. They are the source of truth and mirror the app:
 - `references/styles.md` — the email STYLES (strategic skeletons; step count + each step's job).
@@ -64,7 +66,7 @@ style. You write the copy. Apply, in priority order:
 > **Each step must do ITS step's job, not a generic one.** The most common failure is defaulting the
 > middle and final steps to "restate the pain, then invite a demo with Greg" no matter the style. Do not.
 > A pain-centric step 2 is a concrete **proof point** (a real result, a named peer, a Greg credential),
-> not a pain restatement; pain-centric step 3 **reframes the cost of inaction** tied to {{company}}, not
+> not a pain restatement; pain-centric step 3 **reframes the cost of inaction** tied to {COMPANY}, not
 > a "see it with Greg" invite. An insight step 3 invites **peer push-back** with Greg, not a one-way demo.
 > A trigger step 2 ties the trigger to a **specific outcome + one proof point**. A benchmark step leads
 > with a **real figure**, never "the data shows." Re-read the step's row in `references/styles.md` before
@@ -79,11 +81,11 @@ style. You write the copy. Apply, in priority order:
 3. **Persona** — open in the reader's world. Use the persona's pain/value and Lifecycle angle; never describe
    features generically.
 4. **House rules** — each email under ~90 words, exactly one low-friction CTA, merge tags only, and
-   **no sign-off** (no name, no {{sender_linkedin}}, no closing). Email Bison injects the signature
+   **no sign-off** (no name, no LinkedIn line, no closing). Email Bison injects the signature
    per sender inbox, so the copy must end on the CTA. Later steps add a new angle, never "just bumping this."
 5. **CTA earns a reply.** Success is measured by positive REPLY rate, so the CTA's job is to make
    replying easy, not to book a meeting. Prefer a broad reaction question answerable in a word ("Does
-   that match what you see at {{company}}?") over a passive "Worth a look?" or a premature meeting ask.
+   that match what you see at {COMPANY}?") over a passive "Worth a look?" or a premature meeting ask.
    Save meeting/call asks for later steps once interest shows; for offers, ask to send the asset. Keep
    questions broad, not so specific they require a composed answer.
 
@@ -92,7 +94,7 @@ style. You write the copy. Apply, in priority order:
 Present the sequence as clean, copy-pasteable steps. For each step:
 
 ```
-Step N  ·  wait: D days  ·  [variant: A/B if used]
+Step N  ·  wait: D days
 Subject: <subject line>
 
 <email body, with merge tags, ending on the CTA — no sign-off (Bison adds the signature)>
@@ -113,7 +115,7 @@ After the steps, add:
 - [ ] First sentence is about the reader, not us.
 - [ ] One sharp proof point, not a stack. Greg edified correctly per sender mode.
 - [ ] Merge tags only — no assumed facts a tag can't supply. Offer styles use NO link: describe the asset and ask to send it (reply-to-receive, manual fulfillment).
-- [ ] No sign-off — body ends on the CTA (no name, no {{sender_linkedin}}; Bison adds the signature).
+- [ ] No sign-off — body ends on the CTA (no name, no LinkedIn line; Bison adds the signature).
 - [ ] Follow-ups add a new angle; none say "just following up" or "did you see my email."
 - [ ] Reads like a mentor who has done it, not a marketer selling.
 
@@ -134,7 +136,7 @@ it never edits your copy. Applying corrections is YOUR job. The loop is:
 2. **Read the verdict** it returns (`PASS` / `REVISE` / `REJECT`) plus its `suggestedFixes` and `revisions`.
 3. **Apply the corrections yourself:**
    - For each entry in `suggestedFixes` (single-correct-fix items — em dashes, illegal merge tags, a
-     missing `{{sender_linkedin}}`), apply the exact `find`→`replace` it gives you.
+     a malformed merge tag), apply the exact `find`→`replace` it gives you.
    - For each entry in `revisions` (judgment items — over-length bodies, stacked proof points, a weak
      opener, a fabricated trigger, wrong step count/style), **rewrite the copy yourself** to resolve it.
      The reviewer deliberately does not hand you replacement prose for these; that is your craft to fix.

@@ -36,9 +36,11 @@ export function buildSequencePrompt(a: BuildPromptArgs): string {
     .map((s) => `  Step ${s.order} (wait ${s.waitDays} days) — ${s.label}: ${s.job}`)
     .join('\n');
 
-  const variantNote = abVariant
-    ? 'ALSO produce an A/B variant: for step 1 only, add a second object with the SAME order and wait_in_days but variant "B", a different subject line, and a different opening angle. Mark the primary step 1 with variant "A". All other steps have no variant.'
-    : 'Do not produce A/B variants; omit the variant field.';
+  // In-step A/B variants are intentionally never produced: the Bison instance has no variant
+  // mechanism (a second step at the same order 422s; variant flags are ignored). Subject testing is
+  // done at the sequence level via experiment arms. `abVariant` is accepted but no longer acted on.
+  void abVariant;
+  const variantNote = 'Do not produce A/B variants; omit the variant field. (Subject A/B testing is done by running two sequences as experiment arms, not in-step.)';
 
   const offerBlock = leadMagnet
     ? [
@@ -46,12 +48,12 @@ export function buildSequencePrompt(a: BuildPromptArgs): string {
         'LEAD MAGNET TO OFFER (attribute to Greg):',
         `- Title: ${leadMagnet.title}`,
         `- What it gives the reader: ${leadMagnet.hook}`,
-        'Use a {{magnet_link}} merge tag where a download link belongs.',
+        'Use a {MAGNET_LINK} merge tag where a download link belongs.',
       ].join('\n')
     : '';
 
   return [
-    'You are a world-class cold-email copywriter writing for the Startup Science GTM team. You write the entire sequence as plain-text emails (no HTML).',
+    'You are a world-class cold-email copywriter writing for the Startup Science GTM team. Write each email body as short plain-text beats separated by a blank line (the app converts beats to spaced HTML at send time). Do not write HTML yourself.',
     '',
     'SENDER & VOICE',
     senderVoice(a.senderMode, a.senderName),
@@ -98,10 +100,10 @@ export function buildSequencePrompt(a: BuildPromptArgs): string {
     '{',
     '  "rationale": "<2-3 sentences on the strategy you used for this persona+style>",',
     '  "steps": [',
-    '    { "order": <int>, "wait_in_days": <int>, "email_subject": "<string>", "email_body": "<string with merge tags and a signature>", "variant": "<optional A or B>" }',
+    '    { "order": <int>, "wait_in_days": <int>, "email_subject": "<string>", "email_body": "<plain-text beats separated by blank lines, NO sign-off or signature>", "variant": "<optional A or B>" }',
     '  ]',
     '}',
-    'The number of primary steps must match the skeleton exactly. Keep merge tags in {{double_brace}} form. Do not use em dashes anywhere.',
+    'The number of primary steps must match the skeleton exactly. Merge tags are single-brace UPPERCASE: {FIRST_NAME}, {COMPANY}, {TITLE}, {LAST_NAME}. Do NOT add a sign-off or signature (the sending inbox injects it). Do not use em dashes anywhere.',
   ]
     .filter((line) => line !== '')
     .join('\n');

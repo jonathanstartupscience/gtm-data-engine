@@ -104,6 +104,10 @@ export const api = {
 
   // ---- Outbound Engine (Email Bison) ----
   outboundWorkspaces: () => get<{ workspaces: EmailWorkspace[] }>('/api/outbound/workspaces'),
+  outboundWorkspaceSettings: (slug: string, body: { personaMatch?: string | null }) =>
+    patch<{ ok: boolean; workspace: { slug: string; personaMatch: string | null } }>(`/api/outbound/workspaces/${slug}/settings`, body),
+  outboundTestConnection: (slug: string) =>
+    post<{ ok: boolean; senderCount?: number; totalDailyCapacity?: number; detail?: string }>(`/api/outbound/workspaces/${slug}/test-connection`, {}),
   outboundCampaigns: () => get<{ campaigns: OutboundCampaign[] }>('/api/outbound/campaigns'),
   outboundCampaign: (id: number) => get<{ campaign: OutboundCampaign; steps: SequenceStep[]; senders: SenderAssignment[]; stats: CampaignStats | null }>(`/api/outbound/campaigns/${id}`),
   outboundSync: () => post<{ synced: number; added: number; updated: number }>('/api/outbound/sync', {}),
@@ -129,6 +133,8 @@ export const api = {
   // Experiments (variation testing)
   experiments: () => get<{ experiments: Experiment[] }>('/api/outbound/experiments'),
   createExperiment: (body: CreateExperimentBody) => post<{ id: number }>('/api/outbound/experiments', body),
+  buildExperiment: (body: BuildExperimentBody) =>
+    post<{ experimentId: number; arms: { campaignId: number; bisonCampaignId: number | null; label: string; partialFailures: string[] }[] }>('/api/outbound/experiments/build', body),
   updateExperiment: (id: number, body: UpdateExperimentBody) => patch<{ ok: boolean }>(`/api/outbound/experiments/${id}`, body),
   experimentPreview: (id: number) => get<ExperimentPreview>(`/api/outbound/experiments/${id}/preview`),
 
@@ -181,6 +187,7 @@ export const api = {
 /** An Email-Engine workspace (a Bison workspace, one per persona). */
 export interface EmailWorkspace {
   id: number; slug: string; name: string; persona: string | null;
+  personaMatch: string | null;   // persona-set scope (SQL LIKE pattern); null → exact persona
   active: boolean; sortOrder: number;
   keyConfigured: boolean; keySource: 'workspace' | 'none';
   activeCampaigns: number;  // # of synced campaigns currently 'active' in Bison
@@ -246,6 +253,14 @@ export interface CreateExperimentBody {
   name: string; persona?: string; subType?: string;
   arms: { campaignId: number; label?: string; weight: number; sequenceTemplateId?: number }[];
 }
+export interface BuildExperimentBody {
+  name: string; persona?: string; subType?: string;
+  sequenceTemplateIds: number[];
+  weights?: number[];                              // parallel to sequenceTemplateIds
+  senderMapping?: number[][];                      // parallel; each arm's sender inbox ids
+  schedule?: { timezone: string; days: { day: string; from: string; to: string }[] };
+  labels?: string[];                               // parallel; default = template name
+}
 export interface UpdateExperimentBody {
   status?: 'active' | 'archived';
   armWeights?: { armId: number; weight: number }[];
@@ -254,11 +269,17 @@ export interface UpdateExperimentBody {
 export interface ExperimentArmView {
   armId: number; campaignId: number; bisonCampaignId: number | null;
   label: string | null; weight: number; assigned: number; pushed: number;
+  senderCount: number; dailyCapacity: number; sharesSenders: boolean; unfillableTags: string[];
+}
+export interface ExperimentDiagnostics {
+  totalDailyCapacity: number; sharedSenders: boolean; missingCompany: number;
+  alreadyEnrolled: number; warnings: string[];
 }
 export interface ExperimentPreview {
   experimentId: number; name: string; segmentSize: number; unassigned: number;
   newByArm: { armId: number; label: string | null; count: number }[];
   arms: ExperimentArmView[];
+  diagnostics: ExperimentDiagnostics;
 }
 
 export interface SequenceTemplate {

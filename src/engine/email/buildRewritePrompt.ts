@@ -102,7 +102,7 @@ export function buildRewritePrompt(a: BuildRewriteArgs): string {
     actionInstruction(a.action, a.instruction),
     '',
     'CONSTRAINTS',
-    '- Preserve every merge tag exactly as written, in {{double_brace}} form (e.g. {{first_name}}, {{company}}, {{magnet_link}}). Do not add, drop, or rename tags.',
+    '- Preserve every merge tag exactly as written (single-brace UPPERCASE, e.g. {FIRST_NAME}, {COMPANY}, {MAGNET_LINK}). Do not add, drop, or rename tags.',
     '- Do NOT add a sign-off or signature. The sending inbox injects the signature automatically.',
     '- Do not use em dashes anywhere.',
     '- Return real edited copy, never placeholders or notes inside the email.',

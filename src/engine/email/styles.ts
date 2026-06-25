@@ -41,12 +41,12 @@ export interface ColdEmailStyle {
 export const SHARED_RULES = [
   'Keep each email under ~90 words. Shorter is better. Respect the reader\'s inbox time.',
   'Exactly one call to action per email, and make it low-friction ("Worth a quick look?" beats "Can we book a 30-minute discovery call?").',
-  'Personalize with Bison merge tags only: {{first_name}}, {{company}}, {{title}}. Same copy ships to the whole segment, so never assume a fact you cannot get from a tag.',
+  'Personalize with Bison merge tags only, in single-brace UPPERCASE: {FIRST_NAME}, {COMPANY}, {TITLE}, {LAST_NAME}. Same copy ships to the whole segment, so never assume a fact you cannot get from a tag.',
   'Lead with the reader\'s world, not ours. The first sentence is about them or their problem, not about us.',
   'One sharp proof point beats three hedged claims. Use Greg\'s credibility as the proof, not a list of features.',
-  'End with a short, human signature line. Include a LinkedIn URL placeholder ({{sender_linkedin}}) — people check before they reply.',
+  'Do NOT write a sign-off or signature. The sending inbox injects the sender\'s name and signature automatically — a sign-off in the copy double-signs the email. End on the CTA or last content line.',
   'Later steps in a thread are short follow-ups that add a new angle or a lighter ask, never a guilt trip ("just bumping this," "did you see my last email" are banned).',
-  'FORMAT the body for a phone screen: break it into 1-2 sentence beats separated by a blank line (a literal \\n\\n between beats), so the email is 2-3 short blocks plus the signature. Never ship one dense paragraph. (The Three-Paragraph / Khare style keeps its explicit three-paragraph form.)',
+  'FORMAT the body for a phone screen: break it into 1-2 sentence beats separated by a blank line, so the email is 2-3 short blocks. Never ship one dense paragraph. (The Three-Paragraph / Khare style keeps its explicit three-paragraph form.)',
 ];
 
 export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
@@ -62,12 +62,12 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     rules: [
       'Body is exactly three short paragraphs.',
       'Paragraph 1: two sentences. First, who the sender is, with legitimacy in a single sentence (lean on Greg). Second, what you are asking for or offering (ideally both).',
-      'Paragraph 2: two sentences or less. A window into the vision you hope to build together and a peek at what you might need, written so it is obvious you did your homework on {{company}}.',
+      'Paragraph 2: two sentences or less. A window into the vision you hope to build together and a peek at what you might need, written so it is obvious you did your homework on {COMPANY}.',
       'Paragraph 3: two sentences or less. The CTA. Make replying effortless ("Reply with a time that works and I will send an invite"). Remove the awkward entry cost of responding to a stranger.',
     ],
     steps: [
       { order: 1, waitDays: 0, label: 'Three-paragraph intro', job: 'The full three-paragraph email: legitimacy + ask, shared vision + homework, frictionless CTA.' },
-      { order: 2, waitDays: 4, label: 'Soft follow-up', job: 'A 2-3 sentence follow-up that adds one new specific reason this matters for {{company}} and repeats the easy CTA. Not a bump.' },
+      { order: 2, waitDays: 4, label: 'Soft follow-up', job: 'A 2-3 sentence follow-up that adds one new specific reason this matters for {COMPANY} and repeats the easy CTA. Not a bump.' },
       { order: 3, waitDays: 6, label: 'Value add + close', job: 'A short final note offering one concrete thing (a relevant idea or resource) and a graceful close that invites a reply whenever the timing is right.' },
     ],
   },
@@ -88,7 +88,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     steps: [
       { order: 1, waitDays: 0, label: 'Pain + consequence opener', job: 'Name one specific pain for this persona and the consequence it creates, with a soft disqualifier, then a one-line path out and a low-friction CTA.' },
       { order: 2, waitDays: 4, label: 'Proof nudge', job: 'Add one concrete proof point (a result, a peer, or Greg\'s credibility) that the path out is real, and repeat the easy ask.' },
-      { order: 3, waitDays: 5, label: 'Reframe the cost', job: 'Reframe the cost of leaving the problem unsolved in a new way, tied to {{company}}, and offer the lightest possible next step.' },
+      { order: 3, waitDays: 5, label: 'Reframe the cost', job: 'Reframe the cost of leaving the problem unsolved in a new way, tied to {COMPANY}, and offer the lightest possible next step.' },
       { order: 4, waitDays: 7, label: 'Graceful close', job: 'A brief breakup note that leaves the door open and removes pressure, with one final relevant line of value.' },
     ],
   },
@@ -110,7 +110,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     steps: [
       { order: 1, waitDays: 0, label: 'Lead with the offer', job: 'Open with the lead magnet and the one thing it helps this persona do, attribute it to Greg, and make accepting it frictionless.' },
       { order: 2, waitDays: 4, label: 'One insight from the asset', job: 'Share one concrete, useful insight from inside the resource as a teaser, then re-offer it.' },
-      { order: 3, waitDays: 5, label: 'Bridge to a conversation', job: 'Bridge from the resource to a light conversation ("happy to walk you through how this applies to {{company}}"), still low-friction.' },
+      { order: 3, waitDays: 5, label: 'Bridge to a conversation', job: 'Bridge from the resource to a light conversation ("happy to walk you through how this applies to {COMPANY}"), still low-friction.' },
       { order: 4, waitDays: 7, label: 'Graceful close', job: 'A short final note that leaves the resource on the table and the door open, no pressure.' },
     ],
   },
@@ -126,11 +126,11 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     rules: [
       'Step 1 leads with one sharp credibility signal (Greg\'s 12 exits and book, or peers/results like 150+ ESO partners), then connects it to the reader\'s goal.',
       'Use ONE proof point, not a stack. Specificity is the credibility, not adjectives.',
-      'Pivot quickly from credibility to what it means for {{company}} so it never reads as a brag.',
+      'Pivot quickly from credibility to what it means for {COMPANY} so it never reads as a brag.',
     ],
     steps: [
       { order: 1, waitDays: 0, label: 'Credibility hook', job: 'Open with one specific credibility signal (Greg\'s record or a peer result), connect it to this persona\'s goal, and make a light ask.' },
-      { order: 2, waitDays: 4, label: 'Peer proof', job: 'Name the kind of organization like {{company}} that already works with Startup Science and the outcome, then re-ask.' },
+      { order: 2, waitDays: 4, label: 'Peer proof', job: 'Name the kind of organization like {COMPANY} that already works with Startup Science and the outcome, then re-ask.' },
       { order: 3, waitDays: 6, label: 'Direct invite', job: 'A short, confident invite to see it firsthand with Greg, framed as worth their time, low-friction.' },
     ],
   },
@@ -150,7 +150,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     ],
     steps: [
       { order: 1, waitDays: 0, label: 'Provocative insight', job: 'Open with a specific non-obvious observation about this persona\'s world (use the Lifecycle angle), make it land, then a light ask to discuss.' },
-      { order: 2, waitDays: 4, label: 'Extend the insight', job: 'Extend the idea one step further with a concrete implication for {{company}}, and re-ask.' },
+      { order: 2, waitDays: 4, label: 'Extend the insight', job: 'Extend the idea one step further with a concrete implication for {COMPANY}, and re-ask.' },
       { order: 3, waitDays: 6, label: 'Invite the debate', job: 'Invite them to push back or compare notes with Greg, framed as a peer conversation, low-friction.' },
     ],
   },
@@ -159,17 +159,17 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     name: 'Relevance / Trigger',
     status: 'core',
     summary: 'Reference a specific signal (funding, hire, cohort, news) as the reason you are reaching out now.',
-    whenToUse: 'When you have a real, recent trigger for {{company}} that justifies the timing.',
+    whenToUse: 'When you have a real, recent trigger for {COMPANY} that justifies the timing.',
     supportsOffer: false,
     subjectGuidance:
-      'Reference the trigger directly so the timing is the hook. Specific to {{company}}.',
+      'Reference the trigger directly so the timing is the hook. Specific to {COMPANY}.',
     rules: [
-      'Step 1 opens by referencing the trigger (use a {{trigger}} merge tag or a clearly described signal type) and why it makes now the right moment.',
+      'Step 1 opens by referencing the trigger (use a {TRIGGER} merge tag or a clearly described signal type) and why it makes now the right moment.',
       'Connect the trigger to the problem Startup Science solves; do not reference the trigger and then pivot to something unrelated.',
       'If no real trigger exists for a recipient, this style should not be used — say so rather than fabricate one.',
     ],
     steps: [
-      { order: 1, waitDays: 0, label: 'Trigger + why now', job: 'Open by referencing the trigger for {{company}}, connect it to the relevant problem, and make a timely, light ask.' },
+      { order: 1, waitDays: 0, label: 'Trigger + why now', job: 'Open by referencing the trigger for {COMPANY}, connect it to the relevant problem, and make a timely, light ask.' },
       { order: 2, waitDays: 4, label: 'Connect to outcome', job: 'Tie the trigger to a specific outcome Startup Science enables, with one proof point, then re-ask.' },
       { order: 3, waitDays: 6, label: 'Time-bound close', job: 'A short close that respects the window the trigger created and offers the easiest next step.' },
     ],
@@ -207,7 +207,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
       'Pivot from the compliment to a relevant, light ask within a sentence or two.',
     ],
     steps: [
-      { order: 1, waitDays: 0, label: 'Genuine compliment + pivot', job: 'Open with a specific genuine compliment about {{company}}\'s work and pivot to a light, relevant ask.' },
+      { order: 1, waitDays: 0, label: 'Genuine compliment + pivot', job: 'Open with a specific genuine compliment about {COMPANY}\'s work and pivot to a light, relevant ask.' },
       { order: 2, waitDays: 4, label: 'Add value', job: 'Follow up with one useful idea related to what you praised, and re-ask.' },
       { order: 3, waitDays: 6, label: 'Graceful close', job: 'A short, warm close that leaves the door open.' },
     ],
@@ -244,7 +244,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
     ],
     steps: [
       { order: 1, waitDays: 0, label: 'Benchmark + gap', job: 'Open with one credible benchmark and the gap it implies for this persona, then a light ask.' },
-      { order: 2, waitDays: 4, label: 'Second data point', job: 'Add a second supporting figure tied to {{company}}\'s situation and re-ask.' },
+      { order: 2, waitDays: 4, label: 'Second data point', job: 'Add a second supporting figure tied to {COMPANY}\'s situation and re-ask.' },
       { order: 3, waitDays: 6, label: 'Close the gap', job: 'Offer the concrete way to close the gap, with the easiest next step.' },
     ],
   },
@@ -261,7 +261,7 @@ export const COLD_EMAIL_STYLES: ColdEmailStyle[] = [
       'The peer claim must be true. No invented scarcity or fake deadlines.',
     ],
     steps: [
-      { order: 1, waitDays: 0, label: 'Peer anchor', job: 'Open by anchoring to what organizations like {{company}} are already doing with Startup Science, then a light ask.' },
+      { order: 1, waitDays: 0, label: 'Peer anchor', job: 'Open by anchoring to what organizations like {COMPANY} are already doing with Startup Science, then a light ask.' },
       { order: 2, waitDays: 4, label: 'Name the outcome', job: 'Name the outcome those peers are getting, with one proof point, and re-ask.' },
       { order: 3, waitDays: 6, label: 'Invite to join', job: 'A short, confident invite to see it with Greg before the rest of their cohort of peers does.' },
     ],

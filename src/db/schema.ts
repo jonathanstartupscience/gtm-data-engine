@@ -231,8 +231,12 @@ export const workspaces = pgTable('workspaces', {
   id: serial('id').primaryKey(),
   slug: text('slug').notNull(),                 // 'eso' | 'founder' | 'investor' | 'provider' | 'advisor' | 'community-funding'
   name: text('name').notNull(),                 // 'ESOs', 'Founders', …
-  persona: text('persona'),                     // canonical-store persona this workspace targets
-  bisonBaseUrl: text('bison_base_url'),         // optional per-workspace base; null → global EMAILBISON_BASE_URL
+  persona: text('persona'),                     // canonical-store persona this workspace targets (exact match)
+  // Optional SQL LIKE pattern that maps the workspace to a SET of persona values when contacts are
+  // tagged more granularly than the workspace (e.g. 'ESO %' matches "ESO Leadership", "ESO Program",
+  // …). When set, it OVERRIDES `persona` for segment selection. Use '%' to match every persona.
+  personaMatch: text('persona_match'),
+  bisonBaseUrl: text('bison_base_url'),         // LEGACY/unused — the Bison base is ONE shared setting (Settings → "Email Bison instance URL"); a workspace is chosen by API key, not URL. Kept to avoid a destructive migration.
   active: boolean('active').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

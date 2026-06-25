@@ -13,16 +13,16 @@ Mirrors `styles.md`. Step count must match EXACTLY.
 | styleKey | Steps | Cadence (wait days) | Step jobs (summary) |
 |---|---|---|---|
 | `michelle-3-paragraph` | 3 | 0, 4, 6 | 1: full 3-paragraph email (legitimacy+ask / vision+homework / frictionless CTA). 2: +1 new specific reason, repeat CTA. 3: offer one concrete thing, graceful close. **Keeps 3-paragraph form (B4 exception).** |
-| `pain-centric` | 4 | 0, 4, 5, 7 | 1: name a specific pain + downstream consequence + soft disqualifier + light CTA. 2: one concrete proof point. 3: reframe cost of inaction tied to {{company}}. 4: breakup, door open. |
-| `offer-centric` | 4 | 0, 4, 5, 7 | 1: lead with lead magnet + one thing it helps; attribute to Greg; ask to send it. 2: one insight teaser, re-offer. 3: bridge to light conversation. 4: leave it on the table, no pressure. **Reply-to-receive: NO {{magnet_link}}, no URL, no link of any kind. The asset is offered and sent manually on reply.** |
-| `authority-centric` | 3 | 0, 4, 6 | 1: one credibility signal -> reader's goal, light ask. 2: name a peer org like {{company}} + outcome. 3: confident invite to see it with Greg. |
-| `insight-centric` | 3 | 0, 4, 6 | 1: specific non-obvious observation (Lifecycle out-of-sequence thesis), light ask. 2: extend with implication for {{company}}. 3: invite to push back with Greg, peer-to-peer. |
-| `trigger-centric` | 3 | 0, 4, 6 | 1: reference {{trigger}} for {{company}} + why now. 2: tie trigger to an outcome + one proof point. 3: respect the window, easiest next step. **Requires {{trigger}}; never fabricate a trigger.** |
+| `pain-centric` | 4 | 0, 4, 5, 7 | 1: name a specific pain + downstream consequence + soft disqualifier + light CTA. 2: one concrete proof point. 3: reframe cost of inaction tied to {COMPANY}. 4: breakup, door open. |
+| `offer-centric` | 4 | 0, 4, 5, 7 | 1: lead with lead magnet + one thing it helps; attribute to Greg; ask to send it. 2: one insight teaser, re-offer. 3: bridge to light conversation. 4: leave it on the table, no pressure. **Reply-to-receive: NO {MAGNET_LINK}, no URL, no link of any kind. The asset is offered and sent manually on reply.** |
+| `authority-centric` | 3 | 0, 4, 6 | 1: one credibility signal -> reader's goal, light ask. 2: name a peer org like {COMPANY} + outcome. 3: confident invite to see it with Greg. |
+| `insight-centric` | 3 | 0, 4, 6 | 1: specific non-obvious observation (Lifecycle out-of-sequence thesis), light ask. 2: extend with implication for {COMPANY}. 3: invite to push back with Greg, peer-to-peer. |
+| `trigger-centric` | 3 | 0, 4, 6 | 1: reference {TRIGGER} for {COMPANY} + why now. 2: tie trigger to an outcome + one proof point. 3: respect the window, easiest next step. **Requires {TRIGGER}; never fabricate a trigger.** |
 | `curiosity-centric` (beta) | 3 | 0, 4, 6 | 1: intriguing opener compelling a one-line reply (**<=50 words**). 2: reveal one piece, re-invite. 3: drop the mystery, plain light ask. |
-| `compliment-centric` (beta) | 3 | 0, 4, 6 | 1: specific genuine compliment about {{company}} + pivot to light ask. 2: one useful idea related to the praise. 3: warm short close. |
+| `compliment-centric` (beta) | 3 | 0, 4, 6 | 1: specific genuine compliment about {COMPANY} + pivot to light ask. 2: one useful idea related to the praise. 3: warm short close. |
 | `question-centric` (beta) | 3 | 0, 4, 6 | 1: one well-aimed question, minimal framing, no pitch. 2: ask differently + why. 3: offer to share how others answer (via Greg). |
-| `benchmark-centric` (beta) | 3 | 0, 4, 6 | 1: benchmark + gap for persona, cite source/Greg's research, light ask. 2: a second figure tied to {{company}}. 3: the concrete way to close the gap. |
-| `peer-fomo-centric` (beta) | 3 | 0, 4, 6 | 1: anchor to what orgs like {{company}} do with Startup Science, light ask. 2: name the outcome + one proof point. 3: confident invite to see it with Greg first. |
+| `benchmark-centric` (beta) | 3 | 0, 4, 6 | 1: benchmark + gap for persona, cite source/Greg's research, light ask. 2: a second figure tied to {COMPANY}. 3: the concrete way to close the gap. |
+| `peer-fomo-centric` (beta) | 3 | 0, 4, 6 | 1: anchor to what orgs like {COMPANY} do with Startup Science, light ask. 2: name the outcome + one proof point. 3: confident invite to see it with Greg first. |
 
 Cadence is the writer's default; small deviations are fine if the *intent* holds (early follow-ups
 close, later ones spaced). Step count and step jobs are not negotiable.
@@ -31,28 +31,31 @@ close, later ones spaced). Step count and step jobs are not negotiable.
 
 ## Merge-tag whitelist (gate D1)
 
-ONLY these are legal. Any other `{{...}}` is a defect. This list is the app's actual supported set —
-`SEQUENCE_VARS` in `web/src/components/SequenceStepsEditor.tsx` — which is the ultimate source of truth
-for what resolves at send time. A tag not in this list ships as literal `{{...}}` text to the inbox.
+Tags are **single-brace UPPERCASE** — the dialect this Bison instance renders. ONLY these are legal.
+Any single-brace tag NOT in this list, and ANY old-style `{{double_brace}}` tag (wrong dialect — ships
+literally), is a defect. This list mirrors the app's supported set (`SEQUENCE_VARS` in
+`web/src/components/SequenceStepsEditor.tsx`), the source of truth for what resolves at send time.
 
 ```
-{{first_name}}  {{last_name}}  {{company}}  {{title}}  {{persona}}  {{sub_type}}
-{{trigger}}  {{magnet_link}}  {{sender_linkedin}}
+{FIRST_NAME}  {LAST_NAME}  {COMPANY}  {TITLE}  {PERSONA}  {SUB_TYPE}
+{TRIGGER}  {MAGNET_LINK}  {SENDER_LINKEDIN}
 ```
 
-- The cold-email writer's house rules use a narrower set in practice (`first_name`, `company`, `title`,
-  `trigger`, `magnet_link`); the extras above are legal but rarely needed in cold copy.
-- `{{magnet_link}}` is a legal app tag but **offer-centric must NOT use it** (offers are reply-to-receive; the asset is sent manually). A `{{magnet_link}}` or any URL in an offer body is a D3 failure.
-- `{{trigger}}` is required by `trigger-centric`.
+- The cold-email writer's house rules use a narrower set in practice (`{FIRST_NAME}`, `{COMPANY}`,
+  `{TITLE}`); the extras above are legal but rarely needed in cold copy.
+- `{TRIGGER}` has no populated value on push — it renders blank. Treat it as effectively unfillable in
+  static cold copy; `trigger-centric` should describe the signal rather than rely on the bare tag.
+- `{MAGNET_LINK}` is a legal app tag but **offer-centric must NOT use it** (offers are reply-to-receive; the asset is sent manually). A `{MAGNET_LINK}` or any URL in an offer body is a D3 failure.
+- `{TRIGGER}` is required by `trigger-centric`.
 - **No sign-off in copy (gate B3):** cold-email bodies end on the CTA. Email Bison injects the signature
-  per sender inbox, so the copy must NOT contain a name, a closing, or `{{sender_linkedin}}`. `{{sender_linkedin}}`
+  per sender inbox, so the copy must NOT contain a name, a closing, or `{SENDER_LINKEDIN}`. `{SENDER_LINKEDIN}`
   is a legal tag (so it never trips D1), but its presence in a body is a B3 failure — flag the whole
   trailing signature block and suggest removing it.
-- **`{{sender_name}}` is NOT legal** — there is no such tag (it ships as literal text). It is also part of
+- **`{SENDER_NAME}` is NOT legal** — there is no such tag (it ships as literal text). It is also part of
   a sign-off, which copy should not have at all. Flag it under D1 (illegal tag) and remove the line; the
   signature comes from Bison, not the copy. Do not "replace" it with a real name.
-- Common illegal invented tags to catch: `{{sender_name}}`, `{{role}}`, `{{industry}}`, `{{city}}`,
-  `{{pain}}`, `{{competitor}}`, `{{recent_news}}`, `{{calendar_link}}` — none exist; flag and suggest the
+- Common illegal invented tags to catch: `{SENDER_NAME}`, `{ROLE}`, `{INDUSTRY}`, `{CITY}`,
+  `{PAIN}`, `{COMPETITOR}`, `{RECENT_NEWS}`, `{CALENDAR_LINK}` — none exist; flag and suggest the
   nearest legal tag or removal.
 
 ---

@@ -73,11 +73,14 @@ export async function bisonKeyFor(slug?: string): Promise<string> {
   return getSecret(`EMAILBISON_API_KEY__${slug}`);
 }
 
-/** Resolve the Email Bison base URL for a workspace (per-workspace override → global → default). */
-export async function bisonBaseFor(baseOverride?: string | null): Promise<string> {
-  if (baseOverride) return baseOverride;
+/**
+ * Resolve the ONE shared Email Bison base URL (the whole account is on one host; a workspace is
+ * chosen by its API key, not its URL). Set it in-app under Settings → "Email Bison instance URL"
+ * (or the EMAILBISON_BASE_URL env). Falls back to the shared production host.
+ */
+export async function bisonBaseFor(): Promise<string> {
   const fromSecret = await getSecret('EMAILBISON_BASE_URL');
-  return fromSecret || 'https://dedi.emailbison.com/api';
+  return fromSecret || 'https://send.visitstartupscience.com/api';
 }
 
 /** Resolve a secret: DB (decrypted) first, then env var. Returns '' if neither. Async. */
