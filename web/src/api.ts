@@ -91,7 +91,7 @@ export const api = {
         persona: p.persona ?? '', type: p.type ?? '', subType: p.subType ?? '', country: p.country ?? '', onlyMissing: p.onlyMissing ? '1' : '0',
       })}`),
   connectors: () => get<{ connectors: Connector[] }>('/api/connectors'),
-  connectorCredits: () => get<{ vendors: VendorCredits[] }>('/api/connectors/credits'),
+  connectorCredits: () => get<{ fetchedAt: string; vendors: VendorCredits[] }>('/api/connectors/credits'),
   hubspotSync: () => get<HubspotSync>('/api/connectors/hubspot'),
   classifyAudit: () => get<{ missingTaxonomy: number; pendingProposals: number; canRunInApp: boolean }>('/api/classify/audit'),
   classifyProposals: (minConfidence: number) => get<{ proposals: Proposal[] }>(`/api/classify/proposals?minConfidence=${minConfidence}`),
@@ -197,7 +197,7 @@ export interface EmailWorkspace {
 }
 
 export interface SecretStatus { set: boolean; source: 'db' | 'env' | 'none'; masked: string }
-export interface ManagedKey extends SecretStatus { key: string; label: string; help: string; testable: boolean }
+export interface ManagedKey extends SecretStatus { key: string; label: string; hint: string; testable: boolean }
 
 export interface LiCampaign {
   id: number; heyreachCampaignId: number; name: string; status: string | null;
@@ -357,8 +357,12 @@ export interface Scope {
   recipe: string; candidates: number; unit: string; estCostUsd: number;
   vendor: string; what: string; free?: boolean;
 }
-export interface Connector { id: string; name: string; role: string; connected: boolean }
-export interface VendorCredits { id: string; name: string; credits: number | null; configured: boolean; relatable: string | null }
+export interface Connector {
+  id: string; name: string; role: string; connected: boolean;
+  key?: string; masked?: string; source?: 'db' | 'env' | 'none'; // direct-key connectors
+  perWorkspace?: boolean; manage?: string;                       // Email Bison → per-workspace
+}
+export interface VendorCredits { id: string; name: string; credits: number | null; configured: boolean; metrics: string[] }
 export interface HubspotSync {
   connected: boolean;
   tokenValid?: boolean;

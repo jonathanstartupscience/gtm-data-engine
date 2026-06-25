@@ -4,7 +4,7 @@ import { and, count, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, contacts, runs, workspaces } from '../../db/schema.js';
 import { config } from '../../lib/config.js';
-import { getSecret, getSecretSync } from '../../lib/secrets.js';
+import { getSecret, secretStatus } from '../../lib/secrets.js';
 import { testConnection } from '../../engine/adapters/hubspot.js';
 import { creditBalance as oceanBalance } from '../../engine/adapters/ocean.js';
 import { credits as bouncerCredits } from '../../engine/adapters/bouncer.js';
@@ -29,46 +29,64 @@ connectorsRouter.get('/credits', asyncHandler(async (_req, res) => {
   ]);
 
   const oceanTotal = ocean ? (ocean.credits.oneTime ?? 0) + (ocean.credits.recurrent ?? 0) : null;
-  // Ocean enrich = 1 credit/company; a lookalike search batch ~ size companies. Express both.
+  // `metrics` is a structured list (rendered as bullets), not a prose sentence. `fetchedAt` lets the
+  // UI show a "last updated" tag; re-hitting this endpoint (the Sync button) refreshes it live.
   res.json({
+    fetchedAt: new Date().toISOString(),
     vendors: [
       {
         id: 'ocean', name: 'Ocean.io', credits: oceanTotal, configured: !!config.oceanKey,
-        relatable: oceanTotal == null ? null
-          : `~${oceanTotal.toLocaleString()} company enrichments, or ~${Math.floor(oceanTotal / 25).toLocaleString()} lookalike searches (25 each)`,
+        metrics: oceanTotal == null ? [] : [
+          `~${oceanTotal.toLocaleString()} company enrichments`,
+          `~${Math.floor(oceanTotal / 25).toLocaleString()} lookalike searches (25 each)`,
+        ],
       },
       {
         id: 'bouncer', name: 'Bouncer', credits: bouncer, configured: !!config.bouncerKey,
-        relatable: bouncer == null ? null : `~${bouncer.toLocaleString()} email verifications`,
+        metrics: bouncer == null ? [] : [`~${bouncer.toLocaleString()} email verifications`],
       },
       {
         id: 'airscale', name: 'Airscale', credits: airscale, configured: !!config.airscaleKey,
-        // ~1 credit per email found, ~0.1 per lead listed.
-        relatable: airscale == null ? null
-          : `~${airscale.toLocaleString()} contact email lookups, or ~${(airscale * 10).toLocaleString()} leads listed`,
+        metrics: airscale == null ? [] : [
+          `~${airscale.toLocaleString()} contact email lookups`,
+          `~${(airscale * 10).toLocaleString()} leads listed`,
+        ],
       },
     ],
   });
 }));
 
-/** Overview: each connector + connected status + role. Status is DB-first (in-app Settings) then env. */
+/**
+ * Overview: one entry per connector, unifying STATUS and the KEY that configures it — so a connector
+ * is fixed where it's shown (no separate keys list). Each entry carries its secret name + masked
+ * preview + where it resolves from, plus a terse role. Email Bison is the exception: it has no global
+ * key (each workspace authenticates as itself), so it's marked perWorkspace and links to Workspaces.
+ * Status/preview are DB-first (in-app Settings) then env.
+ */
 connectorsRouter.get('/', asyncHandler(async (_req, res) => {
-  const has = (name: string) => !!getSecretSync(name);
-  // Email Bison has no global key — it's connected if ANY workspace has its own key set.
+  // Email Bison has no global key — connected if ANY workspace has its own key set.
   const wsRows = await db.select({ slug: workspaces.slug }).from(workspaces);
   const wsKeys = await Promise.all(wsRows.map((w) => getSecret(`EMAILBISON_API_KEY__${w.slug}`)));
   const bisonConnected = wsKeys.some((k) => !!k);
-  res.json({
-    connectors: [
-      { id: 'hubspot', name: 'HubSpot', role: 'System of record — sync companies & contacts both ways', connected: has('HUBSPOT_TOKEN') },
-      { id: 'emailbison', name: 'Email Bison', role: 'Cold email — push campaign-ready segments to campaigns', connected: bisonConnected },
-      { id: 'heyreach', name: 'HeyReach', role: 'LinkedIn outreach — sync, push & monitor campaigns', connected: has('HEYREACH_API_KEY') },
-      { id: 'ocean', name: 'Ocean.io', role: 'Discovery & company enrichment', connected: has('OCEAN_API_KEY') },
-      { id: 'bouncer', name: 'Bouncer', role: 'Email verification', connected: has('BOUNCER_API_KEY') },
-      { id: 'airscale', name: 'Airscale', role: 'People & email finding', connected: has('AIRSCALE_API_KEY') },
-      { id: 'anthropic', name: 'Anthropic', role: 'Powers the AI company classifier', connected: has('ANTHROPIC_API_KEY') },
-    ],
-  });
+
+  const SPEC = [
+    { id: 'hubspot', name: 'HubSpot', role: 'System of record', key: 'HUBSPOT_TOKEN' },
+    { id: 'emailbison', name: 'Email Bison', role: 'Cold email', perWorkspace: true, manage: '/email/workspaces' },
+    { id: 'heyreach', name: 'HeyReach', role: 'LinkedIn outreach', key: 'HEYREACH_API_KEY' },
+    { id: 'ocean', name: 'Ocean.io', role: 'Discovery & enrichment', key: 'OCEAN_API_KEY' },
+    { id: 'bouncer', name: 'Bouncer', role: 'Email verification', key: 'BOUNCER_API_KEY' },
+    { id: 'airscale', name: 'Airscale', role: 'People & email finding', key: 'AIRSCALE_API_KEY' },
+    { id: 'anthropic', name: 'Anthropic', role: 'AI — classifier, sequence writer, reply triage', key: 'ANTHROPIC_API_KEY' },
+  ] as const;
+
+  const connectors = await Promise.all(SPEC.map(async (s) => {
+    if ('perWorkspace' in s) {
+      return { id: s.id, name: s.name, role: s.role, connected: bisonConnected, perWorkspace: true, manage: s.manage };
+    }
+    const st = await secretStatus(s.key);
+    return { id: s.id, name: s.name, role: s.role, connected: st.set, key: s.key, masked: st.masked, source: st.source };
+  }));
+  res.json({ connectors });
 }));
 
 /** HubSpot sync coverage + freshness, per object. */
