@@ -13,6 +13,7 @@
     "start": "node dist/src/api/server.js",
     "start:prod": "npm run db:migrate && npm start",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint . --ext .ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",

@@ -348,7 +348,9 @@ outboundRouter.post('/campaigns/:id/push', rateLimit(5, 60_000), validateBody(pu
     send('done', result);
   } catch (e) {
     console.error('[outbound/push]', (e as Error).stack ?? e);
-    send('error', { message: 'Push failed — see server logs' });
+    // Surface the real reason (Bison status/body, systemic-failure abort) — these are operational
+    // errors (bad payload, auth, wrong shape), not secrets, and the user needs them to fix the push.
+    send('error', { message: `Push failed: ${e instanceof Error ? e.message : String(e)}` });
   } finally { if (!res.writableEnded) res.end(); }
 });
 

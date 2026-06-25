@@ -363,8 +363,9 @@ export function bisonClient(ctx: BisonCtx) {
     }
   }
 
-  /** Create a lead; returns its id (response shape varies — pull id defensively). */
-  async function createLead(lead: BisonLead): Promise<number | null> {
+  /** Create a lead; returns its id, or a failure with the Bison status + body so the caller can
+   *  surface WHY (not just "failed"). Response shape varies — pull id defensively. */
+  async function createLeadDetailed(lead: BisonLead): Promise<{ id: number | null; status: number; error?: string }> {
     // The instance rejects a lead referencing a custom variable that doesn't exist yet — create
     // any referenced vars first (cached, so this is effectively free after the first lead).
     const varNames = (lead.custom_variables ?? []).map((v) => v.name).filter(Boolean);
@@ -372,9 +373,14 @@ export function bisonClient(ctx: BisonCtx) {
     const resp = await request(`${BASE}/leads`, {
       method: 'POST', headers: headers(), limiter, body: JSON.stringify(lead),
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) return { id: null, status: resp.status, error: (await resp.text()).slice(0, 200) };
     const j = (await resp.json()) as { id?: number; data?: { id?: number } };
-    return j.id ?? j.data?.id ?? null;
+    return { id: j.id ?? j.data?.id ?? null, status: resp.status };
+  }
+
+  /** Create a lead; returns its id or null. (Thin wrapper for callers that don't need the reason.) */
+  async function createLead(lead: BisonLead): Promise<number | null> {
+    return (await createLeadDetailed(lead)).id;
   }
 
   /** Remove a lead. The `/campaigns/:id/leads/detach-leads` path is 404 on this instance — delete the lead. */
@@ -415,17 +421,34 @@ export function bisonClient(ctx: BisonCtx) {
     });
   }
 
-  /** Push contacts into a campaign: create each lead, then attach the batch. */
+  /**
+   * Push contacts into a campaign: create each lead, then attach the batch. Surfaces WHY creates
+   * fail (the first failure's status + body) instead of a bare count, and FAILS FAST: if the first
+   * 10 creates all fail with the same status, it aborts rather than grinding through thousands of
+   * doomed calls — almost always a shape/auth problem the same for every lead. (`failFast` off
+   * processes the whole list regardless, for callers that want partial progress.)
+   */
   async function pushLeadsToCampaign(
     campaignId: number,
     leads: BisonLead[],
     log: (m: string) => void = console.log,
+    failFast = true,
   ): Promise<BisonPushResult> {
     let created = 0, failed = 0;
+    let firstError: string | undefined;
     const ids: number[] = [];
     for (let i = 0; i < leads.length; i++) {
-      const id = await createLead(leads[i]);
-      if (id) { ids.push(id); created++; } else failed++;
+      const r = await createLeadDetailed(leads[i]);
+      if (r.id) { ids.push(r.id); created++; }
+      else {
+        failed++;
+        if (!firstError) { firstError = `lead create → ${r.status}${r.error ? `: ${r.error}` : ''}`; log(`  first lead failure: ${firstError}`); }
+        // Early-abort a systemic failure: first 10 all failed → the rest will too.
+        if (failFast && created === 0 && failed >= 10) {
+          log(`  aborting after ${failed} consecutive failures — likely a payload/auth problem, not bad data.`);
+          throw new Error(`Bison lead push failing systemically (${firstError}). Aborted before sending the rest.`);
+        }
+      }
       if ((i + 1) % 50 === 0) log(`  created ${i + 1}/${leads.length} leads…`);
     }
     // attach in chunks of 100
@@ -435,6 +458,7 @@ export function bisonClient(ctx: BisonCtx) {
       await attachLeads(campaignId, chunk);
       attached += chunk.length;
     }
+    if (failed) log(`  ${failed}/${leads.length} lead(s) failed${firstError ? ` (first: ${firstError})` : ''}.`);
     return { created, attached, failed };
   }
 

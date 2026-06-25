@@ -77,20 +77,18 @@ const SIGNOFF_OPENER = /^(best|thanks|thank you|cheers|warmly|regards|sincerely|
 const SIGNOFF_TAG_LINE = /\{SENDER_[A-Z_]+\}/;
 const URL_ONLY_LINE = /^https?:\/\/\S+$/i;
 
-/** Strip a trailing signature/sign-off block from plain-text body lines (operates on a line array). */
-function stripSignoffLines(lines: string[]): string[] {
-  const out = [...lines];
-  // Walk back from the end, dropping sign-off-ish lines until we hit real content.
-  while (out.length) {
-    const last = out[out.length - 1].trim();
-    if (last === '') { out.pop(); continue; }
-    if (SIGNOFF_OPENER.test(last) || SIGNOFF_TAG_LINE.test(last) || URL_ONLY_LINE.test(last)) {
-      out.pop();
-      continue;
-    }
-    break;
-  }
-  return out;
+/**
+ * Is this WHOLE beat a sign-off block? True when its first non-empty line is a closer ("Best,"),
+ * or every line is sign-off-ish (a sender tag, a bare URL, or a closer). A beat like
+ * "Best,\nGreg\n{SENDER_LINKEDIN}" is a sign-off; "Greg built 12 companies." is not (its first line
+ * is real content). We classify the beat as a unit so a closer followed by a bare name is dropped
+ * together — Bison injects the signature per inbox, so any sign-off in the copy double-signs it.
+ */
+function isSignoffBeat(beat: string): boolean {
+  const lines = beat.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return true;
+  if (SIGNOFF_OPENER.test(lines[0])) return true;               // "Best," / "Thanks" leads the beat
+  return lines.every((l) => SIGNOFF_TAG_LINE.test(l) || URL_ONLY_LINE.test(l)); // all tag/URL lines
 }
 
 /**
@@ -103,18 +101,27 @@ export function toBisonHtml(plain: string): string {
   const text = plain.trim();
   if (!text) return '';
 
-  // Already HTML — just ensure visible spacers between adjacent paragraphs.
+  // Already HTML — re-derive the content paragraphs and re-join with one spacer between each.
+  // Splitting on </p> and dropping empty/spacer paragraphs makes this idempotent (re-running can't
+  // accumulate extra <p><br></p> spacers).
   if (/<p[ >]/i.test(text)) {
-    return text.replace(/<\/p>\s*<p(?![^>]*>\s*<br)/gi, '</p><p><br></p><p');
+    const paras = text
+      .split(/<\/p\s*>/i)
+      .map((p) => p.replace(/<p[^>]*>/i, '').trim())
+      .filter((p) => p.length > 0 && p.toLowerCase() !== '<br>' && p.toLowerCase() !== '<br/>');
+    return paras.map((p) => `<p>${p}</p>`).join('<p><br></p>');
   }
 
-  const beats = text
+  let beats = text
     .split(/\n\s*\n+/)            // blank line(s) separate beats
-    .map((b) => stripSignoffLines(b.split('\n')).join('\n').trim())
-    .filter((b) => b.length > 0)
-    .map((b) => `<p>${escapeHtml(b).replace(/\n/g, '<br>')}</p>`);
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0);
 
-  return beats.join('<p><br></p>');
+  // Drop trailing sign-off beats (Bison injects the per-inbox signature).
+  while (beats.length && isSignoffBeat(beats[beats.length - 1])) beats.pop();
+
+  const html = beats.map((b) => `<p>${escapeHtml(b).replace(/\n/g, '<br>')}</p>`);
+  return html.join('<p><br></p>');
 }
 
 function escapeHtml(s: string): string {
