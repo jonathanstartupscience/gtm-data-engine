@@ -1,0 +1,22 @@
+{
+  "workspaceSlug": "eso",
+  "experimentName": "ESO Core — 6-style head-to-head",
+  "campaignPrefix": "ESO · ",
+  "schedule": {
+    "monday": true, "tuesday": true, "wednesday": true, "thursday": true, "friday": true,
+    "saturday": false, "sunday": false,
+    "start_time": "08:00", "end_time": "17:00", "timezone": "America/New_York"
+  },
+  "personaFilter": null,
+  "personaLike": "ESO %",
+  "requireCompany": true,
+  "dedupeAcrossCampaigns": true,
+  "arms": [
+    { "sequenceTemplateId": 11, "label": "Three-Paragraph · Leadership intro", "weight": 1, "senderEmailIds": [69, 70, 71] },
+    { "sequenceTemplateId": 25, "label": "Offer · 7-Stream Revenue Audit",     "weight": 1, "senderEmailIds": [57, 58, 59] },
+    { "sequenceTemplateId": 24, "label": "Offer · Program Funding Guide",       "weight": 1, "senderEmailIds": [57, 58, 59] },
+    { "sequenceTemplateId": 28, "label": "Pain · Can't prove ROI",              "weight": 1, "senderEmailIds": [66, 67, 68] },
+    { "sequenceTemplateId": 31, "label": "Insight · Fundable vs durable",       "weight": 1, "senderEmailIds": [63, 64, 65] },
+    { "sequenceTemplateId": 32, "label": "Authority · 150 programs",            "weight": 1, "senderEmailIds": [60, 61, 62] }
+  ]
+}
