@@ -21,7 +21,7 @@ export function Settings() {
       <Connectors />
       <CreditBalances />
 
-      <p className="muted" style={{ marginTop: 24, fontSize: 13 }}>
+      <p className="muted mt-6" style={{ fontSize: 13 }}>
         Per-workspace Email settings (each persona’s Bison key, persona scope, reply routing) live on{' '}
         <Link to="/email/workspaces">Email Engine → Workspaces</Link>.
       </p>
@@ -56,7 +56,7 @@ function Connectors() {
       <p className="page-sub" style={{ marginTop: 0 }}>The external systems wired into the engine. Set or rotate a key to connect one.</p>
 
       {!canStore && (
-        <div className="panel" style={{ marginBottom: 12, borderLeft: '3px solid var(--amber)' }}>
+        <div className="panel mb-3" style={{ borderLeft: '3px solid var(--amber)' }}>
           Set <code>APP_ENCRYPTION_KEY</code> in Railway once to manage keys here. Until then they’re env-only and these controls are disabled.
         </div>
       )}
@@ -155,7 +155,7 @@ function CreditBalances() {
   const configured = (vendors ?? []).filter((v) => v.configured);
 
   return (
-    <section style={{ marginTop: 28 }}>
+    <section className="mt-6">
       <div className="section-head">
         <h2 className="section-title" style={{ margin: 0 }}>Credit balances</h2>
         <div className="section-head-right">

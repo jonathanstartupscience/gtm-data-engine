@@ -45,13 +45,15 @@ export function Contacts() {
     <>
       <PageHeader
         title="Contacts"
-        sub={`${total.toLocaleString()} matching${active ? ' (filtered)' : ''}`}
+        sub={<><span className="metric-n">{total.toLocaleString()}</span> {active ? 'contacts matching · filtered' : 'contacts in the store'}</>}
+        subClassName="metric"
         action={<button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export → CSV</button>}
       />
 
       <div className="toolbar">
         <input className="input" placeholder="Search name, email, title…" aria-label="Search contacts by name, email, or title"
           value={q} onChange={(e) => { setQ(e.target.value); setOffset(0); }} />
+        <span className="filter-sep" />
         <select className="select" value={persona} onChange={(e) => { setPersona(e.target.value); setOffset(0); }}>
           {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
         </select>
@@ -59,10 +61,12 @@ export function Contacts() {
           {STATUSES.map((s) => <option key={s} value={s}>{s ? emailStatusLabel(s) : 'All email statuses'}</option>)}
         </select>
         {active && <button className="btn" onClick={() => { setQ(''); setPersona(''); setEmailStatus(''); setOffset(0); }}>Clear</button>}
+        <span className="filter-sep" />
         <button className="btn" disabled={total === 0} onClick={exportAdAudience} title="Hashed-email file for Meta / LinkedIn custom audiences">Ad audience → CSV</button>
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (
+        <div className="data-grid">
         <table>
           <thead><tr>
             <th><input type="checkbox" aria-label="Select all contacts on this page" checked={pageAllSelected}
@@ -82,7 +86,7 @@ export function Contacts() {
                 <td><input type="checkbox" aria-label={`Select ${[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'contact'}`} checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
                 <td>
                   {c.linkedinUrl
-                    ? <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</a>
+                    ? <a className="cell-primary" href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</a>
                     : ([c.firstName, c.lastName].filter(Boolean).join(' ') || '—')}
                 </td>
                 <td className="muted">{c.jobTitle}</td>
@@ -103,11 +107,13 @@ export function Contacts() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <div className="pager">
+        <span className="range">{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total.toLocaleString()}</span>
+        <span className="pager-spacer" />
         <button className="btn" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>← Prev</button>
-        <span>{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total}</span>
         <button className="btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}>Next →</button>
       </div>
 

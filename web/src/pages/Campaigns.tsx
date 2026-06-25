@@ -45,10 +45,12 @@ export function Campaigns() {
     <>
       <PageHeader
         title="Campaigns"
+        sub={loading ? undefined : <><span className="metric-n">{campaigns.length.toLocaleString()}</span> campaign{campaigns.length !== 1 ? 's' : ''} in this workspace</>}
+        subClassName={loading ? undefined : 'metric'}
         action={<Link to="/campaigns/new" className="btn btn-primary">New campaign</Link>}
       />
 
-      <div className="toolbar">
+      <div className="toolbar bare">
         <Link to="/experiments" className="btn">A/B experiments</Link>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from Bison'}</button>
       </div>
@@ -65,18 +67,18 @@ export function Campaigns() {
           />
         </div>
       ) : (
-        <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="data-grid">
           <table>
-            <thead><tr><th>Campaign</th><th>Status</th><th>Persona</th><th>Sub-type</th><th>In Bison</th><th>Created</th><th></th></tr></thead>
+            <thead><tr><th>Campaign</th><th>Status</th><th>Persona</th><th>Sub-type</th><th>In Bison</th><th className="num">Created</th><th></th></tr></thead>
             <tbody>
               {campaigns.map((c) => (
                 <tr key={c.id}>
-                  <td><Link to={`/campaigns/${c.id}`}>{c.name}</Link></td>
+                  <td><Link className="cell-primary" to={`/campaigns/${c.id}`}>{c.name}</Link></td>
                   <td><span className={'tag ' + (STATUS_TAG[c.status] ?? 'unknown')}>{c.status}</span></td>
                   <td>{c.persona ?? <span className="muted">—</span>}</td>
                   <td>{c.subType ?? <span className="muted">—</span>}</td>
                   <td>{c.bisonCampaignId ? `#${c.bisonCampaignId}` : <span className="muted">not created</span>}</td>
-                  <td className="muted">{new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td className="num muted">{new Date(c.createdAt).toLocaleDateString()}</td>
                   <td><button className="btn btn-sm text-error" onClick={() => remove(c)} title="Remove from this workspace (does not delete in Bison)">Delete</button></td>
                 </tr>
               ))}

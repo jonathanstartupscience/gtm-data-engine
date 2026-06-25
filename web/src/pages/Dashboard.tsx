@@ -33,7 +33,7 @@ function Completeness({ label, filled, total, to }: { label: string; filled: num
     <Link to={to} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="num" style={{ color: pct >= 80 ? 'var(--green-deep)' : pct >= 40 ? '#8b5e00' : 'var(--coral)' }}>{pct}%</div>
       <div className="label">{label} set</div>
-      {missing > 0 && <div className="muted text-xs" style={{ marginTop: 2 }}>{missing.toLocaleString()} to fill →</div>}
+      {missing > 0 && <div className="muted text-xs mt-1">{missing.toLocaleString()} to fill →</div>}
     </Link>
   );
 }
@@ -60,7 +60,7 @@ export function Dashboard() {
         <div className="card"><div className="num">{deliverable.toLocaleString()}</div><div className="label">Deliverable emails</div></div>
       </div>
 
-      <h3 style={{ margin: '8px 0 12px' }}>Completeness</h3>
+      <h3 className="mt-2 mb-3">Completeness</h3>
       <div className="cards">
         <Completeness label="Company Type" filled={stats.companies - g.companiesNoType} total={stats.companies} to="/classify" />
         <Completeness label="Company Sub-type" filled={stats.companies - g.companiesNoSubType} total={stats.companies} to="/classify" />

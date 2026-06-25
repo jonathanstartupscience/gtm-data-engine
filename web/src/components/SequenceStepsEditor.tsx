@@ -101,7 +101,7 @@ function StepRewriteBar({
 
   return (
     <div style={{ marginTop: 10, borderTop: '1px dashed var(--border)', paddingTop: 10 }}>
-      <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+      <div className="toolbar bare" style={{ marginBottom: 0, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
         <span className="muted" style={{ fontSize: 12 }}>✨ Rewrite:</span>
         {REWRITE_ACTIONS.map((a) => (
           <button key={a.action} className="btn" style={{ padding: '3px 10px', fontSize: 12 }}

@@ -45,7 +45,8 @@ export function Logs() {
           <button className="btn" onClick={load}>Refresh</button>
         </div>
         {loading ? <div className="loading">Loading…</div> : (
-          <table className="mt-3">
+          <div className="data-grid mt-3">
+          <table>
             <thead><tr><th>When</th><th>Activity</th><th>Status</th><th>Detail</th></tr></thead>
             <tbody>
               {events.map((e) => (
@@ -59,6 +60,7 @@ export function Logs() {
               {events.length === 0 && <tr><td colSpan={4} className="muted">No activity yet.</td></tr>}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </>

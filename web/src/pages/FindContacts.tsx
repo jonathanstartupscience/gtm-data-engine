@@ -93,7 +93,7 @@ export function FindContacts() {
 
       <div className="panel mb-4">
         <h3>1 · Which companies?</h3>
-        <div className="toolbar" style={{ marginBottom: 10 }}>
+        <div className="toolbar mb-3">
           <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); }}>
             <option value="">All types</option>
             {types.map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}

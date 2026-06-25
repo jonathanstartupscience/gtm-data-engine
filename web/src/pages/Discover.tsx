@@ -96,7 +96,7 @@ export function Discover() {
           </select>
         </div>
         {subType && (
-          <p className="muted text-sm" style={{ marginTop: 10 }}>
+          <p className="muted text-sm mt-2">
             {typeLabel && type !== '(unset)' ? (
               <>New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
                 <span className="tag persona">{subType}</span> — ready to sync to HubSpot.</>
@@ -143,7 +143,7 @@ export function Discover() {
               <input className="input" style={{ width: '100%', marginBottom: 10 }} placeholder="Search name or domain…"
                 aria-label="Search companies by name or domain"
                 value={pq} onChange={(e) => setPq(e.target.value)} />
-              <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+              <div className="data-grid" style={{ maxHeight: 320, overflow: 'auto' }}>
                 <table>
                   <thead><tr><th></th><th>Company</th><th>Domain</th><th>Sub-type</th></tr></thead>
                   <tbody>
@@ -165,7 +165,7 @@ export function Discover() {
             </>
           )}
 
-          <div className="toolbar mt-4 mb-0">
+          <div className="toolbar bare mt-4 mb-0">
             <label className="muted">How many to find:</label>
             <select className="select" value={size} onChange={(e) => setSize(Number(e.target.value))}>
               {[10, 25, 50, 100, 250].map((n) => <option key={n} value={n}>{n}</option>)}

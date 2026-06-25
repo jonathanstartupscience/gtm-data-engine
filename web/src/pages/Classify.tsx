@@ -85,7 +85,7 @@ export function Classify() {
         ) : (
           <>
             <p className="muted" style={{ marginTop: -4 }}>Reads each company’s homepage and proposes a Type/Sub-type from the ICP taxonomy. Proposals land below for review — nothing applies automatically.</p>
-            <div className="toolbar mb-0" style={{ alignItems: 'center' }}>
+            <div className="toolbar bare mb-0" style={{ alignItems: 'center' }}>
               <label className="muted">How many:
                 <select className="select" value={runLimit} onChange={(e) => setRunLimit(Number(e.target.value))} style={{ marginLeft: 6 }}>
                   {[25, 50, 100, 250].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -114,6 +114,7 @@ export function Classify() {
           <option value={0}>All</option><option value={0.6}>0.60+</option>
           <option value={0.8}>0.80+</option><option value={0.9}>0.90+ (high confidence)</option>
         </select>
+        <span className="filter-sep" />
         <span className="muted">{selected.size} selected</span>
         <button className="btn btn-primary" disabled={busy || !selected.size} onClick={() => decide('approve')}>Approve &amp; apply {selected.size}</button>
         <button className="btn" disabled={busy || !selected.size} onClick={() => decide('reject')}>Dismiss {selected.size}</button>
@@ -128,12 +129,13 @@ export function Classify() {
           />
         </div>
       ) : (
+        <div className="data-grid">
         <table>
           <thead><tr>
             <th><input type="checkbox" checked={selected.size === proposals.length}
               aria-label="Select all proposals"
               onChange={(e) => setSelected(e.target.checked ? new Set(proposals.map((p) => p.id)) : new Set())} /></th>
-            <th>Company</th><th>Proposed</th><th>Confidence</th><th>Why</th>
+            <th>Company</th><th>Proposed</th><th className="num">Confidence</th><th>Why</th>
           </tr></thead>
           <tbody>
             {proposals.map((p) => (
@@ -141,7 +143,7 @@ export function Classify() {
                 <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.name ?? 'proposal'}`} /></td>
                 <td>{p.name}<div className="text-xs"><DomainLink domain={p.domain} /></div></td>
                 <td><span className="tag persona">{p.type}</span> <span className="tag persona">{p.subType}</span></td>
-                <td style={{ color: confColor(p.confidence), fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                <td className="num" style={{ color: confColor(p.confidence), fontWeight: 600 }}>
                   {p.confidence == null ? '—' : `${Math.round(p.confidence * 100)}%`}
                 </td>
                 <td className="muted text-sm" style={{ maxWidth: 380 }}>{p.reason}</td>
@@ -149,6 +151,7 @@ export function Classify() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

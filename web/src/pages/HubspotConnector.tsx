@@ -29,7 +29,7 @@ export function HubspotConnector() {
 
   return (
     <>
-      <p style={{ margin: '0 0 8px' }}><Link to="/settings" className="muted">← Settings · Connectors</Link></p>
+      <p className="mt-0 mb-2"><Link to="/settings" className="muted">← Settings · Connectors</Link></p>
       <PageHeader title="HubSpot" sub="System of record. Companies and contacts sync both ways." />
 
       <div className="panel mb-4">

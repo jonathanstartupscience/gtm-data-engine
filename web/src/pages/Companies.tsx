@@ -47,13 +47,15 @@ export function Companies() {
     <>
       <PageHeader
         title="Companies"
-        sub={`${total.toLocaleString()} matching${active ? ' (filtered)' : ' in the store'}`}
+        sub={<><span className="metric-n">{total.toLocaleString()}</span> {active ? 'companies matching · filtered' : 'companies in the store'}</>}
+        subClassName="metric"
         action={<button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export {total.toLocaleString()} → CSV</button>}
       />
 
       <div className="toolbar">
         <input className="input" placeholder="Search name or domain…" aria-label="Search companies by name or domain"
           value={q} onChange={(e) => { setQ(e.target.value); setOffset(0); }} />
+        <span className="filter-sep" />
         <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); setOffset(0); }}>
           <option value="">All types</option>
           {types.map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
@@ -66,38 +68,41 @@ export function Companies() {
           <option value="">All countries</option>
           {countries.map((c) => <option key={c.v} value={c.v}>{c.v} ({c.n})</option>)}
         </select>
-        {active && <button className="btn" onClick={clear}>Clear</button>}
+        {active && <><span className="filter-sep" /><button className="btn" onClick={clear}>Clear</button></>}
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (
-        <table>
-          <thead><tr>
-            <th><input type="checkbox" aria-label="Select all companies on this page" checked={pageAllSelected}
-              onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
-            <SortHeader label="Company" col="name" sort={sort.sort} dir={sort.dir} onSort={onSort} />
-            <SortHeader label="Domain" col="domain" sort={sort.sort} dir={sort.dir} onSort={onSort} />
-            <SortHeader label="Sub-type" col="subType" sort={sort.sort} dir={sort.dir} onSort={onSort} />
-            <SortHeader label="Country" col="country" sort={sort.sort} dir={sort.dir} onSort={onSort} />
-            <th>HubSpot</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((c) => (
-              <tr key={c.id}>
-                <td><input type="checkbox" aria-label={`Select ${c.name ?? 'company'}`} checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
-                <td><Link to={`/companies/${c.id}`}>{c.name ?? '—'}</Link></td>
-                <td><DomainLink domain={c.domain} /></td>
-                <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>
-                <td className="muted">{[c.city, c.state, c.country].filter(Boolean).join(', ')}</td>
-                <td className="muted">{c.hubspotId ? '✓' : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="data-grid">
+          <table>
+            <thead><tr>
+              <th style={{ width: 34 }}><input type="checkbox" aria-label="Select all companies on this page" checked={pageAllSelected}
+                onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
+              <SortHeader label="Company" col="name" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+              <SortHeader label="Domain" col="domain" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+              <SortHeader label="Sub-type" col="subType" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+              <SortHeader label="Country" col="country" sort={sort.sort} dir={sort.dir} onSort={onSort} />
+              <th className="num">HubSpot</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((c) => (
+                <tr key={c.id}>
+                  <td><input type="checkbox" aria-label={`Select ${c.name ?? 'company'}`} checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
+                  <td><Link className="cell-primary" to={`/companies/${c.id}`}>{c.name ?? '—'}</Link></td>
+                  <td><DomainLink domain={c.domain} /></td>
+                  <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>
+                  <td className="muted">{[c.city, c.state, c.country].filter(Boolean).join(', ')}</td>
+                  <td className="num">{c.hubspotId ? <span style={{ color: 'var(--green-deep)', fontWeight: 700 }}>✓</span> : <span className="muted">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="pager">
+        <span className="range">{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total.toLocaleString()}</span>
+        <span className="pager-spacer" />
         <button className="btn" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>← Prev</button>
-        <span>{total ? offset + 1 : 0}–{Math.min(offset + LIMIT, total)} of {total}</span>
         <button className="btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}>Next →</button>
       </div>
 

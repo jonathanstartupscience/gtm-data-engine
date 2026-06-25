@@ -57,7 +57,7 @@ export function LinkedInCampaigns() {
     <>
       <PageHeader title="LinkedIn Campaigns" sub="Mirror campaigns from HeyReach, then push a clean segment into an active one." />
 
-      <div className="toolbar"><button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button></div>
+      <div className="toolbar bare"><button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button></div>
       {note && <div className="callout callout-info mb-4">{note}</div>}
 
       {!configured && (
@@ -76,17 +76,17 @@ export function LinkedInCampaigns() {
         </div>
       ) : (
         <>
-          <div className="panel mb-4" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="data-grid mb-4">
             <table>
-              <thead><tr><th></th><th>Campaign</th><th>Status</th><th>HeyReach</th><th>Synced</th></tr></thead>
+              <thead><tr><th style={{ width: 34 }}></th><th>Campaign</th><th>Status</th><th className="num">HeyReach</th><th className="num">Synced</th></tr></thead>
               <tbody>
                 {campaigns.map((c) => (
                   <tr key={c.id}>
                     <td><input type="radio" name="licamp" aria-label={`Select ${c.name}`} checked={sel === c.id} onChange={() => setSel(c.id)} /></td>
                     <td>{c.name}</td>
                     <td><span className={'tag ' + (STATUS_TAG[c.status ?? ''] ?? 'unknown')}>{c.status ?? '—'}</span></td>
-                    <td className="muted">#{c.heyreachCampaignId}</td>
-                    <td className="muted">{new Date(c.syncedAt).toLocaleDateString()}</td>
+                    <td className="num muted">#{c.heyreachCampaignId}</td>
+                    <td className="num muted">{new Date(c.syncedAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

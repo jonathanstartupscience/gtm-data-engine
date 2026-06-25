@@ -24,7 +24,7 @@ export function Performance() {
         action={<Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>}
       />
 
-      <div className="toolbar">
+      <div className="toolbar bare">
         <Link to="/campaigns" className="btn">Campaigns</Link>
         <Link to="/sequences" className="btn">Sequences</Link>
         <Link to="/inbox" className="btn">Inbox</Link>
@@ -46,22 +46,22 @@ export function Performance() {
           />
         </div>
       ) : (
-        <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="data-grid">
           <table>
             <thead><tr>
-              <th>Campaign</th><th>Persona</th><th>Sent</th><th>Open rate</th>
-              <th>Reply rate</th><th>Positive</th><th>Bounce rate</th><th>Status</th>
+              <th>Campaign</th><th>Persona</th><th className="num">Sent</th><th className="num">Open rate</th>
+              <th className="num">Reply rate</th><th className="num">Positive</th><th className="num">Bounce rate</th><th>Status</th>
             </tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><Link to={`/campaigns/${r.id}`}>{r.name}</Link></td>
+                  <td><Link className="cell-primary" to={`/campaigns/${r.id}`}>{r.name}</Link></td>
                   <td className="muted">{r.persona ?? '—'}</td>
-                  <td>{r.sent.toLocaleString()}</td>
-                  <td>{pct(r.openRate)}</td>
-                  <td>{pct(r.replyRate)}</td>
-                  <td>{r.positiveReplies > 0 ? <strong style={{ color: 'var(--green-deep)' }}>{r.positiveReplies}</strong> : 0}</td>
-                  <td style={{ color: r.bounceRate > 0.03 ? 'var(--coral)' : undefined }}>{pct(r.bounceRate)}</td>
+                  <td className="num">{r.sent.toLocaleString()}</td>
+                  <td className="num">{pct(r.openRate)}</td>
+                  <td className="num">{pct(r.replyRate)}</td>
+                  <td className="num">{r.positiveReplies > 0 ? <strong style={{ color: 'var(--green-deep)' }}>{r.positiveReplies}</strong> : 0}</td>
+                  <td className="num" style={{ color: r.bounceRate > 0.03 ? 'var(--coral)' : undefined }}>{pct(r.bounceRate)}</td>
                   <td><span className="muted">{r.status}</span></td>
                 </tr>
               ))}

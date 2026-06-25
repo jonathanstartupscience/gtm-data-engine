@@ -95,15 +95,15 @@ export function ExperimentDetail() {
         <p className="muted text-sm" style={{ margin: '6px 0 12px' }}>
           Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps its current leads, gets no new ones. Raise a winner to send it more.
         </p>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="data-grid">
           <table>
             <thead>
               <tr>
                 <th>Arm</th><th>Campaign</th>
-                <th style={{ width: 90 }}>Weight</th>
-                <th style={{ width: 90 }}>Assigned</th><th style={{ width: 80 }}>Pushed</th>
-                <th style={{ width: 90 }}>New now</th>
-                <th style={{ width: 120 }}>Capacity/day</th>
+                <th className="num" style={{ width: 90 }}>Weight</th>
+                <th className="num" style={{ width: 90 }}>Assigned</th><th className="num" style={{ width: 80 }}>Pushed</th>
+                <th className="num" style={{ width: 90 }}>New now</th>
+                <th className="num" style={{ width: 120 }}>Capacity/day</th>
               </tr>
             </thead>
             <tbody>
@@ -116,13 +116,13 @@ export function ExperimentDetail() {
                       {a.label ?? `Arm ${a.id}`}{paused && <span className="muted" style={{ fontSize: 11 }}> · paused</span>}
                       {view?.unfillableTags?.length ? <span className="text-error" title={`Uses merge tag(s) the push can't fill: ${view.unfillableTags.map((t) => `{${t}}`).join(', ')}`} style={{ fontSize: 11, marginLeft: 6 }}>⚠ blank tags</span> : null}
                     </td>
-                    <td>{view?.bisonCampaignId ? <Link to={`/campaigns/${a.campaignId}`}>{campName(a.campaignId)}</Link> : <span className="text-error">{campName(a.campaignId)} (not in Bison)</span>}</td>
-                    <td><input className="input" type="number" min={0} max={1000} value={weights[a.id] ?? a.weight}
+                    <td>{view?.bisonCampaignId ? <Link className="cell-primary" to={`/campaigns/${a.campaignId}`}>{campName(a.campaignId)}</Link> : <span className="text-error">{campName(a.campaignId)} (not in Bison)</span>}</td>
+                    <td className="num"><input className="input" type="number" min={0} max={1000} value={weights[a.id] ?? a.weight}
                       onChange={(e) => setWeights((w) => ({ ...w, [a.id]: Number(e.target.value) }))} style={{ width: 70 }} /></td>
-                    <td>{view?.assigned ?? 0}</td>
-                    <td>{view?.pushed ?? 0}</td>
-                    <td>{paused ? '—' : `+${newByArm.get(a.id) ?? 0}`}</td>
-                    <td>
+                    <td className="num">{view?.assigned ?? 0}</td>
+                    <td className="num">{view?.pushed ?? 0}</td>
+                    <td className="num">{paused ? '—' : `+${newByArm.get(a.id) ?? 0}`}</td>
+                    <td className="num">
                       {view ? <>{view.dailyCapacity}/day <span className="muted" style={{ fontSize: 11 }}>({view.senderCount} inbox{view.senderCount === 1 ? '' : 'es'})</span></> : '—'}
                       {view?.sharesSenders ? <span className="text-error" title="Shares ≥1 sender inbox with another arm — quota is pooled and arms compete" style={{ fontSize: 11, display: 'block' }}>⚠ shared</span> : null}
                     </td>
