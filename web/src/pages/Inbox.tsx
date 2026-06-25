@@ -118,6 +118,15 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
     setBusy(false);
   }
 
+  const [refStatus, setRefStatus] = useState(r.referralStatus);
+  const [refBusy, setRefBusy] = useState(false);
+  async function referral(action: 'add' | 'dismiss') {
+    setRefBusy(true); setErr('');
+    try { const d = await api.inboxReferral(r.id, action); setRefStatus(d.referralStatus); onChanged(); }
+    catch (e) { setErr('Referral action failed: ' + String(e)); }
+    setRefBusy(false);
+  }
+
   const isClaimed = !!r.claimedBy || claimedByMe;
   const canReplyInApp = !!r.bisonReplyExtId && !!r.leadEmail;
 
@@ -143,6 +152,44 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
       </div>
       {r.subject && <div style={{ fontWeight: 600, marginTop: 6 }}>{r.subject}</div>}
       {r.body && <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>}
+
+      {r.triageStrategy && (
+        <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--bg-subtle, #f5f7fa)', borderRadius: 6, fontSize: 14 }}>
+          💡 <strong>Suggested strategy:</strong> {r.triageStrategy}
+          {r.triageCategory && <span className="tag unknown" style={{ marginLeft: 8 }}>{r.triageCategory}</span>}
+        </div>
+      )}
+
+      {r.referral && (
+        <div style={{ marginTop: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 6 }}>
+          <div style={{ fontSize: 14 }}>
+            🔁 <strong>Referral captured</strong> — contact instead:{' '}
+            {[r.referral.name, r.referral.title].filter(Boolean).join(', ')}
+            {(r.referral.name || r.referral.title) && ' · '}
+            <span style={{ fontWeight: 600 }}>{r.referral.email}</span>
+          </div>
+          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+            {r.referral.inferredName && 'Name inferred from email. '}
+            {r.referral.sameDomain ? 'Same company domain.' : 'Different domain — sanity-check before adding.'}
+            {r.referralLeadId ? ' Lead created in Bison; not yet in the campaign.' : ' Lead not auto-created — add manually in Bison.'}
+          </div>
+          <div className="toolbar" style={{ marginTop: 8, marginBottom: 0, gap: 8 }}>
+            {refStatus === 'added' ? (
+              <span className="tag deliverable">Added to campaign</span>
+            ) : refStatus === 'dismissed' ? (
+              <span className="tag unknown">Dismissed</span>
+            ) : (
+              <>
+                <button className="btn btn-primary" onClick={() => referral('add')} disabled={refBusy || !r.referralLeadId || !r.campaignId}>
+                  {refBusy ? 'Working…' : 'Add to campaign'}
+                </button>
+                <button className="btn" onClick={() => referral('dismiss')} disabled={refBusy}>Dismiss</button>
+                {!r.campaignId && <span className="muted" style={{ fontSize: 12 }}>No linked campaign — add manually in Bison.</span>}
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="toolbar" style={{ marginTop: 12, marginBottom: 0, gap: 8 }}>
         {!isClaimed && <button className="btn btn-primary" onClick={claim} disabled={busy}>Claim &amp; reply</button>}
