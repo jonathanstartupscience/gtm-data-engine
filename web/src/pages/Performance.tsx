@@ -9,8 +9,21 @@ const pct = (n: number) => (n * 100).toFixed(1) + '%';
 export function Performance() {
   const [rows, setRows] = useState<CampaignPerf[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { api.performance().then((d) => setRows(d.campaigns)).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    let on = true;
+    // Show the last snapshot immediately, then pull fresh stats from Bison in the background and
+    // reload so the numbers match Bison without a manual per-campaign refresh.
+    api.performance().then((d) => { if (on) setRows(d.campaigns); }).finally(() => { if (on) setLoading(false); });
+    setRefreshing(true);
+    api.outboundRefreshAllStats()
+      .then(() => api.performance())
+      .then((d) => { if (on) setRows(d.campaigns); })
+      .catch(() => {})
+      .finally(() => { if (on) setRefreshing(false); });
+    return () => { on = false; };
+  }, []);
 
   const totals = rows.reduce((a, r) => ({
     sent: a.sent + r.sent, replies: a.replies + r.replies, positive: a.positive + r.positiveReplies, interested: a.interested + r.interested,
@@ -20,7 +33,9 @@ export function Performance() {
     <>
       <PageHeader
         title={<>Email <em>Engine</em></>}
-        sub="Stats refresh from each campaign’s detail page; positive replies come from the Inbox."
+        sub={refreshing
+          ? <><span className="spinner" style={{ verticalAlign: 'middle', marginRight: 6 }} />Updating stats from Bison…</>
+          : 'Live stats from Bison, refreshed on open; positive replies come from the Inbox.'}
         action={<Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>}
       />
 
