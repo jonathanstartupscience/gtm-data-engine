@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, authToken, type HygieneAnalytics } from '../api.js';
 import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
-import { CostBadge } from '../components/CostBadge.js';
 import { PageHeader } from '../components/PageHeader.js';
 
 interface Task { id: string; name: string; desc: string; key: string; }
@@ -16,13 +15,14 @@ const TASKS: Task[] = [
     desc: 'Canonicalizes inconsistent country values (US / USA / United States → United States) so filters and segments stay reliable.' },
 ];
 
-function HealthBar({ label, have, total }: { label: string; have: number; total: number }) {
+/** One health metric in the compact strip: label · bar (color-coded by fill) · percent. */
+function HealthRow({ label, have, total }: { label: string; have: number; total: number }) {
   const pct = total ? Math.round((have / total) * 100) : 0;
   return (
-    <div className="bar-row">
-      <div className="bar-label">{label}</div>
-      <div className="bar-track"><div className="bar-fill" style={{ width: `${pct}%`, background: pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--accent)' : 'var(--coral)' }} /></div>
-      <div className="bar-num">{pct}%</div>
+    <div className="health-row">
+      <span className="h-label">{label}</span>
+      <span className="h-track"><span className="h-fill" style={{ width: `${pct}%`, background: pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--accent)' : 'var(--coral)' }} /></span>
+      <span className="h-num">{pct}%</span>
     </div>
   );
 }
@@ -57,38 +57,36 @@ export function Hygiene() {
       />
 
       {a && (
-        <div className="grid2 mb-4">
-          <div className="panel">
-            <h3>Company data health · {a.companies.total.toLocaleString()}</h3>
-            <HealthBar label="Has type" have={a.companies.typed} total={a.companies.total} />
-            <HealthBar label="Has domain" have={a.companies.withDomain} total={a.companies.total} />
-            <HealthBar label="Has size" have={a.companies.withSize} total={a.companies.total} />
-          </div>
-          <div className="panel">
-            <h3>Contact data health · {a.contacts.total.toLocaleString()}</h3>
-            <HealthBar label="Has persona" have={a.contacts.withPersona} total={a.contacts.total} />
-            <HealthBar label="Linked to company" have={a.contacts.total - a.contacts.orphans} total={a.contacts.total} />
-            <HealthBar label="Email verified" have={a.contacts.verified} total={a.contacts.total} />
-          </div>
+        <div className="health-strip">
+          <div className="health-strip-hdr">Company health · {a.companies.total.toLocaleString()}</div>
+          <div className="health-strip-hdr">Contact health · {a.contacts.total.toLocaleString()}</div>
+          <HealthRow label="Has type" have={a.companies.typed} total={a.companies.total} />
+          <HealthRow label="Has persona" have={a.contacts.withPersona} total={a.contacts.total} />
+          <HealthRow label="Has domain" have={a.companies.withDomain} total={a.companies.total} />
+          <HealthRow label="Linked to company" have={a.contacts.total - a.contacts.orphans} total={a.contacts.total} />
+          <HealthRow label="Has size" have={a.companies.withSize} total={a.companies.total} />
+          <HealthRow label="Email verified" have={a.contacts.verified} total={a.contacts.total} />
         </div>
       )}
 
-      <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="task-list">
         {TASKS.map((t) => {
           const cand = a?.tasks?.[t.key]?.candidates ?? null;
           return (
-            <div className="card" key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>{t.name}</div>
-                <div className="muted mt-1" style={{ maxWidth: 620 }}>{t.desc}</div>
-                <div className="mt-2" style={{ fontWeight: 600 }}>
-                  {cand === null ? 'Analyzing…' : cand === 0 ? 'Nothing to fix — all clean ✓' : `${cand.toLocaleString()} records will be updated`}
+            <div className="task-row" key={t.id}>
+              <div className="task-main">
+                <div className="task-name">
+                  {t.name}
+                  {cand === null
+                    ? <span className="task-count pending">Analyzing…</span>
+                    : cand === 0
+                      ? <span className="task-count clean">all clean ✓</span>
+                      : <span className="task-count has">{cand.toLocaleString()} to fix</span>}
                 </div>
+                <div className="task-desc" title={t.desc}>{t.desc}</div>
               </div>
-              {/* Uniform cost slot (top-right) + action, so Free vs paid is always in the same place. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                <CostBadge costUsd={0} />
-                <button className="btn btn-primary" disabled={!!running || cand === 0}
+              <div className="task-actions">
+                <button className="btn btn-primary btn-sm" disabled={!!running || cand === 0}
                   onClick={() => run(t.id)}>{running === t.id ? 'Running…' : 'Run'}</button>
               </div>
             </div>
