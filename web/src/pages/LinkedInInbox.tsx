@@ -42,7 +42,7 @@ export function LinkedInInbox() {
       </div>
 
       {!configured && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
+        <div className="callout callout-warn mb-4">
           HeyReach isn’t connected. Add <code>HEYREACH_API_KEY</code> in Railway to pull conversations.
         </div>
       )}
@@ -59,10 +59,10 @@ export function LinkedInInbox() {
                   {r.company && <span className="muted"> · {r.company}</span>}
                   {r.status !== 'new' && <span className="tag unknown" style={{ marginLeft: 6 }}>{r.status}</span>}
                 </div>
-                <span className="muted" style={{ fontSize: 13 }}>{new Date(r.receivedAt).toLocaleString()}</span>
+                <span className="muted text-sm">{new Date(r.receivedAt).toLocaleString()}</span>
               </div>
               {r.lastMessage && <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>{r.lastMessage}</div>}
-              <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
+              <div className="toolbar mt-3 mb-0">
                 {r.profileUrl && <a className="btn btn-primary" href={r.profileUrl} target="_blank" rel="noreferrer">Open in LinkedIn</a>}
                 {r.status !== 'handled' && <button className="btn" onClick={() => act(r, 'handled')}>Mark handled</button>}
               </div>

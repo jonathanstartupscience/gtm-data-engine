@@ -46,7 +46,7 @@ export function Inbox() {
 
       <div className="toolbar" style={{ alignItems: 'center' }}>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync replies'}</button>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <label className="row" style={{ gap: 6 }}>
           <input type="checkbox" checked={positiveOnly} onChange={(e) => setPositiveOnly(e.target.checked)} /> Positive only
         </label>
         {note && <span className="muted">{note}</span>}
@@ -148,10 +148,10 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
           {r.assignedRep && !isClaimed && <span className="muted" style={{ marginLeft: 8 }}>→ {r.assignedRep}</span>}
           {isClaimed && <span className="tag" style={{ marginLeft: 6 }}>claimed</span>}
         </div>
-        <span className="muted" style={{ fontSize: 13 }}>{new Date(r.receivedAt).toLocaleString()}</span>
+        <span className="muted text-sm">{new Date(r.receivedAt).toLocaleString()}</span>
       </div>
       {r.subject && <div style={{ fontWeight: 600, marginTop: 6 }}>{r.subject}</div>}
-      {r.body && <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>}
+      {r.body && <div className="mt-1" style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)' }}>{r.body}</div>}
 
       {r.triageStrategy && (
         <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--bg-subtle, #f5f7fa)', borderRadius: 6, fontSize: 14 }}>
@@ -168,7 +168,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
             {(r.referral.name || r.referral.title) && ' · '}
             <span style={{ fontWeight: 600 }}>{r.referral.email}</span>
           </div>
-          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+          <div className="muted text-xs" style={{ marginTop: 2 }}>
             {r.referral.inferredName && 'Name inferred from email. '}
             {r.referral.sameDomain ? 'Same company domain.' : 'Different domain — check before adding.'}
             {r.referralLeadId ? ' Lead created in Bison, not yet in the campaign.' : ' Lead not auto-created — add manually in Bison.'}
@@ -184,7 +184,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
                   {refBusy ? 'Working…' : 'Add to campaign'}
                 </button>
                 <button className="btn" onClick={() => referral('dismiss')} disabled={refBusy}>Dismiss</button>
-                {!r.campaignId && <span className="muted" style={{ fontSize: 12 }}>No linked campaign — add manually in Bison.</span>}
+                {!r.campaignId && <span className="muted text-xs">No linked campaign — add manually in Bison.</span>}
               </>
             )}
           </div>
@@ -195,7 +195,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
         {!isClaimed && <button className="btn btn-primary" onClick={claim} disabled={busy}>Claim &amp; reply</button>}
         {isClaimed && !open && <button className="btn btn-primary" onClick={() => setOpen(true)}>Reply</button>}
         {!canReplyInApp && (
-          <span className="muted" style={{ fontSize: 13 }}>No Bison thread id — open in Bison to respond.</span>
+          <span className="muted text-sm">No Bison thread id — open in Bison to respond.</span>
         )}
         {!r.isPositive && <button className="btn" onClick={() => onAct(r, { markInterested: true })}>Mark interested</button>}
         {r.status !== 'handled' && <button className="btn" onClick={() => onAct(r, { status: 'handled' })}>Mark handled</button>}
@@ -206,8 +206,8 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
         <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
           {canReplyInApp ? (
             <>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <label className="muted" style={{ fontSize: 13 }}>Reply from</label>
+              <div className="row mb-2">
+                <label className="muted text-sm">Reply from</label>
                 <select value={senderId ?? ''} onChange={(e) => setSenderId(e.target.value ? Number(e.target.value) : undefined)}>
                   <option value="">{r.senderEmailId ? `Original inbox (#${r.senderEmailId})` : 'Select sender inbox…'}</option>
                   {senders.map((s) => <option key={s.id} value={s.id}>{s.email}</option>)}

@@ -39,7 +39,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
 
         {platforms.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 6px', padding: '10px 12px', background: 'var(--bg)', borderRadius: 8 }}>
-            <span className="muted" style={{ fontSize: 13 }}>Platforms used:</span>
+            <span className="muted text-sm">Platforms used:</span>
             {platforms.map((p) => (
               <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500 }}>
                 <ProviderIcon provider={p} /> {p}
@@ -57,7 +57,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
               <ProviderIcon provider={s.provider} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500 }}>{s.label}</div>
-                {s.detail && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{s.detail}</div>}
+                {s.detail && <div className="muted text-sm" style={{ marginTop: 2 }}>{s.detail}</div>}
               </div>
               {typeof s.count === 'number' && <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{s.count}</span>}
             </div>
@@ -65,7 +65,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
         </div>
 
         <details style={{ marginTop: 20 }}>
-          <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>Show raw result data</summary>
+          <summary className="muted text-sm" style={{ cursor: 'pointer' }}>Show raw result data</summary>
           <pre style={{ background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 12, overflow: 'auto', marginTop: 8 }}>
             {JSON.stringify(run.stats, (k, v) => (k === '_steps' ? undefined : v), 2)}
           </pre>
@@ -86,7 +86,7 @@ function ScopeDialog({ scope, onCancel, onConfirm }:
         background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
         padding: 28, width: 480, maxWidth: '92vw', boxShadow: '0 12px 48px rgba(0,0,0,0.2)' }}>
         <h2 style={{ fontFamily: '"DM Serif Display", serif', fontWeight: 400, fontSize: 22, margin: '0 0 4px' }}>Before you run this</h2>
-        <p className="muted" style={{ marginTop: 0 }}>{scope.what}</p>
+        <p className="muted mt-0">{scope.what}</p>
         <div className="cards" style={{ margin: '16px 0', gridTemplateColumns: '1fr 1fr' }}>
           <div className="card">
             <div className="num">{scope.candidates < 0 ? '—' : scope.candidates.toLocaleString()}</div>
@@ -99,7 +99,7 @@ function ScopeDialog({ scope, onCancel, onConfirm }:
             <div className="label">{scope.free ? 'No vendor cost' : `Est. cost · ${scope.vendor}`}</div>
           </div>
         </div>
-        {big && <p style={{ color: 'var(--coral)', fontSize: 13 }}>Larger spend — double-check before confirming.</p>}
+        {big && <p className="text-error text-sm">Larger spend — double-check before confirming.</p>}
         {scope.candidates === 0 && <p className="muted">Nothing to do — everything is up to date.</p>}
         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
           <button className="btn btn-primary" disabled={scope.candidates === 0} onClick={onConfirm}>
@@ -224,18 +224,18 @@ export function Runs() {
       <p className="page-sub">Bulk data operations. Free imports up top; paid bulk operations below show a cost preview before spending. For a precise spend, select rows on Companies/Contacts and use the action bar there.</p>
 
       {GROUPS.map((g) => (
-        <div key={g.title} style={{ marginBottom: 28 }}>
+        <div key={g.title} className="mb-6">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <h3 style={{ margin: 0 }}>{g.title}</h3>
+            <h3 className="mt-0 mb-0">{g.title}</h3>
             {g.recipes.some((r) => r.paid) ? <CostBadge paid /> : <CostBadge costUsd={0} />}
           </div>
-          <p className="muted" style={{ margin: '0 0 12px', fontSize: 13, maxWidth: 720 }}>{g.blurb}</p>
+          <p className="muted text-sm" style={{ margin: '0 0 12px', maxWidth: 720 }}>{g.blurb}</p>
           <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
             {g.recipes.map((r) => (
               <div className="card" key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 16 }}>{r.name}</div>
-                  <div className="muted" style={{ marginTop: 4, maxWidth: 640 }}>{r.desc}</div>
+                  <div className="muted mt-1" style={{ maxWidth: 640 }}>{r.desc}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'center' }}>
                   {r.paid ? <CostBadge costUsd={costs[r.id]} pending={!(r.id in costs)} /> : <CostBadge costUsd={0} />}
@@ -267,11 +267,11 @@ export function Runs() {
       )}
 
       {runErr && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--coral)' }}>
-          <strong style={{ color: 'var(--coral)' }}>This workflow failed.</strong>
-          <div className="muted" style={{ marginTop: 4 }}>{runErr}</div>
+        <div className="callout callout-error mb-4">
+          <strong className="text-error">This workflow failed.</strong>
+          <div className="muted mt-1">{runErr}</div>
           {/401|Authentication|credentials/i.test(runErr) && (
-            <div className="muted" style={{ marginTop: 8 }}>
+            <div className="muted mt-2">
               Looks like a HubSpot auth problem — check the token &amp; scopes on the{' '}
               <a href="/connectors/hubspot">HubSpot connector</a> page.
             </div>
@@ -280,9 +280,9 @@ export function Runs() {
       )}
 
       {disconnected && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--accent)' }}>
+        <div className="callout callout-info mb-4">
           <strong>Live view disconnected</strong>
-          <div className="muted" style={{ marginTop: 4 }}>
+          <div className="muted mt-1">
             Expected on long runs — the workflow keeps running on the server. Its result appears under
             <strong> Recent activity</strong> below (and in Logs &amp; Health) when it finishes.
             <button className="btn" style={{ marginLeft: 10, padding: '4px 10px' }} onClick={() => loadHistory()}>Refresh</button>
@@ -291,7 +291,7 @@ export function Runs() {
       )}
 
       {running && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>
+        <div className="callout callout-ok mb-4">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="spinner" /> <strong>Working…</strong>
             <span className="muted">Runs on the server — safe to leave this page or close the tab.
@@ -301,20 +301,20 @@ export function Runs() {
       )}
 
       {(log.length > 0 || result) && (
-        <div className="panel" style={{ marginBottom: 24 }}>
+        <div className="panel mb-6">
           <h3>{result ? 'Result' : 'In progress'}</h3>
           {result && !running && (
             <div style={{ fontSize: 15, marginBottom: 12 }}>{friendlyResult(result)}</div>
           )}
           {result && (
-            <div className="cards" style={{ marginBottom: 12 }}>
+            <div className="cards mb-3">
               {resultCards(result).map((c) => (
                 <div className="card" key={c.label}><div className="num">{c.value}</div><div className="label">{c.label}</div></div>
               ))}
             </div>
           )}
           <details {...(result ? {} : { open: true })}>
-            <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>
+            <summary className="muted text-sm" style={{ cursor: 'pointer' }}>
               {result ? 'Show activity log' : 'Live activity'}
             </summary>
             <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 240, overflow: 'auto', marginTop: 8 }}>

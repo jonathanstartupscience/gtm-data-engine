@@ -85,16 +85,16 @@ export function CampaignBuilder() {
       <p className="page-sub">Define it, create it in Email Bison, then push the audience and launch. Preview before anything sends.</p>
 
       {/* 1 · Name */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>1 · Name</h3>
         <input className="input" style={{ width: '100%' }} placeholder="e.g. ESO Leadership — Q3 Cold Outreach"
           value={name} onChange={(e) => setName(e.target.value)} />
       </div>
 
       {/* 2 · Audience */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>2 · Audience</h3>
-        <div className="toolbar" style={{ marginBottom: 0 }}>
+        <div className="toolbar mb-0">
           <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
             {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
           </select>
@@ -110,7 +110,7 @@ export function CampaignBuilder() {
       </div>
 
       {/* 3 · Schedule */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>3 · Sending schedule</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {DAYS.map((d) => (
@@ -120,7 +120,7 @@ export function CampaignBuilder() {
               style={{ padding: '6px 12px' }}>{d}</button>
           ))}
         </div>
-        <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+        <div className="toolbar mb-0" style={{ alignItems: 'center' }}>
           <label className="muted">From <input className="input" type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} style={{ minWidth: 0, width: 120 }} /></label>
           <label className="muted">To <input className="input" type="time" value={toTime} onChange={(e) => setToTime(e.target.value)} style={{ minWidth: 0, width: 120 }} /></label>
           <span className="muted">Timezone: {TZ}</span>
@@ -128,14 +128,14 @@ export function CampaignBuilder() {
       </div>
 
       {/* 4 · Senders */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>4 · Sender inboxes</h3>
-        {sendersErr ? <p style={{ color: 'var(--coral)' }}>Couldn’t load senders: {sendersErr}</p>
+        {sendersErr ? <p className="text-error">Couldn’t load senders: {sendersErr}</p>
           : senders.length === 0 ? <p className="muted">No sender inboxes in this workspace. Add them in Bison, or attach later.</p>
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {senders.map((s) => (
-                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label key={s.id} className="row">
                     <input type="checkbox" checked={picked.includes(s.id)}
                       onChange={(e) => setPicked((p) => e.target.checked ? [...p, s.id] : p.filter((x) => x !== s.id))} />
                     <span>{s.email}{s.name ? ` · ${s.name}` : ''}{s.daily_limit ? ` · ${s.daily_limit}/day` : ''}</span>
@@ -146,15 +146,15 @@ export function CampaignBuilder() {
       </div>
 
       {/* 5 · Sequence */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>5 · Email sequence</h3>
-        <div className="toolbar" style={{ marginBottom: 12, alignItems: 'center' }}>
+        <div className="toolbar mb-3" style={{ alignItems: 'center' }}>
           <label className="muted">Start from a saved sequence:</label>
           <select className="select" value={attachedSeqId} onChange={(e) => attachSequence(e.target.value ? Number(e.target.value) : '')}>
             <option value="">Build from scratch</option>
             {sequences.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.stepsJson.length} steps)</option>)}
           </select>
-          <Link to="/sequences/new" className="muted" style={{ fontSize: 13 }}>+ manage sequences</Link>
+          <Link to="/sequences/new" className="muted text-sm">+ manage sequences</Link>
         </div>
         {attachedSeqId !== '' && <p className="muted" style={{ marginTop: -4, marginBottom: 10 }}>Copied from the template — edits here don’t change it.</p>}
         <SequenceStepsEditor steps={steps} onChange={setSteps} />
@@ -167,7 +167,7 @@ export function CampaignBuilder() {
           Creates the campaign, sequence and schedule in Bison and saves the definition here. Sends
           <strong> nothing </strong> yet — push the {count?.toLocaleString() ?? ''} contacts and launch from the campaign page.
         </p>
-        {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
+        {error && <p className="text-error">{error}</p>}
         {!stepsValid && <p className="muted">Every step needs a subject and body.</p>}
         <button className="btn btn-primary" disabled={!canCreate} onClick={create}>
           {creating ? <><span className="spinner" /> Creating…</> : 'Create campaign'}

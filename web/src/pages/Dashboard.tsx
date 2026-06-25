@@ -33,7 +33,7 @@ function Completeness({ label, filled, total, to }: { label: string; filled: num
     <Link to={to} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="num" style={{ color: pct >= 80 ? 'var(--green-deep)' : pct >= 40 ? '#8b5e00' : 'var(--coral)' }}>{pct}%</div>
       <div className="label">{label} set</div>
-      {missing > 0 && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{missing.toLocaleString()} to fill →</div>}
+      {missing > 0 && <div className="muted text-xs" style={{ marginTop: 2 }}>{missing.toLocaleString()} to fill →</div>}
     </Link>
   );
 }
@@ -68,11 +68,11 @@ export function Dashboard() {
         <Completeness label="Email verified" filled={stats.byEmailStatus.filter((s) => s.key !== EMPTY_KEY).reduce((a, s) => a + s.n, 0)} total={stats.contacts} to="/hygiene" />
       </div>
 
-      <div className="grid2" style={{ marginTop: 8 }}>
+      <div className="grid2 mt-2">
         <div className="panel"><h3>Companies by type</h3><Bars data={stats.byType} /></div>
         <div className="panel"><h3>Companies by sub-type</h3><Bars data={stats.bySubType} /></div>
       </div>
-      <div className="grid2" style={{ marginTop: 16 }}>
+      <div className="grid2 mt-4">
         <div className="panel"><h3>Contacts by persona</h3><Bars data={stats.byPersona} /></div>
         <div className="panel"><h3>Email deliverability</h3><Bars data={stats.byEmailStatus} labelFn={emailStatusLabel} /></div>
       </div>

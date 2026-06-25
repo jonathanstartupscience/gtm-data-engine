@@ -72,7 +72,7 @@ export function Classify() {
       )}
 
       {/* Run the classifier in-app */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Generate proposals</h3>
         {audit && !audit.canRunInApp ? (
           <p className="muted">
@@ -82,7 +82,7 @@ export function Classify() {
         ) : (
           <>
             <p className="muted" style={{ marginTop: -4 }}>Reads each company’s homepage and proposes a Type/Sub-type from the ICP taxonomy. Proposals land below for review — nothing applies automatically.</p>
-            <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+            <div className="toolbar mb-0" style={{ alignItems: 'center' }}>
               <label className="muted">How many:
                 <select className="select" value={runLimit} onChange={(e) => setRunLimit(Number(e.target.value))} style={{ marginLeft: 6 }}>
                   {[25, 50, 100, 250].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -115,7 +115,7 @@ export function Classify() {
         <button className="btn btn-primary" disabled={busy || !selected.size} onClick={() => decide('approve')}>Approve &amp; apply {selected.size}</button>
         <button className="btn" disabled={busy || !selected.size} onClick={() => decide('reject')}>Dismiss {selected.size}</button>
       </div>
-      {msg && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{msg}</div>}
+      {msg && <div className="panel mb-4" style={{ borderLeft: '3px solid var(--green)' }}>{msg}</div>}
 
       {proposals.length === 0 ? (
         <div className="loading">No pending proposals. Use “Generate proposals” above to create some.</div>
@@ -130,12 +130,12 @@ export function Classify() {
             {proposals.map((p) => (
               <tr key={p.id}>
                 <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
-                <td>{p.name}<div style={{ fontSize: 12 }}><DomainLink domain={p.domain} /></div></td>
+                <td>{p.name}<div className="text-xs"><DomainLink domain={p.domain} /></div></td>
                 <td><span className="tag persona">{p.type}</span> <span className="tag persona">{p.subType}</span></td>
                 <td style={{ color: confColor(p.confidence), fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                   {p.confidence == null ? '—' : `${Math.round(p.confidence * 100)}%`}
                 </td>
-                <td className="muted" style={{ fontSize: 13, maxWidth: 380 }}>{p.reason}</td>
+                <td className="muted text-sm" style={{ maxWidth: 380 }}>{p.reason}</td>
               </tr>
             ))}
           </tbody>

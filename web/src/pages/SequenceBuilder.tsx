@@ -91,11 +91,11 @@ export function SequenceBuilder() {
       <h1 className="page-title">{editing ? 'Edit sequence' : 'New sequence'}</h1>
       <p className="page-sub">Build a reusable message sequence. Attach it to a campaign later — the campaign gets its own copy.</p>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Details</h3>
-        <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Sequence name — e.g. ESO Leadership · 4-touch value-first"
+        <input className="input mb-2" style={{ width: '100%' }} placeholder="Sequence name — e.g. ESO Leadership · 4-touch value-first"
           value={name} onChange={(e) => setName(e.target.value)} />
-        <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Description (optional) — what this sequence is testing"
+        <input className="input mb-2" style={{ width: '100%' }} placeholder="Description (optional) — what this sequence is testing"
           value={description} onChange={(e) => setDescription(e.target.value)} />
         <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
           {PERSONAS.map((p) => <option key={p} value={p}>{p || 'Any persona'}</option>)}
@@ -103,8 +103,8 @@ export function SequenceBuilder() {
       </div>
 
       {meta?.genModel && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Generated from</h3>
+        <div className="panel mb-4">
+          <h3 className="mt-0">Generated from</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: meta.rationale ? 10 : 0 }}>
             {meta.styleKey && <MetaChip>Style: {styleName(meta.styleKey)}</MetaChip>}
             {meta.personaKey && <MetaChip>Persona: {personaName(meta.personaKey)}</MetaChip>}
@@ -113,7 +113,7 @@ export function SequenceBuilder() {
             {meta.senderMode && <MetaChip>{meta.senderMode === 'greg' ? 'As Greg' : 'Edify Greg'}</MetaChip>}
             {meta.abVariant && <MetaChip>A/B</MetaChip>}
           </div>
-          {meta.rationale && <p className="muted" style={{ fontSize: 13, fontStyle: 'italic', margin: 0 }}>{meta.rationale}</p>}
+          {meta.rationale && <p className="muted text-sm" style={{ fontStyle: 'italic', margin: 0 }}>{meta.rationale}</p>}
         </div>
       )}
 
@@ -126,7 +126,7 @@ export function SequenceBuilder() {
         />
       )}
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Steps</h3>
         <SequenceStepsEditor steps={steps} onChange={setSteps} onRewrite={editing ? rewriteStep : undefined} />
       </div>
@@ -134,13 +134,13 @@ export function SequenceBuilder() {
       {editing && <SequenceRewriter meta={meta} onRegenerated={applyGenerated} />}
 
       <div className="panel">
-        {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
+        {error && <p className="text-error">{error}</p>}
         {!valid && <p className="muted">Name is required and every step needs a subject and body.</p>}
         <div className="toolbar" style={{ marginBottom: 0 }}>
           <button className="btn btn-primary" disabled={!valid || saving} onClick={save}>
             {saving ? 'Saving…' : editing ? 'Save changes' : 'Create sequence'}
           </button>
-          {editing && <button className="btn" onClick={remove} style={{ color: 'var(--coral)' }}>Delete</button>}
+          {editing && <button className="btn text-error" onClick={remove}>Delete</button>}
         </div>
       </div>
     </>

@@ -59,19 +59,19 @@ export function CampaignDetail() {
   return (
     <>
       <Link to="/campaigns" className="muted" style={{ textDecoration: 'none' }}>← Campaigns</Link>
-      <h1 className="page-title" style={{ marginTop: 8 }}>{campaign.name}</h1>
+      <h1 className="page-title mt-2">{campaign.name}</h1>
       <p className="page-sub">
         <span className={'tag ' + (STATUS_TAG[campaign.status] ?? 'unknown')}>{campaign.status}</span>
         {campaign.persona && <> · {campaign.persona}</>}{campaign.subType && <> · {campaign.subType}</>}
         {inBison && <> · Bison #{campaign.bisonCampaignId}</>}
       </p>
 
-      {warn && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>Created, but some settings didn’t apply in Bison: <strong>{warn}</strong>. You can fix these in the Bison UI.</div>}
-      {msg && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{msg}</div>}
-      {err && <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>{err}</div>}
+      {warn && <div className="callout callout-warn mb-4">Created, but some settings didn’t apply in Bison: <strong>{warn}</strong>. You can fix these in the Bison UI.</div>}
+      {msg && <div className="callout callout-ok mb-4">{msg}</div>}
+      {err && <div className="panel mb-4 text-error">{err}</div>}
 
       {/* Audience push */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Audience</h3>
         {!inBison ? <p className="muted">Not created in Bison yet — can’t push leads.</p> : (
           <>
@@ -92,7 +92,7 @@ export function CampaignDetail() {
               </div>
             )}
             {pushLog.length > 0 && !pushResult && (
-              <details open style={{ marginTop: 12 }}><summary className="muted">Live activity</summary>
+              <details open className="mt-3"><summary className="muted">Live activity</summary>
                 <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto', marginTop: 8 }}>
                   {pushLog.map((l, i) => <div key={i}>{l}</div>)}
                 </div>
@@ -103,10 +103,10 @@ export function CampaignDetail() {
       </div>
 
       {/* Launch controls */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Launch</h3>
         {!inBison ? <p className="muted">Create the campaign in Bison first.</p> : (
-          <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+          <div className="toolbar mb-0" style={{ alignItems: 'center' }}>
             <button className="btn btn-primary" disabled={busy === 'Launch' || campaign.status === 'active'}
               onClick={() => action('Launch', () => api.outboundLaunch(cid))}>
               {busy === 'Launch' ? 'Launching…' : campaign.status === 'active' ? 'Active' : 'Launch campaign'}
@@ -123,9 +123,9 @@ export function CampaignDetail() {
       </div>
 
       {/* Stats */}
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Performance</h3>
+      <div className="panel mb-4">
+        <div className="row-between">
+          <h3 className="mt-0 mb-0">Performance</h3>
           {inBison && <button className="btn" disabled={busy === 'Refresh stats'} onClick={() => action('Refresh stats', () => api.outboundRefreshStats(cid))}>Refresh</button>}
         </div>
         {stats ? (
@@ -144,12 +144,12 @@ export function CampaignDetail() {
         <h3>Sequence ({steps.length} step{steps.length !== 1 ? 's' : ''})</h3>
         {steps.map((s) => (
           <div key={s.id} style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 12, margin: '12px 0' }}>
-            <div className="muted" style={{ fontSize: 13 }}>Step {s.stepOrder} · waits {s.waitInDays} day{s.waitInDays !== 1 ? 's' : ''}{s.variant ? ` · variant ${s.variant}` : ''}</div>
+            <div className="muted text-sm">Step {s.stepOrder} · waits {s.waitInDays} day{s.waitInDays !== 1 ? 's' : ''}{s.variant ? ` · variant ${s.variant}` : ''}</div>
             <div style={{ fontWeight: 600, margin: '2px 0' }}>{s.subject}</div>
             <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)' }}>{s.body}</div>
           </div>
         ))}
-        {senders.length > 0 && <p className="muted" style={{ marginTop: 12 }}>Senders: {senders.map((s) => s.senderEmail ?? `#${s.senderEmailId}`).join(', ')}</p>}
+        {senders.length > 0 && <p className="muted mt-3">Senders: {senders.map((s) => s.senderEmail ?? `#${s.senderEmailId}`).join(', ')}</p>}
       </div>
     </>
   );

@@ -4,7 +4,7 @@ import { api, type HubspotSync } from '../api.js';
 
 function CoverageBar({ label, total, synced, coverage }: { label: string; total: number; synced: number; coverage: number }) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className="mb-4">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
         <strong>{label}</strong>
         <span className="muted">{synced.toLocaleString()} of {total.toLocaleString()} linked to HubSpot · {coverage}%</span>
@@ -32,7 +32,7 @@ export function HubspotConnector() {
       <h1 className="page-title">HubSpot</h1>
       <p className="page-sub">Your system of record. The engine syncs companies and contacts both ways.</p>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Connection</h3>
         {(() => {
           const ok = data.tokenValid;
@@ -49,10 +49,10 @@ export function HubspotConnector() {
                 </div>
               )}
               {data.tokenFingerprint && (
-                <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
+                <div className="muted text-xs" style={{ marginTop: 10 }}>
                   Token in Railway: <code>{data.tokenFingerprint.prefix}…{data.tokenFingerprint.last4}</code>
                   {' '}· length {data.tokenFingerprint.len}
-                  {data.tokenFingerprint.hasWhitespace && <strong style={{ color: 'var(--coral)' }}> · ⚠ contains a space/newline — re-paste it cleanly</strong>}
+                  {data.tokenFingerprint.hasWhitespace && <strong className="text-error"> · ⚠ contains a space/newline — re-paste it cleanly</strong>}
                 </div>
               )}
             </>
@@ -60,7 +60,7 @@ export function HubspotConnector() {
         })()}
       </div>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>What’s in the engine vs HubSpot</h3>
         <p className="muted" style={{ marginTop: -8 }}>“Linked” = the record exists in both. One here but not in HubSpot can be pushed; one in HubSpot but not here can be pulled.</p>
         <CoverageBar label="Companies" {...data.companies} />
@@ -81,7 +81,7 @@ export function HubspotConnector() {
         })()}
       </div>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Last synced</h3>
         <table>
           <tbody>

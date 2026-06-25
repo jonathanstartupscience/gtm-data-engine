@@ -85,7 +85,7 @@ export function FindContacts() {
       <h1 className="page-title">Find more <em>contacts</em></h1>
       <p className="page-sub">Pick companies, then filter people by title, exclusions, location, and keyword. Airscale sources the contacts; we verify their emails.</p>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>1 · Which companies?</h3>
         <div className="toolbar" style={{ marginBottom: 10 }}>
           <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); }}>
@@ -101,58 +101,58 @@ export function FindContacts() {
             {countries.map((c) => <option key={c.v} value={c.v}>{c.v} ({c.n})</option>)}
           </select>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label className="row">
           <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} disabled={!persona} />
           <span className={persona ? '' : 'muted'}>Only companies missing this persona {!persona && '(pick a persona to enable)'}</span>
         </label>
       </div>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>2 · Who are you looking for?</h3>
         <p className="muted" style={{ marginTop: -8 }}>No persona required. A preset pre-fills common titles; edit them freely.</p>
 
         <div style={{ display: 'grid', gap: 12 }}>
           <div>
-            <label className="muted" style={{ fontSize: 13 }}>Quick-fill from a persona (optional)</label>
-            <select className="select" value={persona} onChange={(e) => applyPreset(e.target.value)} style={{ display: 'block', marginTop: 4 }}>
+            <label className="muted text-sm">Quick-fill from a persona (optional)</label>
+            <select className="select mt-1" value={persona} onChange={(e) => applyPreset(e.target.value)} style={{ display: 'block' }}>
               <option value="">None — I’ll specify titles</option>
               {Object.keys(PERSONA_PRESETS).map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
-            <label className="muted" style={{ fontSize: 13 }}>Job titles to include</label>
-            <div style={{ marginTop: 4 }}><ChipInput values={titlesInclude} onChange={setTitlesInclude} placeholder="e.g. Director of Partnerships, VP Sales" /></div>
+            <label className="muted text-sm">Job titles to include</label>
+            <div className="mt-1"><ChipInput values={titlesInclude} onChange={setTitlesInclude} placeholder="e.g. Director of Partnerships, VP Sales" /></div>
           </div>
           <div>
-            <label className="muted" style={{ fontSize: 13 }}>Job titles to exclude</label>
-            <div style={{ marginTop: 4 }}><ChipInput values={titlesExclude} onChange={setTitlesExclude} placeholder="e.g. Intern, Assistant" /></div>
+            <label className="muted text-sm">Job titles to exclude</label>
+            <div className="mt-1"><ChipInput values={titlesExclude} onChange={setTitlesExclude} placeholder="e.g. Intern, Assistant" /></div>
           </div>
           <div>
-            <label className="muted" style={{ fontSize: 13 }}>Location (city, region, or country)</label>
-            <div style={{ marginTop: 4 }}><ChipInput values={locations} onChange={setLocations} placeholder="e.g. New York, California, United Kingdom" /></div>
+            <label className="muted text-sm">Location (city, region, or country)</label>
+            <div className="mt-1"><ChipInput values={locations} onChange={setLocations} placeholder="e.g. New York, California, United Kingdom" /></div>
           </div>
           <div>
-            <label className="muted" style={{ fontSize: 13 }}>Keyword (searches title, bio, skills, education)</label>
-            <input className="input" style={{ width: '100%', marginTop: 4 }} value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. fintech, climate, B2B SaaS" />
+            <label className="muted text-sm">Keyword (searches title, bio, skills, education)</label>
+            <input className="input mt-1" style={{ width: '100%' }} value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. fintech, climate, B2B SaaS" />
           </div>
         </div>
       </div>
 
       {hasPeopleFilter && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="panel mb-4">
+          <div className="row-between">
             <h3 style={{ margin: 0 }}>3 · Scope &amp; cost</h3>
             <CostBadge costUsd={cost} unit="run" />
           </div>
-          {scopeLoading || !scope ? <p className="muted" style={{ marginTop: 12 }}>Checking…</p> : (
+          {scopeLoading || !scope ? <p className="muted mt-3">Checking…</p> : (
             <>
-              <p className="muted" style={{ marginTop: 12 }}>{scope.what}</p>
-              <div className="cards" style={{ marginBottom: 0 }}>
+              <p className="muted mt-3">{scope.what}</p>
+              <div className="cards mb-0">
                 <div className="card"><div className="num">{scope.candidates.toLocaleString()}</div><div className="label">{scope.unit}</div></div>
                 <div className="card"><div className="num">~{scope.estPeople.toLocaleString()}</div><div className="label">People to source</div></div>
                 <div className="card"><div className="num" style={{ color: cost >= 25 ? 'var(--coral)' : undefined }}>${cost < 1 ? cost.toFixed(2) : Math.round(cost)}</div><div className="label">Est. cost · {scope.vendor}</div></div>
               </div>
-              <div style={{ marginTop: 16 }}>
+              <div className="mt-4">
                 <button className="btn btn-primary" disabled={running || scope.candidates === 0} onClick={run}>
                   {running ? 'Finding…' : `Find contacts · ~$${cost < 1 ? cost.toFixed(2) : Math.round(cost)}`}
                 </button>
@@ -167,13 +167,13 @@ export function FindContacts() {
         <div className="panel">
           <h3>Results</h3>
           {result && (
-            <div className="cards" style={{ marginBottom: 12 }}>
+            <div className="cards mb-3">
               <div className="card"><div className="num">{Number(result.added ?? 0).toLocaleString()}</div><div className="label">People added</div></div>
               <div className="card"><div className="num">{Number(result.companies ?? 0).toLocaleString()}</div><div className="label">Companies searched</div></div>
             </div>
           )}
           <details open><summary className="muted">Activity</summary>
-            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto', marginTop: 8 }}>
+            <div className="mt-2" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto' }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
             </div>
           </details>

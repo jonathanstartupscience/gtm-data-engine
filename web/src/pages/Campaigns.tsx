@@ -51,8 +51,8 @@ export function Campaigns() {
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from Bison'}</button>
       </div>
 
-      {note && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{note}</div>}
-      {err && <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>{err}</div>}
+      {note && <div className="callout callout-ok mb-4">{note}</div>}
+      {err && <div className="panel text-error mb-4">{err}</div>}
 
       {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
         <div className="panel">
@@ -71,7 +71,7 @@ export function Campaigns() {
                   <td>{c.subType ?? <span className="muted">—</span>}</td>
                   <td>{c.bisonCampaignId ? `#${c.bisonCampaignId}` : <span className="muted">not created</span>}</td>
                   <td className="muted">{new Date(c.createdAt).toLocaleDateString()}</td>
-                  <td><button className="btn btn-sm" onClick={() => remove(c)} style={{ color: 'var(--coral)' }} title="Remove from this workspace (does not delete in Bison)">Delete</button></td>
+                  <td><button className="btn btn-sm text-error" onClick={() => remove(c)} title="Remove from this workspace (does not delete in Bison)">Delete</button></td>
                 </tr>
               ))}
             </tbody>

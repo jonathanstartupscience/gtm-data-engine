@@ -336,6 +336,51 @@ td a:hover { text-decoration: underline; }
 .auth-card { text-align: center; }
 .auth-card img { height: 38px; margin-bottom: 24px; }
 
+/* ============================================================================
+   UTILITY + SEMANTIC CLASSES — the shared vocabulary for visual consistency.
+   Use these instead of ad-hoc inline styles so the same logical element looks
+   identical on every page. Spacing scale matches the values already common in
+   the app (4/6/8/12/16/24). Inline style is still fine for genuinely one-off
+   layout (a specific grid track, a computed width) — these cover the repeats.
+   ============================================================================ */
+
+/* Spacing scale (rem-ish in px steps). Margin top/bottom + gap. */
+.mt-0 { margin-top: 0; }    .mb-0 { margin-bottom: 0; }
+.mt-1 { margin-top: 4px; }  .mb-1 { margin-bottom: 4px; }
+.mt-2 { margin-top: 8px; }  .mb-2 { margin-bottom: 8px; }
+.mt-3 { margin-top: 12px; } .mb-3 { margin-bottom: 12px; }
+.mt-4 { margin-top: 16px; } .mb-4 { margin-bottom: 16px; }
+.mt-6 { margin-top: 24px; } .mb-6 { margin-bottom: 24px; }
+
+/* Type scale (the three sizes actually in use for secondary text). */
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 12px; }
+.text-error { color: var(--coral); }
+
+/* Header row: title left, actions right — the single most repeated flex pattern. */
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+
+/* Callout — a bordered notice. Color variants map to severity. Replaces the
+   ad-hoc `panel` + `borderLeft: 3px solid var(--amber|green|accent)` repeats. */
+.callout { border-left: 3px solid var(--border); padding: 12px 16px; border-radius: var(--radius-sm); background: var(--surface); }
+.callout-warn { border-left-color: var(--amber); }
+.callout-ok { border-left-color: var(--green); }
+.callout-info { border-left-color: var(--accent); }
+.callout-error { border-left-color: var(--coral); }
+
+/* Monospace block for logs / payload previews (was duplicated inline 6×). */
+.codeblock {
+  font-family: ui-monospace, 'Courier Prime', monospace; font-size: 12px; line-height: 1.5;
+  max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px; white-space: pre-wrap; word-break: break-word;
+}
+
+/* Sub-section inside a panel: a labelled block separated by a hairline rule. */
+.subsection { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.subsection-title { font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px; }
+
 /* ---- Settings: unified connector rows + credit balances ---- */
 .section-title { font-size: 18px; margin: 8px 0 4px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }

@@ -49,9 +49,9 @@ export function Import() {
       <p className="page-sub">Upload a CSV of companies or people. Rows are deduped against the store — existing records update, new ones are created.</p>
 
       {/* Step 1 — type + file */}
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>1 · Choose what you're importing</h3>
-        <div className="toolbar" style={{ marginBottom: 0 }}>
+        <div className="toolbar mb-0">
           <select className="select" value={entityType}
             onChange={(e) => { setEntityType(e.target.value as EntityType); setPreview(null); setCsv(''); setFileName(''); }}>
             <option value="company">Companies</option>
@@ -65,7 +65,7 @@ export function Import() {
         </div>
       </div>
 
-      {err && <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>{err}</div>}
+      {err && <div className="panel mb-4 text-error">{err}</div>}
 
       {/* Step 2 — mapping */}
       {preview && (() => {
@@ -77,7 +77,7 @@ export function Import() {
           ? !!(mapping.name || mapping.domain)
           : !!(mapping.email || mapping.firstName || mapping.lastName);
         return (
-          <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel mb-4">
             <h3>2 · Match your columns to fields</h3>
             <p className="muted" style={{ marginTop: -8 }}>Auto-matched by header name. Adjust any that look wrong; “skip” ignores a field.</p>
             <table>
@@ -107,16 +107,16 @@ export function Import() {
             </table>
 
             {unmapped.length > 0 && (
-              <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+              <p className="muted mt-3 text-sm">
                 <strong>{unmapped.length}</strong> column{unmapped.length !== 1 ? 's' : ''} not mapped (will be ignored): {unmapped.join(', ')}
               </p>
             )}
             {!hasKey && (
-              <p style={{ color: 'var(--coral)', fontSize: 13, marginTop: 10 }}>
+              <p className="text-error text-sm" style={{ marginTop: 10 }}>
                 Map at least one key field ({entityType === 'company' ? 'name or domain' : 'email or a name'}) so rows can be matched and deduped.
               </p>
             )}
-            <div style={{ marginTop: 16 }}>
+            <div className="mt-4">
               <button className="btn btn-primary" disabled={busy || !hasKey} onClick={runImport}>
                 {busy ? 'Importing…' : `Import ${preview.total} ${entityType === 'company' ? 'companies' : 'contacts'}`}
               </button>
@@ -134,7 +134,7 @@ export function Import() {
           </div>
           {result && (
             <>
-              <div className="cards" style={{ marginTop: 16, marginBottom: 0 }}>
+              <div className="cards mt-4 mb-0">
                 <div className="card"><div className="num">{String(result.total ?? 0)}</div><div className="label">Rows in file</div></div>
                 <div className="card"><div className="num">{String(result.resolved ?? 0)}</div><div className="label">Resolved into store</div></div>
                 <div className="card"><div className="num">{String((result.companies as number) || (result.contacts as number) || 0)}</div><div className="label">{entityType === 'company' ? 'Companies' : 'Contacts'}</div></div>

@@ -40,26 +40,26 @@ export function Sync() {
           <button className="btn btn-primary" disabled={loading} onClick={runPreview}>
             {loading ? 'Analyzing…' : 'Preview changes'}
           </button>
-          {err && <div style={{ color: 'var(--coral)', marginTop: 12 }}>{err}</div>}
+          {err && <div className="text-error mt-3">{err}</div>}
         </div>
       )}
 
       {preview && (
         <>
-          <div className="panel" style={{ marginBottom: 16, borderLeft: willChange ? '3px solid var(--amber)' : '3px solid var(--green)' }}>
+          <div className="panel mb-4" style={{ borderLeft: willChange ? '3px solid var(--amber)' : '3px solid var(--green)' }}>
             <h3>Change summary</h3>
             <p style={{ fontSize: 15 }}>
               {willChange === 0
                 ? 'HubSpot is already up to date — no changes needed.'
                 : <>This will <strong>create {preview.toCreate.toLocaleString()}</strong> new {preview.toCreate === 1 ? 'company' : 'companies'} and <strong>update {preview.toUpdate.toLocaleString()}</strong> existing {preview.toUpdate === 1 ? 'record' : 'records'} in HubSpot. {preview.unchanged.toLocaleString()} are already in sync.</>}
             </p>
-            <div className="cards" style={{ marginBottom: 0 }}>
+            <div className="cards mb-0">
               <div className="card"><div className="num">{preview.toCreate.toLocaleString()}</div><div className="label">To create</div></div>
               <div className="card"><div className="num">{preview.toUpdate.toLocaleString()}</div><div className="label">To update</div></div>
               <div className="card"><div className="num">{preview.unchanged.toLocaleString()}</div><div className="label">Unchanged</div></div>
             </div>
             {willChange > 0 && (
-              <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div className="mt-4" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button className="btn btn-primary" disabled={pushing} onClick={confirmPush}>
                   {pushing ? 'Writing to HubSpot…' : `Confirm & write ${willChange.toLocaleString()} changes`}
                 </button>
@@ -77,11 +77,11 @@ export function Sync() {
                 <tbody>
                   {preview.changes.map((c) => (
                     <tr key={c.storeId}>
-                      <td>{c.name}<div className="muted" style={{ fontSize: 12 }}>{c.domain}</div></td>
+                      <td>{c.name}<div className="muted text-xs">{c.domain}</div></td>
                       <td><span className={`tag ${c.action === 'create' ? 'persona' : 'risky_catchall'}`}>{c.action === 'create' ? 'Create' : 'Update'}</span></td>
                       <td>
                         {c.changes.map((ch, i) => (
-                          <div key={i} style={{ fontSize: 13 }}>
+                          <div key={i} className="text-sm">
                             <strong>{ch.field}:</strong> <span className="muted">{ch.from}</span> → {ch.to}
                           </div>
                         ))}
@@ -96,7 +96,7 @@ export function Sync() {
       )}
 
       {pushing && log.length > 0 && (
-        <div className="panel" style={{ marginTop: 16 }}>
+        <div className="panel mt-4">
           <details open><summary className="muted">Live activity</summary>
             <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto', marginTop: 8 }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
