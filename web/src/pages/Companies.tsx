@@ -4,6 +4,7 @@ import { api, downloadCsv, type Company } from '../api.js';
 import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { SortHeader, DomainLink, nextSort } from '../components/Table.js';
 import { SelectionActionBar } from '../components/SelectionActionBar.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const LIMIT = 50;
 
@@ -44,8 +45,11 @@ export function Companies() {
 
   return (
     <>
-      <h1 className="page-title">Companies</h1>
-      <p className="page-sub">{total.toLocaleString()} matching{active ? ' (filtered)' : ' in the store'}</p>
+      <PageHeader
+        title="Companies"
+        sub={`${total.toLocaleString()} matching${active ? ' (filtered)' : ' in the store'}`}
+        action={<button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export {total.toLocaleString()} → CSV</button>}
+      />
 
       <div className="toolbar">
         <input className="input" placeholder="Search name or domain…"
@@ -63,7 +67,6 @@ export function Companies() {
           {countries.map((c) => <option key={c.v} value={c.v}>{c.v} ({c.n})</option>)}
         </select>
         {active && <button className="btn" onClick={clear}>Clear</button>}
-        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export {total.toLocaleString()} → CSV</button>
       </div>
 
       {loading ? <div className="loading">Loading…</div> : (

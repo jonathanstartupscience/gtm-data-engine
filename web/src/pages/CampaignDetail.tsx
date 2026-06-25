@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { api, postStream, type OutboundCampaign, type SequenceStep, type SenderAssignment, type CampaignStats } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const STATUS_TAG: Record<string, string> = { active: 'deliverable', paused: 'risky_catchall', created: 'role_based', draft: 'unknown', done: 'role_based' };
 
@@ -59,12 +60,14 @@ export function CampaignDetail() {
   return (
     <>
       <Link to="/campaigns" className="muted" style={{ textDecoration: 'none' }}>← Campaigns</Link>
-      <h1 className="page-title mt-2">{campaign.name}</h1>
-      <p className="page-sub">
-        <span className={'tag ' + (STATUS_TAG[campaign.status] ?? 'unknown')}>{campaign.status}</span>
-        {campaign.persona && <> · {campaign.persona}</>}{campaign.subType && <> · {campaign.subType}</>}
-        {inBison && <> · Bison #{campaign.bisonCampaignId}</>}
-      </p>
+      <PageHeader
+        title={campaign.name}
+        sub={<>
+          <span className={'tag ' + (STATUS_TAG[campaign.status] ?? 'unknown')}>{campaign.status}</span>
+          {campaign.persona && <> · {campaign.persona}</>}{campaign.subType && <> · {campaign.subType}</>}
+          {inBison && <> · Bison #{campaign.bisonCampaignId}</>}
+        </>}
+      />
 
       {warn && <div className="callout callout-warn mb-4">Created, but some settings didn’t apply in Bison: <strong>{warn}</strong>. You can fix these in the Bison UI.</div>}
       {msg && <div className="callout callout-ok mb-4">{msg}</div>}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, postStream, type Company } from '../api.js';
 import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { DomainLink } from '../components/Table.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type Seed = { domain: string; name: string };
 
@@ -70,8 +71,10 @@ export function Discover() {
 
   return (
     <>
-      <h1 className="page-title">Find more <em>companies</em></h1>
-      <p className="page-sub">Pick a sub-type, choose example companies, and Ocean finds lookalikes — deduped against what you already have.</p>
+      <PageHeader
+        title={<>Find more <em>companies</em></>}
+        sub="Lookalikes from Ocean, deduped against what you already have."
+      />
 
       <div className="panel mb-4">
         <h3>1 · Choose a sub-type</h3>

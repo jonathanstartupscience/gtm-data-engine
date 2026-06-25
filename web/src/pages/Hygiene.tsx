@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, authToken, type HygieneAnalytics } from '../api.js';
 import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Task { id: string; name: string; desc: string; key: string; }
 const TASKS: Task[] = [
@@ -50,8 +51,10 @@ export function Hygiene() {
 
   return (
     <>
-      <h1 className="page-title">Data <em>hygiene</em></h1>
-      <p className="page-sub">Clean and complete your CRM data. Every task here is <strong>free</strong> — it works on data you already have, no vendor cost — and shows how many records it will touch before you run it.</p>
+      <PageHeader
+        title={<>Data <em>hygiene</em></>}
+        sub={<>Every task is <strong>free</strong> — runs on data you already have, no vendor cost.</>}
+      />
 
       {a && (
         <div className="grid2 mb-4">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api, type Sender, type BuildStep, type TaxonomyType, type SequenceTemplate } from '../api.js';
 import { SequenceStepsEditor, blankStep } from '../components/SequenceStepsEditor.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -81,8 +82,7 @@ export function CampaignBuilder() {
 
   return (
     <>
-      <h1 className="page-title">Build a campaign</h1>
-      <p className="page-sub">Define it, create it in Email Bison, then push the audience and launch. Preview before anything sends.</p>
+      <PageHeader title="Build a campaign" sub="Nothing sends until you push the audience and launch — this only sets it up in Bison." />
 
       {/* 1 · Name */}
       <div className="panel mb-4">
@@ -164,7 +164,7 @@ export function CampaignBuilder() {
       <div className="panel">
         <h3>6 · Create in Email Bison</h3>
         <p className="muted" style={{ marginTop: -4, marginBottom: 12 }}>
-          Creates the campaign, sequence and schedule in Bison and saves the definition here. Sends
+          Creates the campaign, sequence and schedule in Bison. Sends
           <strong> nothing </strong> yet — push the {count?.toLocaleString() ?? ''} contacts and launch from the campaign page.
         </p>
         {error && <p className="text-error">{error}</p>}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type OutboundCampaign } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 const STATUS_TAG: Record<string, string> = {
   active: 'deliverable', paused: 'risky_catchall', created: 'role_based', draft: 'unknown', done: 'role_based',
@@ -26,7 +27,7 @@ export function Campaigns() {
       const r = await api.outboundSync();
       setNote(`Synced ${r.synced} campaigns from Bison (${r.added} new, ${r.updated} updated).`);
       load();
-    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check the Email Bison key/instance URL on the Workspaces page.'); }
+    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check this workspace’s Bison key.'); }
     setSyncing(false);
   }
 
@@ -42,11 +43,12 @@ export function Campaigns() {
 
   return (
     <>
-      <h1 className="page-title">Campaigns</h1>
-      <p className="page-sub">Your cold-email campaigns. Build one, or sync from Email Bison to track existing campaigns here.</p>
+      <PageHeader
+        title="Campaigns"
+        action={<Link to="/campaigns/new" className="btn btn-primary">New campaign</Link>}
+      />
 
       <div className="toolbar">
-        <Link to="/campaigns/new" className="btn btn-primary">+ New campaign</Link>
         <Link to="/experiments" className="btn">A/B experiments</Link>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from Bison'}</button>
       </div>
@@ -56,7 +58,11 @@ export function Campaigns() {
 
       {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
         <div className="panel">
-          <p>No campaigns yet. <Link to="/campaigns/new">Build your first campaign</Link> or sync from Bison.</p>
+          <EmptyState
+            title="No campaigns yet"
+            hint="Already running campaigns in Bison? Sync to pull them in."
+            action={<Link to="/campaigns/new" className="btn btn-primary">New campaign</Link>}
+          />
         </div>
       ) : (
         <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api, type LiReply } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 /** LinkedIn Inbox — conversations from HeyReach campaigns, positive/lead-originated surfaced first. */
 export function LinkedInInbox() {
@@ -30,8 +31,7 @@ export function LinkedInInbox() {
 
   return (
     <>
-      <h1 className="page-title">LinkedIn Inbox</h1>
-      <p className="page-sub">Conversations from your HeyReach campaigns. Open the thread in LinkedIn to respond.</p>
+      <PageHeader title="LinkedIn Inbox" sub="Replies surface here; respond in the LinkedIn thread itself." />
 
       <div className="toolbar" style={{ alignItems: 'center' }}>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync conversations'}</button>
@@ -48,7 +48,13 @@ export function LinkedInInbox() {
       )}
 
       {loading ? <div className="loading">Loading…</div> : replies.length === 0 ? (
-        <div className="panel"><p className="muted">No conversations yet. Sync conversations to pull from HeyReach.</p></div>
+        <div className="panel">
+          <EmptyState
+            title="No conversations yet"
+            hint={positiveOnly ? 'Showing replies only — uncheck to see every conversation.' : 'Sync to pull conversations from HeyReach.'}
+            action={<button className="btn btn-primary" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync conversations'}</button>}
+          />
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {replies.map((r) => (

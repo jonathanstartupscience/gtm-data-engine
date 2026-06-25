@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, authToken, type Proposal } from '../api.js';
 import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { DomainLink } from '../components/Table.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 export function Classify() {
   const [audit, setAudit] = useState<{ missingTaxonomy: number; pendingProposals: number; canRunInApp: boolean } | null>(null);
@@ -61,8 +62,10 @@ export function Classify() {
 
   return (
     <>
-      <h1 className="page-title">Classify <em>review</em></h1>
-      <p className="page-sub">AI-proposed type &amp; sub-type for companies missing them. Nothing applies until you approve. Approving writes to this store <strong>and back to HubSpot</strong> for any linked record, so the CRM gets cleaned too.</p>
+      <PageHeader
+        title={<>Classify <em>review</em></>}
+        sub={<>Nothing applies until you approve. Approving writes back to HubSpot for any linked record.</>}
+      />
 
       {audit && (
         <div className="cards">
@@ -118,7 +121,12 @@ export function Classify() {
       {msg && <div className="panel mb-4" style={{ borderLeft: '3px solid var(--green)' }}>{msg}</div>}
 
       {proposals.length === 0 ? (
-        <div className="loading">No pending proposals. Use “Generate proposals” above to create some.</div>
+        <div className="panel">
+          <EmptyState
+            title="No proposals to review"
+            hint="Generate some above, or lower the confidence threshold if you’ve filtered them out."
+          />
+        </div>
       ) : (
         <table>
           <thead><tr>

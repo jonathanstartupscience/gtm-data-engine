@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api, postStream, type Experiment, type ExperimentPreview, type OutboundCampaign } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /**
  * Experiment detail — adjust arm weights (0 = pause, keeps its leads; higher = more new traffic),
@@ -71,11 +72,13 @@ export function ExperimentDetail() {
   return (
     <>
       <Link to="/experiments" className="muted text-sm">← Experiments</Link>
-      <h1 className="page-title mt-2">{exp.name}</h1>
-      <p className="page-sub">
-        {exp.persona ?? 'All personas'}{exp.subType ? ` · ${exp.subType}` : ''} · {exp.status}
-        {preview ? <> · segment: <strong>{preview.segmentSize.toLocaleString()}</strong> contacts, {preview.unassigned.toLocaleString()} not yet assigned</> : null}
-      </p>
+      <PageHeader
+        title={exp.name}
+        sub={<>
+          {exp.persona ?? 'All personas'}{exp.subType ? ` · ${exp.subType}` : ''} · {exp.status}
+          {preview ? <> · segment: <strong>{preview.segmentSize.toLocaleString()}</strong> contacts, {preview.unassigned.toLocaleString()} not yet assigned</> : null}
+        </>}
+      />
 
       {/* Arms + weights */}
       <div className="panel mb-4">
@@ -84,7 +87,7 @@ export function ExperimentDetail() {
           <button className="btn" onClick={archiveToggle} style={{ padding: '4px 10px' }}>{exp.status === 'archived' ? 'Reactivate' : 'Archive'}</button>
         </div>
         <p className="muted text-sm" style={{ margin: '6px 0 12px' }}>
-          Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps the leads it already has, none new flow. Raise a winner to send it more.
+          Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps its current leads, gets no new ones. Raise a winner to send it more.
         </p>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>

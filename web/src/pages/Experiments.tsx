@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Experiment, type OutboundCampaign, type SequenceTemplate, type Sender } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 
@@ -94,15 +95,13 @@ export function Experiments() {
 
   return (
     <>
-      <h1 className="page-title">Experiments</h1>
-      <p className="page-sub">
-        Run sequences head-to-head against one audience. Each arm is a campaign with a weight; contacts
-        are split by weight and <strong>pinned</strong> to their arm, so pausing a loser or scaling a
-        winner never reshuffles anyone already in flight — the comparison stays clean.
-      </p>
+      <PageHeader
+        title="Experiments"
+        sub={<>Each arm is a campaign with a weight; contacts are split by weight and <strong>pinned</strong> to their arm, so pausing a loser or scaling a winner never reshuffles anyone already in flight.</>}
+        action={<button className="btn btn-primary" onClick={() => { setShowBuild((v) => !v); setShowCreate(false); }}>{showBuild ? 'Cancel' : 'Build from sequences'}</button>}
+      />
 
       <div className="toolbar">
-        <button className="btn btn-primary" onClick={() => { setShowBuild((v) => !v); setShowCreate(false); }}>{showBuild ? 'Cancel' : '+ Build from sequences'}</button>
         <button className="btn" onClick={() => { setShowCreate((v) => !v); setShowBuild(false); }}>{showCreate ? 'Cancel' : 'Wire from existing campaigns'}</button>
         <Link to="/campaigns" className="muted text-sm" style={{ alignSelf: 'center' }}>← Campaigns</Link>
       </div>
@@ -209,7 +208,12 @@ export function Experiments() {
       )}
 
       {loading ? <div className="loading">Loading…</div> : exps.length === 0 ? (
-        <div className="panel"><p className="muted">No experiments yet. Create one to split an audience across sequences and compare them.</p></div>
+        <div className="panel">
+          <EmptyState
+            title="No experiments yet"
+            hint="Build from sequences to spin up a campaign per arm, or wire arms from campaigns you already have."
+          />
+        </div>
       ) : (
         <div className="cards">
           {exps.map((e) => (
