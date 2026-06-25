@@ -51,7 +51,7 @@ export function ReplyRouting({ reloadKey }: { reloadKey?: unknown }) {
           <input className="input" type="url" placeholder="https://chat.googleapis.com/v1/spaces/…"
             value={webhook} onChange={(e) => setWebhook(e.target.value)} style={{ minWidth: 360, marginTop: 4 }} />
 
-          <div className="toolbar" style={{ marginTop: 12, marginBottom: 0, alignItems: 'center' }}>
+          <div className="toolbar bare mt-3" style={{ marginBottom: 0, alignItems: 'center' }}>
             <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save roster'}</button>
             {msg && <span className="muted">{msg}</span>}
           </div>

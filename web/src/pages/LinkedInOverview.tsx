@@ -42,11 +42,11 @@ export function LinkedInOverview() {
 
       <div className="panel">
         <h3>Get started</h3>
-        <div className="toolbar mb-0" style={{ marginTop: 10 }}>
+        <div className="toolbar bare mt-2 mb-0">
           <Link to="/linkedin/campaigns" className="btn btn-primary">View campaigns</Link>
           <Link to="/linkedin/inbox" className="btn">Inbox</Link>
         </div>
-        <p className="muted" style={{ marginTop: 14, lineHeight: 1.7 }}>
+        <p className="muted mt-3" style={{ lineHeight: 1.7 }}>
           Build the campaign and sequence in HeyReach, sync it here, then push a segment — contacts
           with a LinkedIn profile URL — and watch conversations land in the Inbox.
         </p>

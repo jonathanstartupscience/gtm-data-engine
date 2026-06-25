@@ -136,7 +136,7 @@ export function SequenceBuilder() {
       <div className="panel">
         {error && <p className="text-error">{error}</p>}
         {!valid && <p className="muted">Name is required and every step needs a subject and body.</p>}
-        <div className="toolbar" style={{ marginBottom: 0 }}>
+        <div className="toolbar bare mb-0">
           <button className="btn btn-primary" disabled={!valid || saving} onClick={save}>
             {saving ? 'Saving…' : editing ? 'Save changes' : 'Create sequence'}
           </button>

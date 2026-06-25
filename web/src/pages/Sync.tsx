@@ -72,6 +72,7 @@ export function Sync() {
           {willChange > 0 && (
             <div className="panel">
               <h3>Line-by-line changes{preview.truncated ? ` (showing first ${preview.changes.length})` : ''}</h3>
+              <div className="data-grid">
               <table>
                 <thead><tr><th>Company</th><th>Action</th><th>What changes</th></tr></thead>
                 <tbody>
@@ -90,6 +91,7 @@ export function Sync() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>

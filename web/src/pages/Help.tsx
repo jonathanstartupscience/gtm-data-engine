@@ -21,7 +21,7 @@ export function Help() {
       <h1 className="page-title">Knowledge <em>base</em></h1>
       <p className="page-sub">{GENERAL.intro}</p>
 
-      <input className="input" style={{ width: '100%', maxWidth: 460, marginBottom: 24 }}
+      <input className="input mb-6" style={{ width: '100%', maxWidth: 460 }}
         placeholder="Search the knowledge base…" value={q} onChange={(e) => setQ(e.target.value)} />
 
       {filtered.length === 0 && <div className="panel"><p className="muted">No articles match “{q}”.</p></div>}

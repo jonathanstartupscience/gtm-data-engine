@@ -325,15 +325,15 @@ export function Runs() {
         </div>
       )}
 
-      <div className="panel">
-        <h3>Recent activity</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Select any run for a step-by-step breakdown.</p>
+      <h3 className="mb-1">Recent activity</h3>
+      <p className="muted mt-0 mb-3">Select any run for a step-by-step breakdown.</p>
+      <div className="data-grid">
         <table>
           <thead><tr><th>Workflow</th><th>Status</th><th>When</th><th>Result</th></tr></thead>
           <tbody>
             {history.map((r) => (
               <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => openRun(r.id)}>
-                <td><a onClick={(e) => { e.preventDefault(); openRun(r.id); }} style={{ textTransform: 'capitalize' }}>{r.kind.replace(/-/g, ' ').replace('hubspot', 'HubSpot')}</a></td>
+                <td><a className="cell-primary" onClick={(e) => { e.preventDefault(); openRun(r.id); }} style={{ textTransform: 'capitalize' }}>{r.kind.replace(/-/g, ' ').replace('hubspot', 'HubSpot')}</a></td>
                 <td><span className={`tag ${r.status === 'done' ? 'deliverable' : r.status === 'error' ? 'undeliverable' : 'unknown'}`}>{r.status === 'done' ? 'Complete' : r.status === 'error' ? 'Failed' : r.status}</span></td>
                 <td className="muted">{new Date(r.startedAt).toLocaleString()}</td>
                 <td className="muted" style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

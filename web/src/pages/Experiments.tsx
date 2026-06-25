@@ -101,7 +101,7 @@ export function Experiments() {
         action={<button className="btn btn-primary" onClick={() => { setShowBuild((v) => !v); setShowCreate(false); }}>{showBuild ? 'Cancel' : 'Build from sequences'}</button>}
       />
 
-      <div className="toolbar">
+      <div className="toolbar bare">
         <button className="btn" onClick={() => { setShowCreate((v) => !v); setShowBuild(false); }}>{showCreate ? 'Cancel' : 'Wire from existing campaigns'}</button>
         <Link to="/campaigns" className="muted text-sm" style={{ alignSelf: 'center' }}>← Campaigns</Link>
       </div>

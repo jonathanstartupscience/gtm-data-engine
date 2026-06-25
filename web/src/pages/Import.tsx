@@ -53,7 +53,7 @@ export function Import() {
       {/* Step 1 — type + file */}
       <div className="panel mb-4">
         <h3>1 · Choose what you're importing</h3>
-        <div className="toolbar mb-0">
+        <div className="toolbar bare mb-0">
           <select className="select" value={entityType}
             onChange={(e) => { setEntityType(e.target.value as EntityType); setPreview(null); setCsv(''); setFileName(''); }}>
             <option value="company">Companies</option>

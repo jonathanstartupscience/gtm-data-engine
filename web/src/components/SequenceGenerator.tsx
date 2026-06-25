@@ -215,7 +215,7 @@ export function SequenceGenerator({
       {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
       {!styleKey || !personaKey ? <p className="muted">Pick a style and a persona to generate.</p> : null}
 
-      <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
+      <div className="toolbar bare" style={{ marginBottom: 0, alignItems: 'center' }}>
         <button className="btn btn-primary" disabled={!canGenerate} onClick={generate}>
           {generating ? <><span className="spinner" /> Writing…</> : 'Generate sequence'}
         </button>

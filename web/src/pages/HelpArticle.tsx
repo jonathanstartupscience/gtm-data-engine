@@ -27,7 +27,7 @@ export function HelpArticle() {
         <p className="page-sub">{article.intro}</p>
 
         {article.steps && (
-          <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel mb-4">
             <h3 style={{ marginTop: 0 }}>How to use it</h3>
             {article.steps.map((s, i) => (
               <div className="help-step" key={i}><span className="n">{i + 1}</span><span>{s}</span></div>
@@ -36,14 +36,14 @@ export function HelpArticle() {
         )}
 
         {article.sections.map((s) => (
-          <div className="panel" style={{ marginBottom: 12 }} key={s.heading}>
+          <div className="panel mb-3" key={s.heading}>
             <h3 style={{ marginTop: 0 }}>{s.heading}</h3>
             <p style={{ marginBottom: 0 }}>{s.body}</p>
           </div>
         ))}
 
         {article.appRoute && (
-          <Link to={article.appRoute} className="btn btn-primary" style={{ marginTop: 8 }}>Go to {article.title} →</Link>
+          <Link to={article.appRoute} className="btn btn-primary mt-2">Go to {article.title} →</Link>
         )}
       </div>
 

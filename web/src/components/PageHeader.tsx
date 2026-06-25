@@ -8,12 +8,13 @@ import type { ReactNode } from 'react';
  *
  *   <PageHeader title="Campaigns" sub="…" action={<Link className="btn btn-primary">New campaign</Link>} />
  */
-export function PageHeader({ title, sub, action }: { title: ReactNode; sub?: ReactNode; action?: ReactNode }) {
+export function PageHeader({ title, sub, action, subClassName }:
+  { title: ReactNode; sub?: ReactNode; action?: ReactNode; subClassName?: string }) {
   return (
     <div className="page-header">
       <div className="page-header-text">
         <h1 className="page-title">{title}</h1>
-        {sub && <p className="page-sub mb-0">{sub}</p>}
+        {sub && <p className={`page-sub mb-0${subClassName ? ` ${subClassName}` : ''}`}>{sub}</p>}
       </div>
       {action && <div className="page-header-action">{action}</div>}
     </div>
