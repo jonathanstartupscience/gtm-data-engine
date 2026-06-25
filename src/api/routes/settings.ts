@@ -13,11 +13,16 @@ import { checkApiKey as heyreachCheck } from '../../engine/adapters/heyreach.js'
 export const settingsRouter = Router();
 
 // Fixed keys this page can manage. (The store supports more — see SECRET_ENV.)
+// `hint` is a terse one-liner (where to get the key) — longer how/why lives in the Help drawer.
 const MANAGED = [
-  { key: 'HEYREACH_API_KEY', label: 'HeyReach API key', help: 'HeyReach → Settings → API. Enables the LinkedIn Engine.', testable: true },
-  { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', help: 'console.anthropic.com → API keys. Enables running the AI classifier from the app (Classify tab).', testable: false },
-  { key: 'GOOGLE_CHAT_WEBHOOK_URL', label: 'Google Chat webhook (default reply-alert space)', help: 'Google Chat space → Apps & integrations → Webhooks → copy URL. Reply alerts post here unless a workspace sets its own space on the Workspaces page; channel membership controls who is alerted.', testable: false },
-  { key: 'EMAILBISON_BASE_URL', label: 'Email Bison instance URL (default)', help: 'Your Bison API base, e.g. https://send.yourdomain.com/api. Used by every workspace unless one sets its own instance URL on the Workspaces page. Defaults to https://dedi.emailbison.com/api if unset.', testable: false },
+  { key: 'HUBSPOT_TOKEN', label: 'HubSpot', hint: 'Private app token — HubSpot → Settings → Integrations → Private Apps.', testable: false },
+  { key: 'HEYREACH_API_KEY', label: 'HeyReach', hint: 'HeyReach → Settings → API.', testable: true },
+  { key: 'ANTHROPIC_API_KEY', label: 'Anthropic', hint: 'console.anthropic.com → API keys.', testable: false },
+  { key: 'OCEAN_API_KEY', label: 'Ocean.io', hint: 'Ocean.io → Settings → API.', testable: false },
+  { key: 'BOUNCER_API_KEY', label: 'Bouncer', hint: 'usebouncer.com → API.', testable: false },
+  { key: 'AIRSCALE_API_KEY', label: 'Airscale', hint: 'Airscale → Settings → API.', testable: false },
+  { key: 'GOOGLE_CHAT_WEBHOOK_URL', label: 'Google Chat webhook', hint: 'Chat space → Apps & integrations → Webhooks. Default reply-alert space.', testable: false },
+  { key: 'EMAILBISON_BASE_URL', label: 'Email Bison instance URL', hint: 'e.g. https://send.yourdomain.com/api. Default for all workspaces.', testable: false },
 ];
 // NOTE: there is no global Email Bison key — each workspace authenticates as itself. Set per-workspace
 // keys on the Workspaces page (EMAILBISON_API_KEY__<slug>, still settable through these endpoints).
