@@ -100,7 +100,7 @@ export function Classify() {
               </button>
             </div>
             {runLog.length > 0 && (
-              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 160, overflow: 'auto', marginTop: 12 }}>
+              <div className="codeblock mt-3" style={{ maxHeight: 160 }}>
                 {runLog.map((l, i) => <div key={i}>{l}</div>)}
               </div>
             )}
@@ -118,7 +118,7 @@ export function Classify() {
         <button className="btn btn-primary" disabled={busy || !selected.size} onClick={() => decide('approve')}>Approve &amp; apply {selected.size}</button>
         <button className="btn" disabled={busy || !selected.size} onClick={() => decide('reject')}>Dismiss {selected.size}</button>
       </div>
-      {msg && <div className="panel mb-4" style={{ borderLeft: '3px solid var(--green)' }}>{msg}</div>}
+      {msg && <div className="callout callout-ok mb-4">{msg}</div>}
 
       {proposals.length === 0 ? (
         <div className="panel">
@@ -131,13 +131,14 @@ export function Classify() {
         <table>
           <thead><tr>
             <th><input type="checkbox" checked={selected.size === proposals.length}
+              aria-label="Select all proposals"
               onChange={(e) => setSelected(e.target.checked ? new Set(proposals.map((p) => p.id)) : new Set())} /></th>
             <th>Company</th><th>Proposed</th><th>Confidence</th><th>Why</th>
           </tr></thead>
           <tbody>
             {proposals.map((p) => (
               <tr key={p.id}>
-                <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
+                <td><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.name ?? 'proposal'}`} /></td>
                 <td>{p.name}<div className="text-xs"><DomainLink domain={p.domain} /></div></td>
                 <td><span className="tag persona">{p.type}</span> <span className="tag persona">{p.subType}</span></td>
                 <td style={{ color: confColor(p.confidence), fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>

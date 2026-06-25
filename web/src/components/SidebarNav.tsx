@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { WORKSPACES, workspaceForPath } from './WorkspaceSwitcher.js';
+import { useRecents } from '../recents.js';
 
 /**
  * Unified sidebar — all three engines visible at once as collapsible sections, the one you're in
@@ -18,6 +19,7 @@ export function SidebarNav({ replyBadge, liBadge, emailPicker }: {
   replyBadge: number; liBadge: number; emailPicker: ReactNode;
 }) {
   const { pathname } = useLocation();
+  const recents = useRecents();
   const current = workspaceForPath(pathname).id;
   // Which engine sections are open. Default: only the current engine is expanded.
   const [open, setOpen] = useState<Record<string, boolean>>({ [current]: true });
@@ -52,6 +54,16 @@ export function SidebarNav({ replyBadge, liBadge, emailPicker }: {
 
   return (
     <nav className="engine-nav">
+      {recents.length > 0 && (
+        <div className="recents">
+          <div className="recents-hdr">Recent</div>
+          {recents.map((r) => (
+            <NavLink key={r.to} to={r.to} className={({ isActive }) => 'navlink recent-link' + (isActive ? ' active' : '')}>
+              {r.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
       {engines.map((e) => {
         const meta = WORKSPACES.find((w) => w.id === e.id)!;
         const expanded = isOpen(e.id);

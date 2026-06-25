@@ -26,7 +26,7 @@ export function Import() {
     try {
       const p = await api.importPreview(text, entityType);
       setPreview(p); setMapping(p.mapping);
-    } catch (e2) { setErr(`Preview failed: ${e2}`); }
+    } catch { setErr('Couldn’t read that file — make sure it’s a valid CSV with a header row, then try again.'); }
   }
 
   async function runImport() {
@@ -39,7 +39,7 @@ export function Import() {
           else if (ev === 'done') { const d = data as { stats: Record<string, unknown>; runId: number }; setResult(d.stats); setRunId(d.runId); setLog((l) => [...l, '✓ import complete']); }
           else if (ev === 'error') setErr((data as { message: string }).message);
         });
-    } catch (e) { setErr(String(e)); }
+    } catch { setErr('Import couldn’t start — check your connection and try again.'); }
     setBusy(false);
   }
 
@@ -67,7 +67,7 @@ export function Import() {
         </div>
       </div>
 
-      {err && <div className="panel mb-4 text-error">{err}</div>}
+      {err && <div className="callout callout-error mb-4 text-error">{err}</div>}
 
       {/* Step 2 — mapping */}
       {preview && (() => {
@@ -131,7 +131,7 @@ export function Import() {
       {(log.length > 0 || result) && (
         <div className="panel">
           <h3>3 · Import progress</h3>
-          <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto' }}>
+          <div className="codeblock" style={{ maxHeight: 200 }}>
             {log.map((l, i) => <div key={i}>{l}</div>)}
           </div>
           {result && (

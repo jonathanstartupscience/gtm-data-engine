@@ -446,6 +446,13 @@ export async function postStream(
   const token = tokenGetter ? await tokenGetter() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
   const resp = await fetch(withWorkspace(url), { method: 'POST', headers, body: JSON.stringify(body) });
+  // A non-OK response is a plain JSON error (e.g. 409 cost_changed), NOT an SSE stream — surface its
+  // message as an 'error' event so callers handle it uniformly instead of mis-parsing it as events.
+  if (!resp.ok) {
+    const j = await resp.json().catch(() => null) as { message?: string; error?: string } | null;
+    onEvent('error', { message: j?.message ?? j?.error ?? `Request failed (${resp.status})` });
+    return;
+  }
   if (!resp.body) throw new Error('no stream');
   const reader = resp.body.getReader();
   const dec = new TextDecoder();

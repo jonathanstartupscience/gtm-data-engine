@@ -34,11 +34,11 @@ export function Contacts() {
   const active = q || persona || emailStatus;
   const exportCsv = () => {
     const params = new URLSearchParams({ q, persona, emailStatus, sort: sort.sort, dir: sort.dir });
-    downloadCsv(`/api/export/contacts?${params}`, 'contacts.csv').catch((e) => alert('Export failed: ' + e));
+    downloadCsv(`/api/export/contacts?${params}`, 'contacts.csv').catch(() => alert('Couldn’t export — try a narrower filter, then export again.'));
   };
   const exportAdAudience = () => {
     const params = new URLSearchParams({ persona });
-    downloadCsv(`/api/export/ad-audience?${params}`, 'ad_audience.csv').catch((e) => alert('Export failed: ' + e));
+    downloadCsv(`/api/export/ad-audience?${params}`, 'ad_audience.csv').catch(() => alert('Couldn’t export the ad audience — pick a persona, then export again.'));
   };
 
   return (
@@ -50,7 +50,7 @@ export function Contacts() {
       />
 
       <div className="toolbar">
-        <input className="input" placeholder="Search name, email, title…"
+        <input className="input" placeholder="Search name, email, title…" aria-label="Search contacts by name, email, or title"
           value={q} onChange={(e) => { setQ(e.target.value); setOffset(0); }} />
         <select className="select" value={persona} onChange={(e) => { setPersona(e.target.value); setOffset(0); }}>
           {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
@@ -65,7 +65,7 @@ export function Contacts() {
       {loading ? <div className="loading">Loading…</div> : (
         <table>
           <thead><tr>
-            <th><input type="checkbox" checked={pageAllSelected}
+            <th><input type="checkbox" aria-label="Select all contacts on this page" checked={pageAllSelected}
               onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
             <SortHeader label="Name" col="lastName" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Title" col="jobTitle" sort={sort.sort} dir={sort.dir} onSort={onSort} />
@@ -79,7 +79,7 @@ export function Contacts() {
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
-                <td><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
+                <td><input type="checkbox" aria-label={`Select ${[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'contact'}`} checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
                 <td>
                   {c.linkedinUrl
                     ? <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</a>

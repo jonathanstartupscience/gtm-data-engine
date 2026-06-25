@@ -69,7 +69,7 @@ export function Experiments() {
         labels: validBuildArms.map((a) => a.label.trim() || ''),
       });
       navigate(`/experiments/${experimentId}`);
-    } catch (e) { setError(String(e)); setCreating(false); }
+    } catch { setError('Couldn’t build the experiment — check this workspace’s Bison key on Workspaces, then try again.'); setCreating(false); }
   }
 
   const setArm = (i: number, patch: Partial<DraftArm>) => setArms((a) => a.map((x, idx) => idx === i ? { ...x, ...patch } : x));
@@ -90,7 +90,7 @@ export function Experiments() {
         })),
       });
       navigate(`/experiments/${id}`);
-    } catch (e) { setError(String(e)); setCreating(false); }
+    } catch { setError('Couldn’t create the experiment — check the campaigns are reachable in Bison, then try again.'); setCreating(false); }
   }
 
   return (
@@ -125,7 +125,7 @@ export function Experiments() {
 
           {sequences.length === 0 && <p className="text-error">No sequences yet. <Link to="/sequences">Write sequences</Link> first.</p>}
           {buildArms.map((a, i) => (
-            <div key={i} className="mb-2" style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10 }}>
+            <div key={i} className="mb-2" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 10 }}>
               <div className="toolbar mb-2" style={{ alignItems: 'center' }}>
                 <select className="select" value={a.sequenceTemplateId} onChange={(e) => setBArm(i, { sequenceTemplateId: e.target.value ? Number(e.target.value) : '' })} style={{ minWidth: 240 }}>
                   <option value="">Pick a sequence…</option>
@@ -135,7 +135,7 @@ export function Experiments() {
                 <label className="muted">weight
                   <input className="input" type="number" min={0} max={1000} value={a.weight} onChange={(e) => setBArm(i, { weight: Number(e.target.value) })} style={{ width: 70, marginLeft: 6 }} />
                 </label>
-                {buildArms.length > 1 && <button className="btn" onClick={() => removeBArm(i)} style={{ padding: '4px 10px' }}>Remove</button>}
+                {buildArms.length > 1 && <button className="btn btn-sm" onClick={() => removeBArm(i)}>Remove</button>}
               </div>
               <div className="text-xs">
                 <span className="muted">Senders for this arm ({a.senderEmailIds.length} selected, {senders.filter((s) => a.senderEmailIds.includes(s.id)).reduce((sum, s) => sum + (s.daily_limit ?? 0), 0)}/day):</span>
@@ -194,7 +194,7 @@ export function Experiments() {
                 <option value="">link sequence (optional)</option>
                 {sequences.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              {arms.length > 1 && <button className="btn" onClick={() => removeArm(i)} style={{ padding: '4px 10px' }}>Remove</button>}
+              {arms.length > 1 && <button className="btn btn-sm" onClick={() => removeArm(i)}>Remove</button>}
             </div>
           ))}
           <button className="btn mb-3" onClick={addArm}>+ Add arm</button>

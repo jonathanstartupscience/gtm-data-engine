@@ -17,7 +17,7 @@ export function Campaigns() {
 
   function load() {
     setLoading(true);
-    api.outboundCampaigns().then((d) => setCampaigns(d.campaigns)).catch((e) => setErr(String(e))).finally(() => setLoading(false));
+    api.outboundCampaigns().then((d) => setCampaigns(d.campaigns)).catch(() => setErr('Couldn’t load campaigns — reload the page, and check your connection if it persists.')).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -27,7 +27,7 @@ export function Campaigns() {
       const r = await api.outboundSync();
       setNote(`Synced ${r.synced} campaigns from Bison (${r.added} new, ${r.updated} updated).`);
       load();
-    } catch (e) { setErr('Sync failed: ' + String(e) + ' — check this workspace’s Bison key.'); }
+    } catch { setErr('Couldn’t sync from Bison — check this workspace’s API key on Workspaces, then try again.'); }
     setSyncing(false);
   }
 
@@ -38,7 +38,7 @@ export function Campaigns() {
       await api.outboundDeleteCampaign(c.id);
       setNote(`Removed “${c.name}” from the app.`);
       load();
-    } catch (e) { setErr('Delete failed: ' + String(e)); }
+    } catch { setErr(`Couldn’t remove “${c.name}” — reload and try again; the campaign in Bison is untouched.`); }
   }
 
   return (
@@ -54,7 +54,7 @@ export function Campaigns() {
       </div>
 
       {note && <div className="callout callout-ok mb-4">{note}</div>}
-      {err && <div className="panel text-error mb-4">{err}</div>}
+      {err && <div className="callout callout-error mb-4">{err}</div>}
 
       {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
         <div className="panel">

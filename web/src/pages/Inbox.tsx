@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { api, type Reply, type BisonSenderOption } from '../api.js';
 
 /**
@@ -30,7 +30,7 @@ export function Inbox() {
   async function sync() {
     setSyncing(true); setNote('');
     try { const r = await api.inboxSync(); setNote(`Pulled ${r.pulled} replies (${r.added} new).`); load(); }
-    catch (e) { setNote('Sync failed: ' + String(e)); }
+    catch { setNote('Couldn’t sync replies from Bison — check this workspace’s API key on Workspaces, then try again.'); }
     setSyncing(false);
   }
 
@@ -102,7 +102,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
     try { await api.inboxClaim(r.id); setClaimedByMe(true); setOpen(true); onChanged(); }
     catch (e) {
       const m = String(e);
-      setErr(m.includes('409') ? 'Already claimed by another rep.' : 'Claim failed: ' + m);
+      setErr(m.includes('409') ? 'Already claimed by another rep.' : 'Couldn’t claim this reply — refresh and try again.');
     }
     setBusy(false);
   }
@@ -113,7 +113,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
     try { await api.inboxReply(r.id, { message, senderEmailId: senderId }); setMessage(''); onChanged(); }
     catch (e) {
       const m = String(e);
-      setErr(m.includes('422') ? 'Can’t reply in-app for this one — open it in Bison instead.' : 'Send failed: ' + m);
+      setErr(m.includes('422') ? 'Can’t reply in-app for this one — open it in Bison instead.' : 'Couldn’t send the reply — check the sender inbox, then try again.');
     }
     setBusy(false);
   }
@@ -123,7 +123,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
   async function referral(action: 'add' | 'dismiss') {
     setRefBusy(true); setErr('');
     try { const d = await api.inboxReferral(r.id, action); setRefStatus(d.referralStatus); onChanged(); }
-    catch (e) { setErr('Referral action failed: ' + String(e)); }
+    catch { setErr('Couldn’t update the referral — refresh and try again.'); }
     setRefBusy(false);
   }
 
@@ -148,7 +148,10 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
           {r.assignedRep && !isClaimed && <span className="muted" style={{ marginLeft: 8 }}>→ {r.assignedRep}</span>}
           {isClaimed && <span className="tag" style={{ marginLeft: 6 }}>claimed</span>}
         </div>
-        <span className="muted text-sm">{new Date(r.receivedAt).toLocaleString()}</span>
+        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+          {r.campaignId && <Link to={`/campaigns/${r.campaignId}`} className="text-sm">Campaign #{r.campaignId}</Link>}
+          <span className="muted text-sm">{new Date(r.receivedAt).toLocaleString()}</span>
+        </div>
       </div>
       {r.subject && <div style={{ fontWeight: 600, marginTop: 6 }}>{r.subject}</div>}
       {r.body && <div className="mt-1" style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: 'var(--text-secondary)' }}>{r.body}</div>}
@@ -229,7 +232,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
           ) : (
             <p className="muted">No Bison thread id — open it in the Bison master inbox to respond.</p>
           )}
-          {err && <p className="muted" style={{ color: 'var(--red, #d33)' }}>{err}</p>}
+          {err && <p className="text-error text-sm">{err}</p>}
         </div>
       )}
     </div>

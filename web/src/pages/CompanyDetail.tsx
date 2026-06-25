@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api, type Company, type Contact } from '../api.js';
 import { emailStatusLabel } from '../components/Table.js';
+import { Breadcrumb } from '../components/Breadcrumb.js';
+import { recordRecent } from '../recents.js';
 
 export function CompanyDetail() {
   const { id } = useParams();
   const [data, setData] = useState<{ company: Company; contacts: Contact[] } | null>(null);
   const [err, setErr] = useState('');
-  useEffect(() => { if (id) api.company(id).then(setData).catch((e) => setErr(String(e))); }, [id]);
+  useEffect(() => { if (id) api.company(id).then(setData).catch(() => setErr('Couldn’t load this company — it may have been removed. Go back to Companies and try again.')); }, [id]);
 
-  if (err) return <div className="loading">Error: {err}</div>;
+  useEffect(() => {
+    if (data?.company?.name) recordRecent({ to: `/companies/${id}`, label: data.company.name, kind: 'company' });
+  }, [data?.company?.name, id]);
+
+  if (err) return <div className="error-state">{err}</div>;
   if (!data) return <div className="loading">Loading…</div>;
   const { company: c, contacts } = data;
 
   return (
     <>
-      <p style={{ margin: '0 0 8px' }}><Link to="/companies" className="muted">← Companies</Link></p>
+      <Breadcrumb trail={[{ label: 'Companies', to: '/companies' }]} current={c.name} />
       <h1 className="page-title">{c.name}</h1>
       <p className="page-sub">
         {c.domain} · {c.subType} · {[c.city, c.state, c.country].filter(Boolean).join(', ')}

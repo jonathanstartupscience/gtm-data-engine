@@ -24,7 +24,7 @@ export function HubspotConnector() {
   const [err, setErr] = useState('');
   useEffect(() => { api.hubspotSync().then(setData).catch((e) => setErr(String(e))); }, []);
 
-  if (err) return <div className="loading">Error: {err}</div>;
+  if (err) return <div className="error-state">Couldn’t load the HubSpot connector — refresh, and check the HubSpot token in Railway if it persists.</div>;
   if (!data) return <div className="loading">Loading…</div>;
 
   return (
@@ -36,12 +36,11 @@ export function HubspotConnector() {
         <h3>Connection</h3>
         {(() => {
           const ok = data.tokenValid;
-          const label = ok ? '● Connected & verified' : data.connected ? '⚠ Token set but failing' : '○ Not configured';
-          const color = ok ? 'var(--green-deep)' : 'var(--coral)';
-          const bg = ok ? 'rgba(101,194,56,0.14)' : 'rgba(196,117,91,0.12)';
+          const label = ok ? 'Connected & verified' : data.connected ? 'Token set but failing' : 'Not configured';
+          const sym = ok ? '●' : data.connected ? '⚠' : '○';
           return (
             <>
-              <span style={{ fontSize: 13, fontWeight: 500, padding: '4px 12px', borderRadius: 999, background: bg, color }}>{label}</span>
+              <span className={'tag ' + (ok ? 'deliverable' : 'undeliverable')}><span aria-hidden="true">{sym}</span> {label}</span>
               {data.tokenValid === false && (
                 <div className="muted" style={{ marginTop: 10 }}>
                   {data.tokenDetail}. Check the private-app token in HubSpot, then update
@@ -70,7 +69,7 @@ export function HubspotConnector() {
           const ctNotInHs = Math.max(data.contacts.total - data.contacts.synced, 0);
           if (coNotInHs + ctNotInHs === 0) return <p style={{ color: 'var(--green-deep)' }}>Everything here is linked to HubSpot ✓</p>;
           return (
-            <div style={{ borderLeft: '3px solid var(--amber)', paddingLeft: 12, marginTop: 6 }}>
+            <div className="callout callout-warn mt-2">
               <p style={{ margin: '0 0 8px' }}>
                 <strong>{coNotInHs.toLocaleString()}</strong> companies and <strong>{ctNotInHs.toLocaleString()}</strong> contacts here are
                 <strong> not yet in HubSpot</strong>. Push to add them — you preview every change first.

@@ -10,6 +10,7 @@ export function Sequences() {
   const [personas, setPersonas] = useState<EmailPersonaInfo[]>([]);
   const [magnets, setMagnets] = useState<LeadMagnetInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
 
   // Filters
   const [fStyle, setFStyle] = useState('');
@@ -18,7 +19,7 @@ export function Sequences() {
   const [fOffer, setFOffer] = useState('');   // '', 'with', 'without'
 
   useEffect(() => {
-    api.sequences().then((d) => setSeqs(d.sequences)).finally(() => setLoading(false));
+    api.sequences().then((d) => setSeqs(d.sequences)).catch(() => setErr('Couldn’t load the sequence library — reload the page, and check your connection if it persists.')).finally(() => setLoading(false));
     api.emailStyles().then((d) => setStyles(d.styles)).catch(() => {});
     api.emailPersonas().then((d) => setPersonas(d.personas)).catch(() => {});
     api.leadMagnets().then((d) => setMagnets(d.leadMagnets)).catch(() => {});
@@ -59,6 +60,8 @@ export function Sequences() {
         action={<Link to="/sequences/new" className="btn btn-primary">New sequence</Link>}
       />
 
+      {err && <div className="callout callout-error mb-4">{err}</div>}
+
       {/* Filter bar — only shown once there's generation metadata to filter on. */}
       {anyMeta && (
         <div className="panel mb-4">
@@ -84,7 +87,7 @@ export function Sequences() {
               <option value="without">No lead magnet</option>
             </select>
             {anyFilter && (
-              <button className="btn" style={{ padding: '4px 10px' }} onClick={clearAll}>Clear</button>
+              <button className="btn btn-sm" onClick={clearAll}>Clear</button>
             )}
             <span className="muted text-sm" style={{ marginLeft: 'auto' }}>{filtered.length} of {seqs.length}</span>
           </div>
@@ -100,7 +103,7 @@ export function Sequences() {
           />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="panel"><p className="muted">No sequences match these filters. <button className="btn" style={{ padding: '2px 8px' }} onClick={clearAll}>Clear filters</button></p></div>
+        <div className="panel"><p className="muted">No sequences match these filters. <button className="btn btn-sm" onClick={clearAll}>Clear filters</button></p></div>
       ) : (
         <div className="seq-cards">
           {filtered.map((s) => {

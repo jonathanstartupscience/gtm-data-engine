@@ -34,7 +34,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
     <>
       <div className="help-overlay" onClick={onClose} />
       <div className="help-drawer">
-        <button className="help-close" onClick={onClose}>×</button>
+        <button className="help-close" onClick={onClose} aria-label="Close run detail">×</button>
         <h2 style={{ textTransform: 'capitalize' }}>{run.kind.replace(/-/g, ' ')}</h2>
         <p className="muted">Run #{run.id} · {run.status} · {new Date(run.startedAt).toLocaleString()} · {dur}</p>
 
@@ -67,7 +67,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
 
         <details style={{ marginTop: 20 }}>
           <summary className="muted text-sm" style={{ cursor: 'pointer' }}>Show raw result data</summary>
-          <pre style={{ background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 12, overflow: 'auto', marginTop: 8 }}>
+          <pre className="codeblock mt-2">
             {JSON.stringify(run.stats, (k, v) => (k === '_steps' ? undefined : v), 2)}
           </pre>
         </details>
@@ -285,7 +285,7 @@ export function Runs() {
           <div className="muted mt-1">
             Expected on long runs — the workflow keeps running on the server. Its result appears under
             <strong> Recent activity</strong> below (and in Logs &amp; Health) when it finishes.
-            <button className="btn" style={{ marginLeft: 10, padding: '4px 10px' }} onClick={() => loadHistory()}>Refresh</button>
+            <button className="btn btn-sm" style={{ marginLeft: 10 }} onClick={() => loadHistory()}>Refresh</button>
           </div>
         </div>
       )}
@@ -317,7 +317,7 @@ export function Runs() {
             <summary className="muted text-sm" style={{ cursor: 'pointer' }}>
               {result ? 'Show activity log' : 'Live activity'}
             </summary>
-            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 240, overflow: 'auto', marginTop: 8 }}>
+            <div className="codeblock mt-2" style={{ maxHeight: 240 }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
               <div ref={logEnd} />
             </div>

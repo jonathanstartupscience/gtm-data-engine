@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api, postStream, type Experiment, type ExperimentPreview, type OutboundCampaign } from '../api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Breadcrumb } from '../components/Breadcrumb.js';
+import { recordRecent } from '../recents.js';
 
 /**
  * Experiment detail — adjust arm weights (0 = pause, keeps its leads; higher = more new traffic),
@@ -36,6 +38,10 @@ export function ExperimentDetail() {
     api.outboundCampaigns().then((d) => setCampaigns(d.campaigns)).catch(() => {});
   }, [refresh]);
 
+  useEffect(() => {
+    if (exp?.name) recordRecent({ to: `/experiments/${expId}`, label: exp.name, kind: 'experiment' });
+  }, [exp?.name, expId]);
+
   const dirty = exp?.arms.some((a) => weights[a.id] !== a.weight);
 
   async function saveWeights() {
@@ -44,7 +50,7 @@ export function ExperimentDetail() {
     try {
       await api.updateExperiment(expId, { armWeights: exp.arms.map((a) => ({ armId: a.id, weight: weights[a.id] ?? a.weight })) });
       refresh();
-    } catch (e) { setError(String(e)); } finally { setSavingW(false); }
+    } catch { setError('Couldn’t save weights — refresh and try again.'); } finally { setSavingW(false); }
   }
 
   async function archiveToggle() {
@@ -62,7 +68,7 @@ export function ExperimentDetail() {
         else if (ev === 'done') { setPushResult(data as Record<string, unknown>); refresh(); }
         else if (ev === 'error') setError((data as { message: string }).message);
       });
-    } catch (e) { setError(String(e)); } finally { setPushing(false); }
+    } catch { setError('Push interrupted — the run continues on the server. Reopen this experiment to see the result.'); } finally { setPushing(false); }
   }
 
   if (!exp) return <div className="loading">Loading…</div>;
@@ -71,7 +77,7 @@ export function ExperimentDetail() {
 
   return (
     <>
-      <Link to="/experiments" className="muted text-sm">← Experiments</Link>
+      <Breadcrumb trail={[{ label: 'Experiments', to: '/experiments' }]} current={exp.name} />
       <PageHeader
         title={exp.name}
         sub={<>
@@ -84,16 +90,16 @@ export function ExperimentDetail() {
       <div className="panel mb-4">
         <div className="row-between">
           <h3 style={{ margin: 0 }}>Arms</h3>
-          <button className="btn" onClick={archiveToggle} style={{ padding: '4px 10px' }}>{exp.status === 'archived' ? 'Reactivate' : 'Archive'}</button>
+          <button className="btn btn-sm" onClick={archiveToggle}>{exp.status === 'archived' ? 'Reactivate' : 'Archive'}</button>
         </div>
         <p className="muted text-sm" style={{ margin: '6px 0 12px' }}>
           Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps its current leads, gets no new ones. Raise a winner to send it more.
         </p>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <table>
             <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '6px 8px' }}>Arm</th><th>Campaign</th>
+              <tr>
+                <th>Arm</th><th>Campaign</th>
                 <th style={{ width: 90 }}>Weight</th>
                 <th style={{ width: 90 }}>Assigned</th><th style={{ width: 80 }}>Pushed</th>
                 <th style={{ width: 90 }}>New now</th>
@@ -105,8 +111,8 @@ export function ExperimentDetail() {
                 const view = preview?.arms.find((v) => v.armId === a.id);
                 const paused = (weights[a.id] ?? a.weight) === 0;
                 return (
-                  <tr key={a.id} style={{ borderTop: '1px solid var(--border)', opacity: paused ? 0.6 : 1 }}>
-                    <td style={{ padding: '8px' }}>
+                  <tr key={a.id} style={{ opacity: paused ? 0.6 : 1 }}>
+                    <td>
                       {a.label ?? `Arm ${a.id}`}{paused && <span className="muted" style={{ fontSize: 11 }}> · paused</span>}
                       {view?.unfillableTags?.length ? <span className="text-error" title={`Uses merge tag(s) the push can't fill: ${view.unfillableTags.map((t) => `{${t}}`).join(', ')}`} style={{ fontSize: 11, marginLeft: 6 }}>⚠ blank tags</span> : null}
                     </td>
@@ -158,7 +164,7 @@ export function ExperimentDetail() {
         <button className="btn btn-primary" disabled={pushing} onClick={push}>{pushing ? <><span className="spinner" /> Pushing…</> : 'Distribute & push'}</button>
 
         {pushLog.length > 0 && (
-          <pre style={{ marginTop: 12, background: 'var(--surface-2, rgba(127,127,127,0.08))', padding: 12, borderRadius: 6, fontSize: 12, maxHeight: 260, overflow: 'auto' }}>
+          <pre className="codeblock mt-3">
             {pushLog.join('\n')}
           </pre>
         )}

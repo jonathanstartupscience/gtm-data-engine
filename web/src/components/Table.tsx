@@ -3,9 +3,14 @@
 export function SortHeader({ label, col, sort, dir, onSort }:
   { label: string; col: string; sort: string; dir: string; onSort: (c: string) => void }) {
   const active = sort === col;
+  // A real <button> inside the th: focusable + Enter/Space for free, with aria-sort on the cell so
+  // screen readers announce the current sort direction.
   return (
-    <th onClick={() => onSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-      {label} <span style={{ opacity: active ? 1 : 0.25 }}>{active ? (dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+    <th aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'} style={{ whiteSpace: 'nowrap' }}>
+      <button type="button" className="sort-header" onClick={() => onSort(col)}
+        aria-label={`Sort by ${label}${active ? (dir === 'asc' ? ', ascending' : ', descending') : ''}`}>
+        {label} <span aria-hidden="true" style={{ opacity: active ? 1 : 0.25 }}>{active ? (dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+      </button>
     </th>
   );
 }

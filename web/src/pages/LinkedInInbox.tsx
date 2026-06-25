@@ -23,7 +23,7 @@ export function LinkedInInbox() {
       const r = await api.liInboxSync();
       if ('configured' in r && r.configured === false) setNote(r.message);
       else { const rr = r as { pulled: number; added: number }; setNote(`Pulled ${rr.pulled} conversations (${rr.added} new).`); load(); }
-    } catch (e) { setNote('Sync failed: ' + String(e)); }
+    } catch { setNote('Couldn’t sync from HeyReach — check the HeyReach key in Railway, then try again.'); }
     setSyncing(false);
   }
 

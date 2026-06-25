@@ -34,7 +34,7 @@ export function CampaignBuilder() {
 
   useEffect(() => {
     api.taxonomy().then((d) => setTypes(d.types));
-    api.outboundSenders().then((d) => setSenders(d.senders)).catch((e) => setSendersErr(String(e)));
+    api.outboundSenders().then((d) => setSenders(d.senders)).catch(() => setSendersErr('Couldn’t load sender inboxes — check this workspace’s Bison key on Workspaces.'));
     api.sequences().then((d) => setSequences(d.sequences)).catch(() => {});
   }, []);
 
@@ -74,8 +74,8 @@ export function CampaignBuilder() {
       } else {
         navigate(`/campaigns/${res.id}`);
       }
-    } catch (e) {
-      setError('Could not create the campaign in Bison: ' + String(e));
+    } catch {
+      setError('Couldn’t create the campaign in Bison — check this workspace’s API key on Workspaces, then try again.');
       setCreating(false);
     }
   }
@@ -130,7 +130,7 @@ export function CampaignBuilder() {
       {/* 4 · Senders */}
       <div className="panel mb-4">
         <h3>4 · Sender inboxes</h3>
-        {sendersErr ? <p className="text-error">Couldn’t load senders: {sendersErr}</p>
+        {sendersErr ? <p className="text-error">{sendersErr}</p>
           : senders.length === 0 ? <p className="muted">No sender inboxes in this workspace. Add them in Bison, or attach later.</p>
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

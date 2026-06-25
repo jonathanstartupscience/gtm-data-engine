@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { api, postStream, type OutboundCampaign, type SequenceStep, type SenderAssignment, type CampaignStats } from '../api.js';
-import { PageHeader } from '../components/PageHeader.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
+import { Breadcrumb } from '../components/Breadcrumb.js';
+import { recordRecent } from '../recents.js';
 
 const STATUS_TAG: Record<string, string> = { active: 'deliverable', paused: 'risky_catchall', created: 'role_based', draft: 'unknown', done: 'role_based' };
 
@@ -29,15 +31,16 @@ export function CampaignDetail() {
     setLoading(true);
     api.outboundCampaign(cid).then((d) => {
       setCampaign(d.campaign); setSteps(d.steps); setSenders(d.senders); setStats(d.stats);
+      if (d.campaign?.name) recordRecent({ to: `/campaigns/${cid}`, label: d.campaign.name, kind: 'campaign' });
       api.outboundSegmentCount(d.campaign.persona ?? '', d.campaign.subType ?? '').then((s) => setSegCount(s.count)).catch(() => {});
-    }).catch((e) => setErr(String(e))).finally(() => setLoading(false));
+    }).catch(() => setErr('Couldn’t load this campaign — it may have been removed, or the connection dropped. Try reloading.')).finally(() => setLoading(false));
   }, [cid]);
   useEffect(load, [load]);
 
   async function action(label: string, fn: () => Promise<unknown>) {
     setBusy(label); setMsg(''); setErr('');
     try { await fn(); setMsg(`${label} ✓`); load(); }
-    catch (e) { setErr(`${label} failed: ${String(e)}`); }
+    catch { setErr(`Couldn’t ${label.toLowerCase()} — this often means a Bison hiccup. Check this workspace’s Bison key on Workspaces, then try again.`); }
     setBusy('');
   }
 
@@ -53,13 +56,21 @@ export function CampaignDetail() {
   }
 
   if (loading) return <div className="loading">Loading…</div>;
-  if (!campaign) return <div className="panel">Campaign not found. <Link to="/campaigns">Back to campaigns</Link></div>;
+  if (!campaign) return (
+    <div className="panel">
+      <EmptyState
+        title="Campaign not found"
+        hint={err || 'This campaign may have been removed from the workspace.'}
+        action={<Link to="/campaigns" className="btn btn-primary">Back to campaigns</Link>}
+      />
+    </div>
+  );
 
   const inBison = !!campaign.bisonCampaignId;
 
   return (
     <>
-      <Link to="/campaigns" className="muted" style={{ textDecoration: 'none' }}>← Campaigns</Link>
+      <Breadcrumb trail={[{ label: 'Campaigns', to: '/campaigns' }]} current={campaign.name} />
       <PageHeader
         title={campaign.name}
         sub={<>
@@ -71,11 +82,14 @@ export function CampaignDetail() {
 
       {warn && <div className="callout callout-warn mb-4">Created, but some settings didn’t apply in Bison: <strong>{warn}</strong>. You can fix these in the Bison UI.</div>}
       {msg && <div className="callout callout-ok mb-4">{msg}</div>}
-      {err && <div className="panel mb-4 text-error">{err}</div>}
+      {err && <div className="callout callout-error mb-4">{err}</div>}
 
       {/* Audience push */}
       <div className="panel mb-4">
-        <h3>Audience</h3>
+        <div className="row-between">
+          <h3 className="mt-0 mb-0">Audience</h3>
+          <Link to="/contacts" className="btn btn-sm">View contacts</Link>
+        </div>
         {!inBison ? <p className="muted">Not created in Bison yet — can’t push leads.</p> : (
           <>
             <p style={{ fontSize: 15 }}>
@@ -86,7 +100,7 @@ export function CampaignDetail() {
                 {pushing ? <><span className="spinner" /> Pushing…</> : `Push ${segCount?.toLocaleString() ?? ''} contacts to Bison`}
               </button>
             ) : (
-              <div style={{ borderLeft: '3px solid var(--green)', paddingLeft: 12 }}>
+              <div className="callout callout-ok">
                 <p style={{ fontSize: 15 }}>
                   Pushed: <strong>{Number(pushResult.created ?? 0).toLocaleString()}</strong> created,{' '}
                   {Number(pushResult.attached ?? 0).toLocaleString()} attached{Number(pushResult.failed ?? 0) > 0 && <>, {Number(pushResult.failed).toLocaleString()} failed</>}.
@@ -96,7 +110,7 @@ export function CampaignDetail() {
             )}
             {pushLog.length > 0 && !pushResult && (
               <details open className="mt-3"><summary className="muted">Live activity</summary>
-                <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto', marginTop: 8 }}>
+                <div className="codeblock mt-2" style={{ maxHeight: 180 }}>
                   {pushLog.map((l, i) => <div key={i}>{l}</div>)}
                 </div>
               </details>

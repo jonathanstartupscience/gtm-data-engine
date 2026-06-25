@@ -40,7 +40,7 @@ export function Companies() {
   const active = q || type || subType || country;
   const exportCsv = () => {
     const params = new URLSearchParams({ q, type, subType, country, sort: sort.sort, dir: sort.dir });
-    downloadCsv(`/api/export/companies?${params}`, 'companies.csv').catch((e) => alert('Export failed: ' + e));
+    downloadCsv(`/api/export/companies?${params}`, 'companies.csv').catch(() => alert('Couldn’t export — try a narrower filter, then export again.'));
   };
 
   return (
@@ -52,7 +52,7 @@ export function Companies() {
       />
 
       <div className="toolbar">
-        <input className="input" placeholder="Search name or domain…"
+        <input className="input" placeholder="Search name or domain…" aria-label="Search companies by name or domain"
           value={q} onChange={(e) => { setQ(e.target.value); setOffset(0); }} />
         <select className="select" value={type} onChange={(e) => { setType(e.target.value); setSubType(''); setOffset(0); }}>
           <option value="">All types</option>
@@ -72,7 +72,7 @@ export function Companies() {
       {loading ? <div className="loading">Loading…</div> : (
         <table>
           <thead><tr>
-            <th><input type="checkbox" checked={pageAllSelected}
+            <th><input type="checkbox" aria-label="Select all companies on this page" checked={pageAllSelected}
               onChange={(e) => setSelected((s) => { const n = new Set(s); rows.forEach((r) => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n; })} /></th>
             <SortHeader label="Company" col="name" sort={sort.sort} dir={sort.dir} onSort={onSort} />
             <SortHeader label="Domain" col="domain" sort={sort.sort} dir={sort.dir} onSort={onSort} />
@@ -83,7 +83,7 @@ export function Companies() {
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
-                <td><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
+                <td><input type="checkbox" aria-label={`Select ${c.name ?? 'company'}`} checked={selected.has(c.id)} onChange={() => toggle(c.id)} /></td>
                 <td><Link to={`/companies/${c.id}`}>{c.name ?? '—'}</Link></td>
                 <td><DomainLink domain={c.domain} /></td>
                 <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>

@@ -105,7 +105,7 @@ export function Hygiene() {
             </p>
           )}
           <details {...(result ? {} : { open: true })}><summary className="muted">Activity</summary>
-            <div className="mt-2" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto' }}>
+            <div className="codeblock mt-2" style={{ maxHeight: 200 }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
             </div>
           </details>
