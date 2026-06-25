@@ -44,7 +44,15 @@ if (!methodArg || !pathArg) {
 
 const method = methodArg.toUpperCase();
 const base = (process.env.GTM_API_BASE ?? 'https://gtm.startupscience.io').replace(/\/$/, '');
-const url = pathArg.startsWith('http') ? pathArg : base + (pathArg.startsWith('/') ? pathArg : '/' + pathArg);
+
+// Git Bash / MSYS on Windows rewrites a leading "/api/..." arg into a Windows
+// path like "/C:/Program Files/Git/api/...". Detect that mangling and recover
+// the real path so the call never silently misfires. (Setting MSYS_NO_PATHCONV=1
+// in the shell also prevents it, but this makes the script robust either way.)
+let p = pathArg;
+const mangled = p.match(/^\/?[A-Za-z]:[/\\].*?(\/api\/.*)$/);
+if (mangled) p = mangled[1];
+const url = p.startsWith('http') ? p : base + (p.startsWith('/') ? p : '/' + p);
 
 const token = loadToken();
 if (!token) {

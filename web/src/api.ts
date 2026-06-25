@@ -102,6 +102,17 @@ export const api = {
   enrichScope: (ids: number[]) => post<SelectionScope>('/api/actions/enrich-companies/scope', { ids }),
   verifyScope: (ids: number[]) => post<SelectionScope>('/api/actions/verify-contacts/scope', { ids }),
 
+  // Discover Contacts (people-first net-new sourcing via Airscale) — discover, then find emails
+  discoverContactsScope: (p: { titlesInclude?: string[]; keyword?: string; locations?: string[]; maxLeads?: number }) =>
+    get<{ total: number; estLeads: number; estCostUsd: number; vendor: string; unit: string; what: string }>(
+      `/api/discover/discover-contacts/scope?${new URLSearchParams({
+        titlesInclude: (p.titlesInclude ?? []).join(','), keyword: p.keyword ?? '',
+        locations: (p.locations ?? []).join(','), maxLeads: String(p.maxLeads ?? 1000),
+      })}`),
+  findEmailsScope: (ids: number[]) =>
+    post<{ selected: number; billable: number; skipped: number; vendor: string; unit: string; estCostUsd: number }>(
+      '/api/discover/discover-contacts/find-emails/scope', { ids }),
+
   // ---- Outbound Engine (Email Bison) ----
   outboundWorkspaces: () => get<{ workspaces: EmailWorkspace[] }>('/api/outbound/workspaces'),
   outboundWorkspaceSettings: (slug: string, body: { personaMatch?: string | null }) =>

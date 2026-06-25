@@ -225,28 +225,29 @@ export function Runs() {
 
       {GROUPS.map((g) => (
         <div key={g.title} className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div className="row mb-1" style={{ gap: 10 }}>
             <h3 className="mt-0 mb-0">{g.title}</h3>
             {g.recipes.some((r) => r.paid) ? <CostBadge paid /> : <CostBadge costUsd={0} />}
           </div>
-          <p className="muted text-sm" style={{ margin: '0 0 12px', maxWidth: 720 }}>{g.blurb}</p>
-          <div className="cards" style={{ gridTemplateColumns: '1fr' }}>
+          <p className="muted text-sm mt-0 mb-3" style={{ maxWidth: 720 }}>{g.blurb}</p>
+          <div className="task-list">
             {g.recipes.map((r) => (
-              <div className="card" key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 16 }}>{r.name}</div>
-                  <div className="muted mt-1" style={{ maxWidth: 640 }}>{r.desc}</div>
+              <div className="task-row" key={r.id}>
+                <div className="task-main">
+                  <div className="task-name">{r.name}</div>
+                  <div className="task-desc" title={r.desc}>{r.desc}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'center' }}>
-                  {r.paid ? <CostBadge costUsd={costs[r.id]} pending={!(r.id in costs)} /> : <CostBadge costUsd={0} />}
+                <div className="task-actions">
+                  {/* Paid recipes keep their real per-recipe cost estimate inline; free ones don't repeat the badge. */}
+                  {r.paid && <CostBadge costUsd={costs[r.id]} pending={!(r.id in costs)} />}
                   {r.testLimit ? (
                     <>
-                      <button className="btn" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>
-                      <button className="btn btn-primary" disabled={!!running}
+                      <button className="btn btn-sm" disabled={!!running} onClick={() => run(r.id, false, r.testLimit)}>{r.testLabel ?? 'Test'}</button>
+                      <button className="btn btn-primary btn-sm" disabled={!!running}
                         onClick={() => run(r.id, false)}>{running === r.id ? 'Running…' : 'Full import'}</button>
                     </>
                   ) : (
-                    <button className="btn btn-primary" disabled={!!running || scopeLoading === r.id}
+                    <button className="btn btn-primary btn-sm" disabled={!!running || scopeLoading === r.id}
                       onClick={() => openScope(r.id)}>
                       {scopeLoading === r.id ? 'Checking…' : running === r.id ? 'Running…' : 'Review & run'}
                     </button>
