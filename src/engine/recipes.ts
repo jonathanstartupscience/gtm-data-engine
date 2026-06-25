@@ -15,6 +15,7 @@ import { pullCompanies, pullContacts } from './stages/pull.js';
 import { previewPush, executePush, type PushPreview } from './stages/push.js';
 import { pushToBison, type SegmentFilter } from './stages/activate.js';
 import { findContacts } from './stages/findContacts.js';
+import { discoverContacts, findEmailsForContacts, type DiscoverPeopleFilters } from './stages/discoverContacts.js';
 import { generateSequence, type GenerateSequenceOpts, type GenerateSequenceResult } from './stages/generate-sequence.js';
 import { rewriteStep, type RewriteStepOpts, type RewriteStepResult } from './stages/rewrite-step.js';
 import { anthropicComplete, extractJson, MODEL_OPUS } from './adapters/anthropic.js';
@@ -40,6 +41,49 @@ export async function runFindContacts(
     return { runId, kind: 'find-contacts', stats: r as unknown as Record<string, unknown> };
   } catch (err) {
     rec.step({ provider: 'Airscale', status: 'error', label: 'Find contacts failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
+
+/** discover-contacts: find NET-NEW people across all companies by title/keyword (Airscale), no email. */
+export async function runDiscoverContacts(
+  opts: DiscoverPeopleFilters & { maxLeads?: number },
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('discover-contacts');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Searching people by title/keyword',
+      detail: [opts.titlesInclude?.join(', '), opts.keyword].filter(Boolean).join(' · ') || 'any' });
+    const r = await discoverContacts(opts, log);
+    rec.step({ provider: 'Airscale', status: 'ok', label: 'Discovered people', count: r.found,
+      detail: `${r.added} added across ${r.companiesCreated} companies${r.noCompany ? `, ${r.noCompany} without a company` : ''}${r.errors ? `, ${r.errors} errors` : ''}` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'discover-contacts', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'Airscale', status: 'error', label: 'Discover contacts failed', detail: (err as Error).message });
+    await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
+    throw err;
+  }
+}
+
+/** find-emails: find emails (Airscale waterfall) for selected contacts that lack one. */
+export async function runFindEmailsForContacts(
+  contactIds: number[],
+  log: (m: string) => void = console.log,
+): Promise<RecipeResult> {
+  const runId = await startRun('find-emails');
+  const rec = new StepRecorder(log);
+  try {
+    rec.step({ provider: 'Engine', status: 'info', label: 'Selecting contacts that need an email', count: contactIds.length });
+    const r = await findEmailsForContacts(contactIds, log);
+    rec.step({ provider: 'Airscale', status: 'ok', label: 'Found emails', count: r.emailsFound,
+      detail: `${r.emailsFound} of ${r.attempted} attempted${r.skipped ? `, ${r.skipped} skipped` : ''}${r.errors ? `, ${r.errors} errors` : ''}` });
+    await finishRun(runId, 'done', r, rec.steps);
+    return { runId, kind: 'find-emails', stats: r as unknown as Record<string, unknown> };
+  } catch (err) {
+    rec.step({ provider: 'Airscale', status: 'error', label: 'Find emails failed', detail: (err as Error).message });
     await finishRun(runId, 'error', { error: (err as Error).message }, rec.steps);
     throw err;
   }

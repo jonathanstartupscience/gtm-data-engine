@@ -21,7 +21,7 @@ export const WORKSPACES: Workspace[] = [
     name: 'Data Engine',
     tagline: 'CRM & data warehouse',
     home: '/',
-    routes: ['/', '/discover', '/find-contacts', '/import', '/companies', '/contacts',
+    routes: ['/', '/discover', '/find-contacts', '/discover-contacts', '/import', '/companies', '/contacts',
       '/classify', '/hygiene', '/runs', '/connectors', '/sync', '/logs', '/help', '/help/'],
   },
   {
