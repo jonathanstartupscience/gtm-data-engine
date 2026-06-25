@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, postStream, type PushPreview } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 export function Sync() {
   const [preview, setPreview] = useState<PushPreview | null>(null);
@@ -30,8 +31,7 @@ export function Sync() {
 
   return (
     <>
-      <h1 className="page-title">Sync to HubSpot</h1>
-      <p className="page-sub">Push cleaned company data to HubSpot. Review the change preview before anything is written — HubSpot is your system of record.</p>
+      <PageHeader title="Sync to HubSpot" sub="HubSpot is your system of record — review the preview before anything is written." />
 
       {!preview && !result && (
         <div className="panel">

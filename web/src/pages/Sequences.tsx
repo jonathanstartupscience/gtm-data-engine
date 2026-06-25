@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type SequenceTemplate, type EmailStyle, type EmailPersonaInfo, type LeadMagnetInfo } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 /** Sequence Library — reusable message sequences, built independently and attached to campaigns. */
 export function Sequences() {
@@ -52,15 +53,11 @@ export function Sequences() {
 
   return (
     <>
-      <h1 className="page-title">Sequences</h1>
-      <p className="page-sub">
-        Reusable message sequences — build once, attach to any campaign. Make variations to A/B test
-        across segments. A campaign gets its own copy, so editing it never changes the template.
-      </p>
-
-      <div className="toolbar">
-        <Link to="/sequences/new" className="btn btn-primary">+ New sequence</Link>
-      </div>
+      <PageHeader
+        title="Sequences"
+        sub="A campaign gets its own copy when you attach one — editing the campaign never changes the template."
+        action={<Link to="/sequences/new" className="btn btn-primary">New sequence</Link>}
+      />
 
       {/* Filter bar — only shown once there's generation metadata to filter on. */}
       {anyMeta && (
@@ -95,7 +92,13 @@ export function Sequences() {
       )}
 
       {loading ? <div className="loading">Loading…</div> : seqs.length === 0 ? (
-        <div className="panel"><p>No sequences yet. <Link to="/sequences/new">Build your first sequence</Link> — then attach it when you create a campaign.</p></div>
+        <div className="panel">
+          <EmptyState
+            title="No sequences yet"
+            hint="Write one by hand or with the AI writer, then attach it when you create a campaign."
+            action={<Link to="/sequences/new" className="btn btn-primary">New sequence</Link>}
+          />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="panel"><p className="muted">No sequences match these filters. <button className="btn" style={{ padding: '2px 8px' }} onClick={clearAll}>Clear filters</button></p></div>
       ) : (

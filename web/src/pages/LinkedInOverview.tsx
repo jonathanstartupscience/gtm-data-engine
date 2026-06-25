@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type LiCampaign } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /** LinkedIn Engine landing — status + campaign roll-up. Shows a clear setup state when no key. */
 export function LinkedInOverview() {
@@ -15,11 +16,7 @@ export function LinkedInOverview() {
 
   return (
     <>
-      <h1 className="page-title">LinkedIn <em>Engine</em></h1>
-      <p className="page-sub">
-        LinkedIn outreach via HeyReach. Build campaigns in HeyReach; mirror them here, push clean
-        LinkedIn segments into active campaigns, and track replies and performance.
-      </p>
+      <PageHeader title={<>LinkedIn <em>Engine</em></>} sub="HeyReach outreach: mirror campaigns, push clean segments, track replies." />
 
       {configured === false && (
         <div className="callout callout-warn mb-4">
@@ -50,8 +47,8 @@ export function LinkedInOverview() {
           <Link to="/linkedin/inbox" className="btn">Inbox</Link>
         </div>
         <p className="muted" style={{ marginTop: 14, lineHeight: 1.7 }}>
-          Build the campaign and sequence in HeyReach, then <strong>Sync</strong> it here, push a
-          LinkedIn-ready segment (contacts with a LinkedIn profile URL), and monitor conversations.
+          Build the campaign and sequence in HeyReach, sync it here, then push a segment — contacts
+          with a LinkedIn profile URL — and watch conversations land in the Inbox.
         </p>
       </div>
     </>

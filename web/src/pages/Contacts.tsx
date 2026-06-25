@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, downloadCsv, type Contact } from '../api.js';
 import { SortHeader, DomainLink, nextSort, emailStatusLabel } from '../components/Table.js';
 import { SelectionActionBar } from '../components/SelectionActionBar.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const LIMIT = 50;
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
@@ -42,8 +43,11 @@ export function Contacts() {
 
   return (
     <>
-      <h1 className="page-title">Contacts</h1>
-      <p className="page-sub">{total.toLocaleString()} matching{active ? ' (filtered)' : ''}</p>
+      <PageHeader
+        title="Contacts"
+        sub={`${total.toLocaleString()} matching${active ? ' (filtered)' : ''}`}
+        action={<button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export → CSV</button>}
+      />
 
       <div className="toolbar">
         <input className="input" placeholder="Search name, email, title…"
@@ -55,7 +59,6 @@ export function Contacts() {
           {STATUSES.map((s) => <option key={s} value={s}>{s ? emailStatusLabel(s) : 'All email statuses'}</option>)}
         </select>
         {active && <button className="btn" onClick={() => { setQ(''); setPersona(''); setEmailStatus(''); setOffset(0); }}>Clear</button>}
-        <button className="btn btn-primary" disabled={total === 0} onClick={exportCsv}>Export → CSV</button>
         <button className="btn" disabled={total === 0} onClick={exportAdAudience} title="Hashed-email file for Meta / LinkedIn custom audiences">Ad audience → CSV</button>
       </div>
 

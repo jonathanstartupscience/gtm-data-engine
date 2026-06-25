@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
 import { ChipInput } from '../components/ChipInput.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // Quick-fills — pre-load common title sets. Optional; you can type any titles.
 const PERSONA_PRESETS: Record<string, string[]> = {
@@ -82,8 +83,10 @@ export function FindContacts() {
 
   return (
     <>
-      <h1 className="page-title">Find more <em>contacts</em></h1>
-      <p className="page-sub">Pick companies, then filter people by title, exclusions, location, and keyword. Airscale sources the contacts; we verify their emails.</p>
+      <PageHeader
+        title={<>Find more <em>contacts</em></>}
+        sub="Airscale sources the people; emails are verified. Sourcing spends credits."
+      />
 
       <div className="panel mb-4">
         <h3>1 · Which companies?</h3>

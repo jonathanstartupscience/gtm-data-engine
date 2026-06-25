@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, authToken, type Run } from '../api.js';
 import { refreshTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface RunStep { label: string; provider?: string; status: 'ok' | 'warn' | 'error' | 'info'; detail?: string; count?: number; }
 
@@ -220,8 +221,7 @@ export function Runs() {
 
   return (
     <>
-      <h1 className="page-title">Workflows</h1>
-      <p className="page-sub">Bulk data operations. Free imports up top; paid bulk operations below show a cost preview before spending. For a precise spend, select rows on Companies/Contacts and use the action bar there.</p>
+      <PageHeader title="Workflows" sub="Paid bulk operations show a cost preview before spending. To target a precise spend, select rows on Companies/Contacts and use the action bar there." />
 
       {GROUPS.map((g) => (
         <div key={g.title} className="mb-6">

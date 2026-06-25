@@ -5,6 +5,7 @@ import { SequenceStepsEditor, blankStep } from '../components/SequenceStepsEdito
 import { SequenceGenerator } from '../components/SequenceGenerator.js';
 import { SequenceRewriter } from '../components/SequenceRewriter.js';
 import { useEmailLibraries } from '../hooks/useEmailLibraries.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 
@@ -88,8 +89,7 @@ export function SequenceBuilder() {
 
   return (
     <>
-      <h1 className="page-title">{editing ? 'Edit sequence' : 'New sequence'}</h1>
-      <p className="page-sub">Build a reusable message sequence. Attach it to a campaign later — the campaign gets its own copy.</p>
+      <PageHeader title={editing ? 'Edit sequence' : 'New sequence'} sub="A campaign gets its own copy when you attach this — edits here won't change a live campaign." />
 
       <div className="panel mb-4">
         <h3>Details</h3>

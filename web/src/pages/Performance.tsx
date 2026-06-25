@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type CampaignPerf } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 const pct = (n: number) => (n * 100).toFixed(1) + '%';
 
@@ -17,14 +18,13 @@ export function Performance() {
 
   return (
     <>
-      <h1 className="page-title">Email <em>Engine</em></h1>
-      <p className="page-sub">
-        Cold-email campaigns on top of the clean, segmented data from the Data Engine, side by side.
-        Refresh a campaign’s stats from its detail page; positive replies are counted from the Inbox.
-      </p>
+      <PageHeader
+        title={<>Email <em>Engine</em></>}
+        sub="Stats refresh from each campaign’s detail page; positive replies come from the Inbox."
+        action={<Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>}
+      />
 
       <div className="toolbar">
-        <Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>
         <Link to="/campaigns" className="btn">Campaigns</Link>
         <Link to="/sequences" className="btn">Sequences</Link>
         <Link to="/inbox" className="btn">Inbox</Link>
@@ -38,7 +38,13 @@ export function Performance() {
       </div>
 
       {loading ? <div className="loading">Loading…</div> : rows.length === 0 ? (
-        <div className="panel"><p className="muted">No campaigns yet.</p></div>
+        <div className="panel">
+          <EmptyState
+            title="No campaigns yet"
+            hint="Stats appear here once a campaign starts sending."
+            action={<Link to="/campaigns/new" className="btn btn-primary">Build a campaign</Link>}
+          />
+        </div>
       ) : (
         <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
           <table>

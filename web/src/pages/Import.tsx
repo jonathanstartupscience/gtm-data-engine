@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, postStream, type ImportPreview } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type EntityType = 'company' | 'contact';
 
@@ -44,9 +45,10 @@ export function Import() {
 
   return (
     <>
-      <div className="eyebrow">Import</div>
-      <h1 className="page-title">Bring in a <em>list</em></h1>
-      <p className="page-sub">Upload a CSV of companies or people. Rows are deduped against the store — existing records update, new ones are created.</p>
+      <PageHeader
+        title={<>Bring in a <em>list</em></>}
+        sub="Rows are deduped against the store — existing records update, new ones are created."
+      />
 
       {/* Step 1 — type + file */}
       <div className="panel mb-4">

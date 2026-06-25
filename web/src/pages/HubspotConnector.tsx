@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type HubspotSync } from '../api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 function CoverageBar({ label, total, synced, coverage }: { label: string; total: number; synced: number; coverage: number }) {
   return (
@@ -29,8 +30,7 @@ export function HubspotConnector() {
   return (
     <>
       <p style={{ margin: '0 0 8px' }}><Link to="/settings" className="muted">← Settings · Connectors</Link></p>
-      <h1 className="page-title">HubSpot</h1>
-      <p className="page-sub">Your system of record. The engine syncs companies and contacts both ways.</p>
+      <PageHeader title="HubSpot" sub="System of record. Companies and contacts sync both ways." />
 
       <div className="panel mb-4">
         <h3>Connection</h3>
@@ -73,7 +73,7 @@ export function HubspotConnector() {
             <div style={{ borderLeft: '3px solid var(--amber)', paddingLeft: 12, marginTop: 6 }}>
               <p style={{ margin: '0 0 8px' }}>
                 <strong>{coNotInHs.toLocaleString()}</strong> companies and <strong>{ctNotInHs.toLocaleString()}</strong> contacts here are
-                <strong> not yet in HubSpot</strong>. Push them to clean up your CRM — you’ll preview every change first.
+                <strong> not yet in HubSpot</strong>. Push to add them — you preview every change first.
               </p>
               <Link to="/sync" className="btn btn-primary">Review &amp; push to HubSpot →</Link>
             </div>

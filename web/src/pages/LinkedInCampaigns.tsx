@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api, type LiCampaign } from '../api.js';
+import { PageHeader, EmptyState } from '../components/PageHeader.js';
 
 const PERSONAS = ['', 'ESO Leadership', 'ESO Program', 'ESO Partnerships', 'ESO Founder/GP'];
 const STATUS_TAG: Record<string, string> = { IN_PROGRESS: 'deliverable', ACTIVE: 'deliverable', PAUSED: 'risky_catchall', DRAFT: 'unknown', FINISHED: 'role_based' };
@@ -54,8 +55,7 @@ export function LinkedInCampaigns() {
 
   return (
     <>
-      <h1 className="page-title">LinkedIn Campaigns</h1>
-      <p className="page-sub">Campaigns mirrored from HeyReach. Push a LinkedIn-ready segment into an active campaign.</p>
+      <PageHeader title="LinkedIn Campaigns" sub="Mirror campaigns from HeyReach, then push a clean segment into an active one." />
 
       <div className="toolbar"><button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button></div>
       {note && <div className="callout callout-info mb-4">{note}</div>}
@@ -67,7 +67,13 @@ export function LinkedInCampaigns() {
       )}
 
       {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
-        <div className="panel"><p className="muted">No campaigns yet. Build one in HeyReach, then Sync from HeyReach.</p></div>
+        <div className="panel">
+          <EmptyState
+            title="No campaigns yet"
+            hint="Campaigns are built in HeyReach. Sync to mirror them here."
+            action={<button className="btn btn-primary" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button>}
+          />
+        </div>
       ) : (
         <>
           <div className="panel mb-4" style={{ padding: 0, overflow: 'hidden' }}>
