@@ -131,6 +131,8 @@ export const api = {
   outboundPause: (id: number) => post<{ ok: boolean; status: string }>(`/api/outbound/campaigns/${id}/pause`, {}),
   outboundSendTest: (id: number, email: string) => post<{ ok: boolean; status: number }>(`/api/outbound/campaigns/${id}/send-test`, { email }),
   outboundRefreshStats: (id: number) => post<{ stats: CampaignStats }>(`/api/outbound/campaigns/${id}/refresh-stats`, {}),
+  // Refresh every campaign's stats from Bison for the active workspace (auto-fired on page load).
+  outboundRefreshAllStats: () => post<{ refreshed: number; failed: number }>('/api/outbound/campaigns/refresh-all-stats', {}),
 
   // AI sequence writer
   emailStyles: () => get<{ styles: EmailStyle[] }>('/api/outbound/email-styles'),

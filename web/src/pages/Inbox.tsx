@@ -18,11 +18,17 @@ export function Inbox() {
   const [params, setParams] = useSearchParams();
   const focusId = params.get('reply');
 
+  // Always fetch the FULL reply set and filter client-side, so we can tell the user how many
+  // non-actionable replies (auto-replies, OOO, bounces) the "Positive only" view is hiding — an
+  // empty positive list then reads as "nothing actionable yet", not "the inbox is broken".
   const load = useCallback(() => {
     setLoading(true);
-    api.inbox(positiveOnly).then((d) => setReplies(d.replies)).finally(() => setLoading(false));
-  }, [positiveOnly]);
+    api.inbox(false).then((d) => setReplies(d.replies)).finally(() => setLoading(false));
+  }, []);
   useEffect(load, [load]);
+
+  const shown = positiveOnly ? replies.filter((r) => r.isPositive) : replies;
+  const hiddenCount = positiveOnly ? replies.length - shown.length : 0;
 
   // Sender inboxes power the "reply from" picker; load once (best-effort).
   useEffect(() => { api.inboxSenders().then((d) => setSenders(d.senders)).catch(() => {}); }, []);
@@ -46,28 +52,48 @@ export function Inbox() {
 
       <div className="toolbar" style={{ alignItems: 'center' }}>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync replies'}</button>
-        <label className="row" style={{ gap: 6 }}>
+        <label className="row" style={{ gap: 6 }} title="Hides auto-replies, out-of-office, and bounces — only genuine, actionable replies show.">
           <input type="checkbox" checked={positiveOnly} onChange={(e) => setPositiveOnly(e.target.checked)} /> Positive only
         </label>
         {note && <span className="muted">{note}</span>}
       </div>
 
-      {loading ? <div className="loading">Loading…</div> : replies.length === 0 ? (
-        <div className="panel"><p className="muted">No {positiveOnly ? 'positive ' : ''}replies yet. Replies arrive via the Bison webhook, or Sync replies to pull the latest.</p></div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {replies.map((r) => (
-            <ReplyCard
-              key={r.id}
-              reply={r}
-              senders={senders}
-              focused={String(r.id) === focusId}
-              onChanged={load}
-              onAct={act}
-              clearFocus={() => { params.delete('reply'); setParams(params, { replace: true }); }}
-            />
-          ))}
+      {loading ? <div className="loading">Loading…</div> : shown.length === 0 ? (
+        <div className="panel">
+          {replies.length === 0 ? (
+            <p className="muted mb-0">No replies yet. Replies arrive via the Bison webhook, or hit <strong>Sync replies</strong> to pull the latest.</p>
+          ) : (
+            // The inbox isn't empty — "Positive only" is hiding everything (all auto-replies / OOO / bounces).
+            <p className="muted mb-0">
+              No actionable replies right now. {hiddenCount.toLocaleString()} auto-{hiddenCount === 1 ? 'reply is' : 'replies are'} hidden
+              (out-of-office, bounces, “no longer monitored”).{' '}
+              <button className="btn btn-sm" style={{ marginLeft: 4 }} onClick={() => setPositiveOnly(false)}>Show all replies</button>
+            </p>
+          )}
         </div>
+      ) : (
+        <>
+          {/* When filtered, tell the user what's being held back so an "empty-ish" list reads as intentional. */}
+          {positiveOnly && hiddenCount > 0 && (
+            <p className="muted text-sm mt-0 mb-3">
+              Showing {shown.length.toLocaleString()} actionable · {hiddenCount.toLocaleString()} auto-{hiddenCount === 1 ? 'reply' : 'replies'} hidden ·{' '}
+              <button className="btn-link" onClick={() => setPositiveOnly(false)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer', font: 'inherit' }}>show all</button>
+            </p>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {shown.map((r) => (
+              <ReplyCard
+                key={r.id}
+                reply={r}
+                senders={senders}
+                focused={String(r.id) === focusId}
+                onChanged={load}
+                onAct={act}
+                clearFocus={() => { params.delete('reply'); setParams(params, { replace: true }); }}
+              />
+            ))}
+          </div>
+        </>
       )}
     </>
   );

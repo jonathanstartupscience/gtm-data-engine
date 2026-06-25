@@ -37,6 +37,21 @@ export function CampaignDetail() {
   }, [cid]);
   useEffect(load, [load]);
 
+  // Auto-refresh stats from Bison once on open (for campaigns created in Bison) so the numbers match
+  // Bison without a manual click. Fires after the first load resolves; failures are silent.
+  const [statsRefreshing, setStatsRefreshing] = useState(false);
+  useEffect(() => {
+    if (!campaign?.bisonCampaignId) return;
+    let on = true;
+    setStatsRefreshing(true);
+    api.outboundRefreshStats(cid)
+      .then((d) => { if (on && d.stats) setStats(d.stats); })
+      .catch(() => {})
+      .finally(() => { if (on) setStatsRefreshing(false); });
+    return () => { on = false; };
+    // Only when the campaign id (in Bison) first becomes known — not on every reload.
+  }, [campaign?.bisonCampaignId, cid]);
+
   async function action(label: string, fn: () => Promise<unknown>) {
     setBusy(label); setMsg(''); setErr('');
     try { await fn(); setMsg(`${label} ✓`); load(); }
@@ -143,7 +158,12 @@ export function CampaignDetail() {
       <div className="panel mb-4">
         <div className="row-between">
           <h3 className="mt-0 mb-0">Performance</h3>
-          {inBison && <button className="btn" disabled={busy === 'Refresh stats'} onClick={() => action('Refresh stats', () => api.outboundRefreshStats(cid))}>Refresh</button>}
+          {inBison && (
+            <div className="row" style={{ gap: 8 }}>
+              {statsRefreshing && <span className="muted text-sm row" style={{ gap: 6 }}><span className="spinner" /> Updating from Bison…</span>}
+              <button className="btn" disabled={busy === 'Refresh stats' || statsRefreshing} onClick={() => action('Refresh stats', () => api.outboundRefreshStats(cid))}>Refresh</button>
+            </div>
+          )}
         </div>
         {stats ? (
           <div className="cards" style={{ marginTop: 14, marginBottom: 0 }}>

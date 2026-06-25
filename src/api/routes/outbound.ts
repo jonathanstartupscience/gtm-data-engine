@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, desc, eq, isNull, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, isNotNull, inArray, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import {
   bisonCampaigns, bisonSequences, bisonSenderAssignments, bisonCampaignStats,
@@ -307,6 +307,37 @@ outboundRouter.post('/campaigns/:id/refresh-stats', rateLimit(20, 60_000), async
     perStepJson: s,
   }).returning();
   res.json({ stats: row });
+}));
+
+/**
+ * Refresh stats from Bison for EVERY created campaign in the active workspace and snapshot them.
+ * Powers the auto-refresh on the Campaigns / Performance pages so the numbers match Bison without a
+ * per-campaign manual click. Resilient: one campaign's failure (or a slow Bison call) is recorded
+ * and skipped, never aborting the batch. Rate-limited because each campaign is a live Bison call.
+ */
+outboundRouter.post('/campaigns/refresh-all-stats', rateLimit(10, 60_000), asyncHandler(async (req, res) => {
+  const ws = await resolveWorkspace(req);
+  if (!ws) return err(res, 400, 'unknown workspace');
+  const camps = await db.select().from(bisonCampaigns)
+    .where(and(eq(bisonCampaigns.workspaceId, ws.id), isNotNull(bisonCampaigns.bisonCampaignId)));
+  const bison = await bisonClientFor(ws.id);
+  let refreshed = 0;
+  const failed: number[] = [];
+  for (const c of camps) {
+    try {
+      const s = await bison.getCampaignStats(c.bisonCampaignId!);
+      if (!s) { failed.push(c.id); continue; }
+      await db.insert(bisonCampaignStats).values({
+        campaignId: c.id, sent: num(s.sent), opens: num(s.opens), replies: num(s.replies),
+        bounces: num(s.bounces), interested: num(s.interested), unsubscribed: num(s.unsubscribed),
+        perStepJson: s,
+      });
+      refreshed += 1;
+    } catch {
+      failed.push(c.id);
+    }
+  }
+  res.json({ refreshed, failed: failed.length });
 }));
 
 // ----------------------------------------------------------------- push segment
