@@ -54,7 +54,7 @@ export function Hygiene() {
       <p className="page-sub">Clean and complete your CRM data. Every task here is <strong>free</strong> — it works on data you already have, no vendor cost — and shows how many records it will touch before you run it.</p>
 
       {a && (
-        <div className="grid2" style={{ marginBottom: 16 }}>
+        <div className="grid2 mb-4">
           <div className="panel">
             <h3>Company data health · {a.companies.total.toLocaleString()}</h3>
             <HealthBar label="Has type" have={a.companies.typed} total={a.companies.total} />
@@ -77,8 +77,8 @@ export function Hygiene() {
             <div className="card" key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 16 }}>{t.name}</div>
-                <div className="muted" style={{ marginTop: 4, maxWidth: 620 }}>{t.desc}</div>
-                <div style={{ marginTop: 8, fontWeight: 600 }}>
+                <div className="muted mt-1" style={{ maxWidth: 620 }}>{t.desc}</div>
+                <div className="mt-2" style={{ fontWeight: 600 }}>
                   {cand === null ? 'Analyzing…' : cand === 0 ? 'Nothing to fix — all clean ✓' : `${cand.toLocaleString()} records will be updated`}
                 </div>
               </div>
@@ -94,7 +94,7 @@ export function Hygiene() {
       </div>
 
       {(log.length > 0 || result) && (
-        <div className="panel" style={{ marginTop: 16 }}>
+        <div className="panel mt-4">
           <h3>Result</h3>
           {result && (
             <p style={{ fontSize: 15 }}>
@@ -102,7 +102,7 @@ export function Hygiene() {
             </p>
           )}
           <details {...(result ? {} : { open: true })}><summary className="muted">Activity</summary>
-            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto', marginTop: 8 }}>
+            <div className="mt-2" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto' }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
             </div>
           </details>

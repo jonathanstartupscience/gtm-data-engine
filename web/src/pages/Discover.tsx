@@ -73,9 +73,9 @@ export function Discover() {
       <h1 className="page-title">Find more <em>companies</em></h1>
       <p className="page-sub">Pick a sub-type, choose example companies, and Ocean finds lookalikes — deduped against what you already have.</p>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>1 · Choose a sub-type</h3>
-        <div className="toolbar" style={{ marginBottom: 0 }}>
+        <div className="toolbar mb-0">
           <select className="select" value={subType}
             onChange={(e) => {
               const v = e.target.value;
@@ -93,7 +93,7 @@ export function Discover() {
           </select>
         </div>
         {subType && (
-          <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+          <p className="muted text-sm" style={{ marginTop: 10 }}>
             {typeLabel && type !== '(unset)' ? (
               <>New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
                 <span className="tag persona">{subType}</span> — ready to sync to HubSpot.</>
@@ -104,14 +104,14 @@ export function Discover() {
             )}
           </p>
         )}
-        <button className="btn" style={{ marginTop: 12 }} onClick={() => setPickerOpen(true)}>
+        <button className="btn mt-3" onClick={() => setPickerOpen(true)}>
           Pick exact companies from my list →
         </button>
       </div>
 
       {(seeds.length > 0 || pickerOpen) && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="panel mb-4">
+          <div className="row-between">
             <h3 style={{ margin: 0 }}>2 · Choose seed companies to find lookalikes of</h3>
             <button className="btn" onClick={() => setPickerOpen((o) => !o)}>
               {pickerOpen ? 'Use suggested examples' : 'Pick exact companies →'}
@@ -120,7 +120,7 @@ export function Discover() {
 
           {!pickerOpen ? (
             <>
-              <p className="muted" style={{ marginTop: 8 }}>A spread of your existing {subType} companies. Uncheck any you don’t want, or pick exact ones from your full list.</p>
+              <p className="muted mt-2">A spread of your existing {subType} companies. Uncheck any you don’t want, or pick exact ones from your full list.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {seeds.map((s) => (
                   <label key={s.domain} style={{
@@ -136,7 +136,7 @@ export function Discover() {
             </>
           ) : (
             <>
-              <p className="muted" style={{ marginTop: 8 }}>Search your companies (filtered to the sub-type above) and check the ones to use as seeds.</p>
+              <p className="muted mt-2">Search your companies (filtered to the sub-type above) and check the ones to use as seeds.</p>
               <input className="input" style={{ width: '100%', marginBottom: 10 }} placeholder="Search name or domain…"
                 value={pq} onChange={(e) => setPq(e.target.value)} />
               <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
@@ -154,14 +154,14 @@ export function Discover() {
                   </tbody>
                 </table>
               </div>
-              <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+              <p className="muted mt-2 text-sm">
                 Showing {pickerRows.length} of {pickerTotal.toLocaleString()} · <strong>{chosen.size}</strong> selected as seeds
                 {chosen.size > 0 && <> — {[...chosen].slice(0, 6).map((d) => seedMap[d] ?? d).join(', ')}{chosen.size > 6 ? '…' : ''}</>}
               </p>
             </>
           )}
 
-          <div className="toolbar" style={{ marginTop: 16, marginBottom: 0 }}>
+          <div className="toolbar mt-4 mb-0">
             <label className="muted">How many to find:</label>
             <select className="select" value={size} onChange={(e) => setSize(Number(e.target.value))}>
               {[10, 25, 50, 100, 250].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -185,7 +185,7 @@ export function Discover() {
             {log.map((l, i) => <div key={i}>{l}</div>)}
           </div>
           {result && !planGated && (
-            <div className="cards" style={{ marginTop: 16, marginBottom: 0 }}>
+            <div className="cards mt-4 mb-0">
               <div className="card"><div className="num">{String(result.newCompanies ?? 0)}</div><div className="label">New companies added</div></div>
               <div className="card"><div className="num">{String(result.alreadyKnown ?? 0)}</div><div className="label">Already in store</div></div>
               <div className="card"><div className="num">{String(result.found ?? 0)}</div><div className="label">Total found</div></div>

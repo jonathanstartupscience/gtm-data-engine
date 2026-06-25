@@ -104,30 +104,30 @@ export function Experiments() {
       <div className="toolbar">
         <button className="btn btn-primary" onClick={() => { setShowBuild((v) => !v); setShowCreate(false); }}>{showBuild ? 'Cancel' : '+ Build from sequences'}</button>
         <button className="btn" onClick={() => { setShowCreate((v) => !v); setShowBuild(false); }}>{showCreate ? 'Cancel' : 'Wire from existing campaigns'}</button>
-        <Link to="/campaigns" className="muted" style={{ fontSize: 13, alignSelf: 'center' }}>← Campaigns</Link>
+        <Link to="/campaigns" className="muted text-sm" style={{ alignSelf: 'center' }}>← Campaigns</Link>
       </div>
 
       {showBuild && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Build from sequences</h3>
-          <p className="muted" style={{ fontSize: 13, marginTop: -4, marginBottom: 8 }}>
+        <div className="panel mb-4">
+          <h3 className="mt-0">Build from sequences</h3>
+          <p className="muted text-sm mb-2" style={{ marginTop: -4 }}>
             One sequence per arm. Creates a Bison campaign per sequence, attaches its senders, and wires the
             experiment — ready to preview &amp; push. Give each arm its own inboxes; shared inboxes pool the
             daily quota and break per-arm isolation.
           </p>
-          <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Name — e.g. ESO Core · 6-style head-to-head"
+          <input className="input mb-2" style={{ width: '100%' }} placeholder="Name — e.g. ESO Core · 6-style head-to-head"
             value={name} onChange={(e) => setName(e.target.value)} />
-          <div className="toolbar" style={{ marginBottom: 12 }}>
+          <div className="toolbar mb-3">
             <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
               {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
             </select>
             <input className="input" placeholder="Sub-type (optional)" value={subType} onChange={(e) => setSubType(e.target.value)} style={{ width: 200 }} />
           </div>
 
-          {sequences.length === 0 && <p style={{ color: 'var(--coral)' }}>No sequences yet. <Link to="/sequences">Write sequences</Link> first.</p>}
+          {sequences.length === 0 && <p className="text-error">No sequences yet. <Link to="/sequences">Write sequences</Link> first.</p>}
           {buildArms.map((a, i) => (
-            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10, marginBottom: 8 }}>
-              <div className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
+            <div key={i} className="mb-2" style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10 }}>
+              <div className="toolbar mb-2" style={{ alignItems: 'center' }}>
                 <select className="select" value={a.sequenceTemplateId} onChange={(e) => setBArm(i, { sequenceTemplateId: e.target.value ? Number(e.target.value) : '' })} style={{ minWidth: 240 }}>
                   <option value="">Pick a sequence…</option>
                   {sequences.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -138,9 +138,9 @@ export function Experiments() {
                 </label>
                 {buildArms.length > 1 && <button className="btn" onClick={() => removeBArm(i)} style={{ padding: '4px 10px' }}>Remove</button>}
               </div>
-              <div style={{ fontSize: 12 }}>
+              <div className="text-xs">
                 <span className="muted">Senders for this arm ({a.senderEmailIds.length} selected, {senders.filter((s) => a.senderEmailIds.includes(s.id)).reduce((sum, s) => sum + (s.daily_limit ?? 0), 0)}/day):</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                <div className="mt-1" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {senders.map((s) => {
                     const sel = a.senderEmailIds.includes(s.id);
                     const elsewhere = (senderArmCount.get(s.id) ?? 0) > 1 && sel;
@@ -156,33 +156,33 @@ export function Experiments() {
               </div>
             </div>
           ))}
-          <button className="btn" onClick={addBArm} style={{ marginBottom: 12 }}>+ Add arm</button>
+          <button className="btn mb-3" onClick={addBArm}>+ Add arm</button>
 
-          {buildSharesSenders && <p style={{ color: 'var(--coral)', fontSize: 13 }}>⚠ A sender inbox is assigned to more than one arm — the daily quota is pooled and arms compete. Give each arm its own inboxes.</p>}
-          {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
-          <div className="toolbar" style={{ marginBottom: 0 }}>
+          {buildSharesSenders && <p className="text-error text-sm">⚠ A sender inbox is assigned to more than one arm — the daily quota is pooled and arms compete. Give each arm its own inboxes.</p>}
+          {error && <p className="text-error">{error}</p>}
+          <div className="toolbar mb-0">
             <button className="btn btn-primary" disabled={!canBuild} onClick={build}>{creating ? 'Building…' : 'Build experiment'}</button>
-            {!canBuild && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Needs a name and at least one arm with a sequence.</span>}
+            {!canBuild && !creating && <span className="muted text-sm" style={{ alignSelf: 'center' }}>Needs a name and at least one arm with a sequence.</span>}
           </div>
         </div>
       )}
 
       {showCreate && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>New experiment</h3>
-          <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Name — e.g. ESO styles · Q3 test"
+        <div className="panel mb-4">
+          <h3 className="mt-0">New experiment</h3>
+          <input className="input mb-2" style={{ width: '100%' }} placeholder="Name — e.g. ESO styles · Q3 test"
             value={name} onChange={(e) => setName(e.target.value)} />
-          <div className="toolbar" style={{ marginBottom: 12 }}>
+          <div className="toolbar mb-3">
             <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
               {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
             </select>
             <input className="input" placeholder="Sub-type (optional)" value={subType} onChange={(e) => setSubType(e.target.value)} style={{ width: 200 }} />
           </div>
 
-          <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>One campaign per arm. Weight sets each arm's share of new contacts (equal = even split; 0 = paused).</p>
-          {campaigns.length === 0 && <p style={{ color: 'var(--coral)' }}>No campaigns yet. <Link to="/campaigns/new">Build campaigns</Link> first — one per sequence you want to test.</p>}
+          <p className="muted text-sm mb-2">One campaign per arm. Weight sets each arm's share of new contacts (equal = even split; 0 = paused).</p>
+          {campaigns.length === 0 && <p className="text-error">No campaigns yet. <Link to="/campaigns/new">Build campaigns</Link> first — one per sequence you want to test.</p>}
           {arms.map((a, i) => (
-            <div key={i} className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
+            <div key={i} className="toolbar mb-2" style={{ alignItems: 'center' }}>
               <select className="select" value={a.campaignId} onChange={(e) => setArm(i, { campaignId: e.target.value ? Number(e.target.value) : '' })} style={{ minWidth: 220 }}>
                 <option value="">Pick a campaign…</option>
                 {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -198,12 +198,12 @@ export function Experiments() {
               {arms.length > 1 && <button className="btn" onClick={() => removeArm(i)} style={{ padding: '4px 10px' }}>Remove</button>}
             </div>
           ))}
-          <button className="btn" onClick={addArm} style={{ marginBottom: 12 }}>+ Add arm</button>
+          <button className="btn mb-3" onClick={addArm}>+ Add arm</button>
 
-          {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
-          <div className="toolbar" style={{ marginBottom: 0 }}>
+          {error && <p className="text-error">{error}</p>}
+          <div className="toolbar mb-0">
             <button className="btn btn-primary" disabled={!canCreate} onClick={create}>{creating ? 'Creating…' : 'Create experiment'}</button>
-            {!canCreate && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Needs a name and at least one arm with a campaign.</span>}
+            {!canCreate && !creating && <span className="muted text-sm" style={{ alignSelf: 'center' }}>Needs a name and at least one arm with a campaign.</span>}
           </div>
         </div>
       )}
@@ -215,12 +215,12 @@ export function Experiments() {
           {exps.map((e) => (
             <Link key={e.id} to={`/experiments/${e.id}`} className="panel" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>{e.name}</div>
-              <div className="muted" style={{ fontSize: 13, margin: '4px 0' }}>
+              <div className="muted text-sm" style={{ margin: '4px 0' }}>
                 {e.arms.length} arm{e.arms.length !== 1 ? 's' : ''}
                 {e.persona ? ` · ${e.persona}` : ''}{e.subType ? ` · ${e.subType}` : ''}
                 {e.status === 'archived' ? ' · archived' : ''}
               </div>
-              <div className="muted" style={{ fontSize: 12 }}>
+              <div className="muted text-xs">
                 {e.arms.filter((a) => a.weight > 0).length} live · {e.arms.filter((a) => a.weight === 0).length} paused
               </div>
             </Link>

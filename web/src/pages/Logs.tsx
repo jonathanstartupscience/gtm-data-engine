@@ -22,7 +22,7 @@ export function Logs() {
       <h1 className="page-title">Logs &amp; <em>health</em></h1>
       <p className="page-sub">Recent activity and system status — check here first when something breaks.</p>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel mb-4">
         <h3>Integrations</h3>
         <p className="muted" style={{ marginTop: -8 }}>External tools with a key configured on the server. If one is off, its features won’t run.</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -40,12 +40,12 @@ export function Logs() {
       </div>
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="row-between">
           <h3 style={{ margin: 0 }}>Recent activity{errors > 0 ? ` · ${errors} error${errors > 1 ? 's' : ''}` : ''}</h3>
           <button className="btn" onClick={load}>Refresh</button>
         </div>
         {loading ? <div className="loading">Loading…</div> : (
-          <table style={{ marginTop: 12 }}>
+          <table className="mt-3">
             <thead><tr><th>When</th><th>Activity</th><th>Status</th><th>Detail</th></tr></thead>
             <tbody>
               {events.map((e) => (

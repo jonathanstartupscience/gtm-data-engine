@@ -64,9 +64,9 @@ export function Sequences() {
 
       {/* Filter bar — only shown once there's generation metadata to filter on. */}
       {anyMeta && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span className="muted" style={{ fontSize: 13 }}>Filter:</span>
+        <div className="panel mb-4">
+          <div className="toolbar mb-0" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <span className="muted text-sm">Filter:</span>
             <select className="select" value={fStyle} onChange={(e) => setFStyle(e.target.value)}>
               <option value="">Any style</option>
               {presentStyles.map((k) => <option key={k} value={k}>{styleName(k)}</option>)}
@@ -89,7 +89,7 @@ export function Sequences() {
             {anyFilter && (
               <button className="btn" style={{ padding: '4px 10px' }} onClick={clearAll}>Clear</button>
             )}
-            <span className="muted" style={{ fontSize: 13, marginLeft: 'auto' }}>{filtered.length} of {seqs.length}</span>
+            <span className="muted text-sm" style={{ marginLeft: 'auto' }}>{filtered.length} of {seqs.length}</span>
           </div>
         </div>
       )}

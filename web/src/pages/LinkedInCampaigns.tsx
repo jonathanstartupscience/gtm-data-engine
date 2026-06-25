@@ -58,10 +58,10 @@ export function LinkedInCampaigns() {
       <p className="page-sub">Campaigns mirrored from HeyReach. Push a LinkedIn-ready segment into an active campaign.</p>
 
       <div className="toolbar"><button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button></div>
-      {note && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--accent)' }}>{note}</div>}
+      {note && <div className="callout callout-info mb-4">{note}</div>}
 
       {!configured && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
+        <div className="callout callout-warn mb-4">
           HeyReach isn’t connected. Add <code>HEYREACH_API_KEY</code> in Railway to sync and push.
         </div>
       )}
@@ -70,7 +70,7 @@ export function LinkedInCampaigns() {
         <div className="panel"><p className="muted">No campaigns yet. Build one in HeyReach, then Sync from HeyReach.</p></div>
       ) : (
         <>
-          <div className="panel" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
+          <div className="panel mb-4" style={{ padding: 0, overflow: 'hidden' }}>
             <table>
               <thead><tr><th></th><th>Campaign</th><th>Status</th><th>HeyReach</th><th>Synced</th></tr></thead>
               <tbody>
@@ -89,7 +89,7 @@ export function LinkedInCampaigns() {
 
           <div className="panel">
             <h3>Push a segment {sel != null ? '' : '— select a campaign above'}</h3>
-            <div className="toolbar" style={{ marginBottom: 8 }}>
+            <div className="toolbar mb-2">
               <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
                 {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
               </select>
@@ -101,7 +101,7 @@ export function LinkedInCampaigns() {
               {pushing ? <><span className="spinner" /> Pushing…</> : `Push ${count?.toLocaleString() ?? ''} to HeyReach`}
             </button>
             {pushMsg && <p className="muted" style={{ marginTop: 10 }}>{pushMsg}</p>}
-            <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>HeyReach only accepts leads into an <strong>active</strong> campaign.</p>
+            <p className="muted text-sm" style={{ marginTop: 10 }}>HeyReach only accepts leads into an <strong>active</strong> campaign.</p>
           </div>
         </>
       )}

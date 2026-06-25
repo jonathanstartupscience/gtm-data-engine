@@ -70,20 +70,20 @@ export function ExperimentDetail() {
 
   return (
     <>
-      <Link to="/experiments" className="muted" style={{ fontSize: 13 }}>← Experiments</Link>
-      <h1 className="page-title" style={{ marginTop: 8 }}>{exp.name}</h1>
+      <Link to="/experiments" className="muted text-sm">← Experiments</Link>
+      <h1 className="page-title mt-2">{exp.name}</h1>
       <p className="page-sub">
         {exp.persona ?? 'All personas'}{exp.subType ? ` · ${exp.subType}` : ''} · {exp.status}
         {preview ? <> · segment: <strong>{preview.segmentSize.toLocaleString()}</strong> contacts, {preview.unassigned.toLocaleString()} not yet assigned</> : null}
       </p>
 
       {/* Arms + weights */}
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="panel mb-4">
+        <div className="row-between">
           <h3 style={{ margin: 0 }}>Arms</h3>
           <button className="btn" onClick={archiveToggle} style={{ padding: '4px 10px' }}>{exp.status === 'archived' ? 'Reactivate' : 'Archive'}</button>
         </div>
-        <p className="muted" style={{ fontSize: 13, margin: '6px 0 12px' }}>
+        <p className="muted text-sm" style={{ margin: '6px 0 12px' }}>
           Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps the leads it already has, none new flow. Raise a winner to send it more.
         </p>
         <div style={{ overflowX: 'auto' }}>
@@ -105,9 +105,9 @@ export function ExperimentDetail() {
                   <tr key={a.id} style={{ borderTop: '1px solid var(--border)', opacity: paused ? 0.6 : 1 }}>
                     <td style={{ padding: '8px' }}>
                       {a.label ?? `Arm ${a.id}`}{paused && <span className="muted" style={{ fontSize: 11 }}> · paused</span>}
-                      {view?.unfillableTags?.length ? <span title={`Uses merge tag(s) the push can't fill: ${view.unfillableTags.map((t) => `{${t}}`).join(', ')}`} style={{ color: 'var(--coral)', fontSize: 11, marginLeft: 6 }}>⚠ blank tags</span> : null}
+                      {view?.unfillableTags?.length ? <span className="text-error" title={`Uses merge tag(s) the push can't fill: ${view.unfillableTags.map((t) => `{${t}}`).join(', ')}`} style={{ fontSize: 11, marginLeft: 6 }}>⚠ blank tags</span> : null}
                     </td>
-                    <td>{view?.bisonCampaignId ? <Link to={`/campaigns/${a.campaignId}`}>{campName(a.campaignId)}</Link> : <span style={{ color: 'var(--coral)' }}>{campName(a.campaignId)} (not in Bison)</span>}</td>
+                    <td>{view?.bisonCampaignId ? <Link to={`/campaigns/${a.campaignId}`}>{campName(a.campaignId)}</Link> : <span className="text-error">{campName(a.campaignId)} (not in Bison)</span>}</td>
                     <td><input className="input" type="number" min={0} max={1000} value={weights[a.id] ?? a.weight}
                       onChange={(e) => setWeights((w) => ({ ...w, [a.id]: Number(e.target.value) }))} style={{ width: 70 }} /></td>
                     <td>{view?.assigned ?? 0}</td>
@@ -115,7 +115,7 @@ export function ExperimentDetail() {
                     <td>{paused ? '—' : `+${newByArm.get(a.id) ?? 0}`}</td>
                     <td>
                       {view ? <>{view.dailyCapacity}/day <span className="muted" style={{ fontSize: 11 }}>({view.senderCount} inbox{view.senderCount === 1 ? '' : 'es'})</span></> : '—'}
-                      {view?.sharesSenders ? <span title="Shares ≥1 sender inbox with another arm — quota is pooled and arms compete" style={{ color: 'var(--coral)', fontSize: 11, display: 'block' }}>⚠ shared</span> : null}
+                      {view?.sharesSenders ? <span className="text-error" title="Shares ≥1 sender inbox with another arm — quota is pooled and arms compete" style={{ fontSize: 11, display: 'block' }}>⚠ shared</span> : null}
                     </td>
                   </tr>
                 );
@@ -124,17 +124,17 @@ export function ExperimentDetail() {
           </table>
         </div>
         {dirty && (
-          <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
+          <div className="toolbar mt-3 mb-0">
             <button className="btn btn-primary" disabled={savingW} onClick={saveWeights}>{savingW ? 'Saving…' : 'Save weights'}</button>
-            <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Affects future traffic only — assigned contacts never move.</span>
+            <span className="muted text-sm" style={{ alignSelf: 'center' }}>Affects future traffic only — assigned contacts never move.</span>
           </div>
         )}
       </div>
 
       {/* Push */}
       <div className="panel">
-        <h3 style={{ marginTop: 0 }}>Distribute &amp; push</h3>
-        <p className="muted" style={{ fontSize: 13, marginTop: -4 }}>
+        <h3 className="mt-0">Distribute &amp; push</h3>
+        <p className="muted text-sm" style={{ marginTop: -4 }}>
           Assigns unassigned contacts to arms by weight, then pushes each arm’s unsent contacts into its
           Bison campaign. Re-running only flows new contacts. Deliverable and risky catch-all addresses only.
         </p>
@@ -142,16 +142,16 @@ export function ExperimentDetail() {
           <p style={{ fontSize: 14 }}><strong>{preview.unassigned.toLocaleString()}</strong> new contact(s) would be distributed: {preview.newByArm.filter((n) => n.count > 0).map((n) => `${n.label ?? 'arm ' + n.armId} +${n.count}`).join(', ') || '—'}</p>
         )}
         {preview?.diagnostics && (
-          <div style={{ fontSize: 13, marginBottom: 8 }}>
+          <div className="text-sm mb-2">
             <p style={{ margin: '0 0 6px' }}>
               Program send capacity: <strong>{preview.diagnostics.totalDailyCapacity}/day</strong> across all distinct sender inboxes.
             </p>
             {preview.diagnostics.warnings.map((w, i) => (
-              <p key={i} style={{ margin: '4px 0', color: 'var(--coral)' }}>⚠ {w}</p>
+              <p key={i} className="text-error" style={{ margin: '4px 0' }}>⚠ {w}</p>
             ))}
           </div>
         )}
-        {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
+        {error && <p className="text-error">{error}</p>}
         <button className="btn btn-primary" disabled={pushing} onClick={push}>{pushing ? <><span className="spinner" /> Pushing…</> : 'Distribute & push'}</button>
 
         {pushLog.length > 0 && (
@@ -160,7 +160,7 @@ export function ExperimentDetail() {
           </pre>
         )}
         {pushResult && (
-          <p style={{ marginTop: 8 }}>Done. Assigned {String((pushResult as { assignedNew?: number }).assignedNew ?? 0)} new, pushed {String((pushResult as { totalPushed?: number }).totalPushed ?? 0)}{(pushResult as { totalFailed?: number }).totalFailed ? `, ${(pushResult as { totalFailed?: number }).totalFailed} failed` : ''}. <Link to="/performance">Compare arms in Performance →</Link></p>
+          <p className="mt-2">Done. Assigned {String((pushResult as { assignedNew?: number }).assignedNew ?? 0)} new, pushed {String((pushResult as { totalPushed?: number }).totalPushed ?? 0)}{(pushResult as { totalFailed?: number }).totalFailed ? `, ${(pushResult as { totalFailed?: number }).totalFailed} failed` : ''}. <Link to="/performance">Compare arms in Performance →</Link></p>
         )}
       </div>
     </>

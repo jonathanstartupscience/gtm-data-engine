@@ -22,7 +22,7 @@ export function LinkedInOverview() {
       </p>
 
       {configured === false && (
-        <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
+        <div className="callout callout-warn mb-4">
           <h3 style={{ marginTop: 0 }}>Not connected yet</h3>
           <p style={{ lineHeight: 1.7 }}>
             Add your HeyReach API key in <Link to="/settings">Settings</Link> to turn this engine on
@@ -32,7 +32,7 @@ export function LinkedInOverview() {
         </div>
       )}
       {configured && keyValid === false && (
-        <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>
+        <div className="panel text-error mb-4">
           HeyReach key is set but didn’t validate. Check it in Railway.
         </div>
       )}
@@ -45,7 +45,7 @@ export function LinkedInOverview() {
 
       <div className="panel">
         <h3>Get started</h3>
-        <div className="toolbar" style={{ marginBottom: 0, marginTop: 10 }}>
+        <div className="toolbar mb-0" style={{ marginTop: 10 }}>
           <Link to="/linkedin/campaigns" className="btn btn-primary">View campaigns</Link>
           <Link to="/linkedin/inbox" className="btn">Inbox</Link>
         </div>
