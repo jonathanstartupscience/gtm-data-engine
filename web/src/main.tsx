@@ -29,7 +29,7 @@ import { LinkedInInbox } from './pages/LinkedInInbox.js';
 import { Settings } from './pages/Settings.js';
 import { Help } from './pages/Help.js';
 import { HelpArticle } from './pages/HelpArticle.js';
-import { Connectors } from './pages/Connectors.js';
+import { Navigate } from 'react-router-dom';
 import { HubspotConnector } from './pages/HubspotConnector.js';
 import { Classify } from './pages/Classify.js';
 import { Hygiene } from './pages/Hygiene.js';
@@ -69,7 +69,7 @@ const router = createBrowserRouter([
       { path: 'settings', element: <Settings /> },
       { path: 'help', element: <Help /> },
       { path: 'help/:slug', element: <HelpArticle /> },
-      { path: 'connectors', element: <Connectors /> },
+      { path: 'connectors', element: <Navigate to="/settings" replace /> }, // merged into global Settings
       { path: 'connectors/hubspot', element: <HubspotConnector /> },
       { path: 'classify', element: <Classify /> },
       { path: 'hygiene', element: <Hygiene /> },

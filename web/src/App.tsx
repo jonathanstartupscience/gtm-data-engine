@@ -74,16 +74,6 @@ export function App() {
             <NavLink to="/classify" className={nav}>Classify</NavLink>
             <NavLink to="/hygiene" className={nav}>Data Hygiene</NavLink>
             <NavLink to="/runs" className={nav}>Workflows</NavLink>
-            <NavLink
-              to="/connectors"
-              className={() => 'navlink' + (pathname.startsWith('/connectors') || pathname === '/sync' ? ' active' : '')}
-            >Connectors</NavLink>
-            {(pathname.startsWith('/connectors') || pathname === '/sync') && (
-              <div className="subnav">
-                <NavLink to="/connectors/hubspot" className={({ isActive }) => 'navlink' + (isActive || pathname === '/sync' ? ' active' : '')}>HubSpot</NavLink>
-              </div>
-            )}
-            <NavLink to="/logs" className={nav}>Logs &amp; Health</NavLink>
           </>
         )}
 
@@ -108,9 +98,19 @@ export function App() {
             <NavLink to="/linkedin/inbox" className={nav}>
               Inbox{liBadge > 0 && <span className="nav-badge">{liBadge > 99 ? '99+' : liBadge}</span>}
             </NavLink>
-            <NavLink to="/settings" className={nav}>Settings</NavLink>
           </>
         )}
+
+        {/* Global zone — same in every workspace: system health + account-wide settings.
+            HubSpot has a dedicated connector detail page reached from Settings; keep its route
+            highlighted here when you're on it or on a sync. */}
+        <div className="nav-global">
+          <NavLink to="/logs" className={nav}>Logs &amp; Health</NavLink>
+          <NavLink
+            to="/settings"
+            className={() => 'navlink' + (pathname === '/settings' || pathname.startsWith('/connectors') || pathname === '/sync' ? ' active' : '')}
+          >⚙ Settings</NavLink>
+        </div>
 
         <div className="footer-actions">
           <NavLink to="/help" className={({ isActive }) => 'kb-btn' + (isActive ? ' active' : '')}>

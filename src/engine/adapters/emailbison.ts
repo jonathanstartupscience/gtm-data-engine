@@ -466,7 +466,7 @@ export function bisonClient(ctx: BisonCtx) {
     listCampaigns, getCampaign, createCampaign, updateCampaign, deleteCampaign, scheduleCampaign,
     setSequenceSteps, listSenders, attachSenders, pauseCampaign, resumeCampaign,
     getCampaignStats, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook,
-    ensureCustomVariables, createLead, detachLead, listCampaignLeads, pushLeadsToCampaign,
+    ensureCustomVariables, createLead, detachLead, listCampaignLeads, attachLeads, pushLeadsToCampaign,
   };
 }
 

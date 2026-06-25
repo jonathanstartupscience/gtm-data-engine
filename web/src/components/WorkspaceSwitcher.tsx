@@ -41,9 +41,13 @@ export const WORKSPACES: Workspace[] = [
     name: 'LinkedIn Engine',
     tagline: 'LinkedIn outreach · HeyReach',
     home: '/linkedin',
-    routes: ['/linkedin', '/linkedin/campaigns', '/linkedin/inbox', '/settings'],
+    routes: ['/linkedin', '/linkedin/campaigns', '/linkedin/inbox'],
   },
 ];
+
+// Global, workspace-independent pages (settings, system health, connector detail). They don't belong
+// to any one engine — visiting them keeps you in the Data shell by default, and the global nav zone
+// (Logs & Health · Settings) is rendered in every workspace regardless.
 
 /** Infer the active workspace from the current path. Most-specific (LinkedIn, then Email) wins; default Data. */
 export function workspaceForPath(pathname: string): Workspace {

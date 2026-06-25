@@ -377,6 +377,13 @@ export const bisonReplies = pgTable(
     assignedRep: text('assigned_rep'),             // round-robin pick at notify time (display name)
     claimedBy: text('claimed_by'),                 // Clerk sub of the rep who claimed it
     claimedAt: timestamp('claimed_at'),
+    // --- AI triage (set once per reply by the reply-triage agent; see engine/notify/triage.ts)
+    triageCategory: text('triage_category'),       // auto_ooo | left_company | unsubscribe | bounce | interested | objection | question | referral | other
+    triageActionable: boolean('triage_actionable'),// false → suppressed from the leads channel (still in the Inbox)
+    triageStrategy: text('triage_strategy'),       // one-sentence response suggestion (only for actionable, human replies)
+    referral: jsonb('referral'),                   // { name, email, title, inferredName, sameDomain } extracted from OOO/left-company bodies; null if none
+    referralLeadId: integer('referral_lead_id'),   // Bison lead id of the auto-created referral (campaign-add stays manual)
+    referralStatus: text('referral_status'),       // pending_confirm | added | dismissed — gates the manual add-to-campaign step
     receivedAt: timestamp('received_at').defaultNow().notNull(),
     raw: jsonb('raw'),
   },

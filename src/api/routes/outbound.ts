@@ -814,6 +814,33 @@ outboundRouter.post('/inbox/:id/claim', rateLimit(60, 60_000), asyncHandler(asyn
   res.json({ ok: true, claimedBy: userId });
 }));
 
+/**
+ * Referral confirm — the human gate on the auto-captured referral. Triage extracted a "contact this
+ * person instead" email and we already CREATED the lead in Bison (referralLeadId); this endpoint is
+ * where a rep confirms adding that lead to the SAME campaign the original reply came from, or dismisses
+ * it. Deliberately manual so a mis-parsed address never gets cold-emailed on its own.
+ */
+const referralConfirmSchema = z.object({ action: z.enum(['add', 'dismiss']) });
+outboundRouter.post('/inbox/:id/referral', rateLimit(30, 60_000), validateBody(referralConfirmSchema), asyncHandler(async (req, res) => {
+  const { action } = req.body as z.infer<typeof referralConfirmSchema>;
+  const [reply] = await db.select().from(bisonReplies).where(eq(bisonReplies.id, Number(req.params.id)));
+  if (!reply) return err(res, 404, 'not found');
+  if (!reply.referralLeadId) return err(res, 422, 'no captured referral lead on this reply');
+  if (reply.referralStatus === 'added') return res.json({ ok: true, referralStatus: 'added' }); // idempotent
+
+  if (action === 'dismiss') {
+    await db.update(bisonReplies).set({ referralStatus: 'dismissed' }).where(eq(bisonReplies.id, reply.id));
+    return res.json({ ok: true, referralStatus: 'dismissed' });
+  }
+  if (!reply.campaignId || !reply.bisonCampaignId) {
+    return err(res, 422, 'reply is not linked to a campaign — add the lead to a campaign manually in Bison');
+  }
+  const bison = await bisonClientFor(reply.workspaceId);
+  await bison.attachLeads(reply.bisonCampaignId, [reply.referralLeadId]);
+  await db.update(bisonReplies).set({ referralStatus: 'added' }).where(eq(bisonReplies.id, reply.id));
+  res.json({ ok: true, referralStatus: 'added' });
+}));
+
 /** List this workspace's Bison sender inboxes — the picker for which inbox a reply is sent from. */
 outboundRouter.get('/inbox/senders', asyncHandler(async (req, res) => {
   const ws = await resolveWorkspace(req);

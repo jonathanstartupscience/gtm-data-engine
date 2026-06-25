@@ -155,6 +155,8 @@ export const api = {
   inboxSenders: () => get<{ senders: BisonSenderOption[] }>('/api/outbound/inbox/senders'),
   inboxReply: (id: number, body: { message: string; senderEmailId?: number; contentType?: 'html' | 'text' }) =>
     post<{ ok: boolean }>(`/api/outbound/inbox/${id}/reply`, body),
+  inboxReferral: (id: number, action: 'add' | 'dismiss') =>
+    post<{ ok: boolean; referralStatus: string }>(`/api/outbound/inbox/${id}/referral`, { action }),
 
   // Reply routing (round-robin rosters)
   notifyRoutes: () => get<{ workspaceId: number; workspace: NotifyRoute | null; campaigns: NotifyRoute[] }>('/api/outbound/notify-routes'),
@@ -292,12 +294,16 @@ export interface SequenceTemplate {
   rationale: string | null; genModel: string | null; generatedAt: string | null;
 }
 export interface SequenceBody { name: string; description?: string; persona?: string; steps: BuildStep[]; meta?: SequenceMeta }
+export interface ReplyReferral { name: string | null; email: string; title: string | null; inferredName: boolean; sameDomain: boolean }
 export interface Reply {
   id: number; campaignId: number | null; bisonCampaignId: number | null;
   leadEmail: string | null; leadName: string | null; subject: string | null; body: string | null;
   sentiment: string | null; isPositive: boolean; status: string; receivedAt: string;
   bisonReplyExtId: string | null; senderEmailId: number | null;
   assignedRep: string | null; claimedBy: string | null; claimedAt: string | null;
+  // AI triage (engine/notify/triage.ts)
+  triageCategory: string | null; triageActionable: boolean | null; triageStrategy: string | null;
+  referral: ReplyReferral | null; referralLeadId: number | null; referralStatus: string | null;
 }
 export interface BisonSenderOption { id: number; email: string; name?: string }
 export interface NotifyRoute {
