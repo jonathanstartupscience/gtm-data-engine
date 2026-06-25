@@ -256,6 +256,31 @@ export function bisonClient(ctx: BisonCtx) {
     return j.data ?? (j as BisonStats);
   }
 
+  /** TEMP DIAGNOSTIC — probe where stats actually live on this Bison instance. Remove after use. */
+  async function statsProbe(id: number): Promise<Record<string, unknown>> {
+    const out: Record<string, unknown> = {};
+    // 1) the raw single-campaign object — does it carry stat fields inline?
+    try {
+      const r = await request(`${BASE}/campaigns/${id}`, { headers: headers(), limiter });
+      out.campaign_status = r.status;
+      out.campaign_body = (await r.text()).slice(0, 2000);
+    } catch (e) { out.campaign_err = String(e); }
+    // 2) the /stats endpoint we currently rely on
+    try {
+      const r = await request(`${BASE}/campaigns/${id}/stats`, { headers: headers(), limiter });
+      out.stats_status = r.status;
+      out.stats_body = (await r.text()).slice(0, 1000);
+    } catch (e) { out.stats_err = String(e); }
+    // 3) a couple of plausible alternates
+    for (const path of [`/campaigns/${id}/statistics`, `/campaigns/${id}/analytics`, `/campaigns/${id}/report`]) {
+      try {
+        const r = await request(`${BASE}${path}`, { headers: headers(), limiter });
+        out[`alt_${path}`] = `${r.status}: ${(await r.text()).slice(0, 400)}`;
+      } catch (e) { out[`alt_${path}`] = String(e); }
+    }
+    return out;
+  }
+
   /** Send a test email of the sequence to an address (sanity check before launch). */
   function sendTest(id: number, email: string): Promise<Response> {
     return request(`${BASE}/campaigns/${id}/send-test`, {
@@ -465,7 +490,7 @@ export function bisonClient(ctx: BisonCtx) {
   return {
     listCampaigns, getCampaign, createCampaign, updateCampaign, deleteCampaign, scheduleCampaign,
     setSequenceSteps, listSenders, attachSenders, pauseCampaign, resumeCampaign,
-    getCampaignStats, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook,
+    getCampaignStats, statsProbe, sendTest, listReplies, listAllReplies, markInterested, sendReply, createWebhook,
     ensureCustomVariables, createLead, detachLead, listCampaignLeads, attachLeads, pushLeadsToCampaign,
   };
 }
