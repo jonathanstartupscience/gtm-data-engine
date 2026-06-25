@@ -142,7 +142,13 @@ body {
   background: var(--green); box-shadow: 0 0 0 3px rgba(101,194,56,0.2);
 }
 
-.footer-actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+/* Global nav zone — pinned to the bottom (pushes itself + the footer down), separated from the
+   per-engine links above by a hairline. Same in every workspace. */
+.nav-global {
+  margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 4px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.footer-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .help-btn {
   display: flex; align-items: center; gap: 8px;
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);

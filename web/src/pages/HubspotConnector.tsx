@@ -28,7 +28,7 @@ export function HubspotConnector() {
 
   return (
     <>
-      <p style={{ margin: '0 0 8px' }}><Link to="/connectors" className="muted">← Connectors</Link></p>
+      <p style={{ margin: '0 0 8px' }}><Link to="/settings" className="muted">← Settings · Connectors</Link></p>
       <h1 className="page-title">HubSpot</h1>
       <p className="page-sub">Your system of record. The engine syncs companies and contacts in both directions.</p>
 
