@@ -21,7 +21,10 @@
     "engine": "tsx src/engine/cli.ts",
     "seed:eso": "tsx scripts/seed-eso.ts",
     "seed:sequences": "tsx scripts/seed-sequences.ts",
-    "classify": "tsx scripts/classify.ts"
+    "classify": "tsx scripts/classify.ts",
+    "ee:build": "tsx scripts/email-engine/build-experiment.ts",
+    "ee:push": "tsx scripts/email-engine/push-experiment.ts",
+    "ee:launch": "tsx scripts/email-engine/launch.ts"
   },
   "dependencies": {
     "csv-parse": "^6.2.1",
