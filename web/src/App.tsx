@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { HelpDrawer } from './components/HelpDrawer.js';
 import { UserMenu } from './components/UserMenu.js';
-import { WorkspaceSwitcher, workspaceForPath } from './components/WorkspaceSwitcher.js';
+import { SidebarNav } from './components/SidebarNav.js';
+import { workspaceForPath } from './components/WorkspaceSwitcher.js';
 import { useWorkspace } from './workspace.js';
 import { api } from './api.js';
 
@@ -61,49 +62,12 @@ export function App() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <WorkspaceSwitcher active={ws} />
+        <div className="brand-lockup"><img src="/brand/logo-white.svg" alt="Startup Science" /></div>
 
-        {ws.id === 'data' && (
-          <>
-            <NavLink to="/" end className={nav}>Dashboard</NavLink>
-            <NavLink to="/discover" className={nav}>Find Companies</NavLink>
-            <NavLink to="/find-contacts" className={nav}>Find Contacts</NavLink>
-            <NavLink to="/import" className={nav}>Import</NavLink>
-            <NavLink to="/companies" className={nav}>Companies</NavLink>
-            <NavLink to="/contacts" className={nav}>Contacts</NavLink>
-            <NavLink to="/classify" className={nav}>Classify</NavLink>
-            <NavLink to="/hygiene" className={nav}>Data Hygiene</NavLink>
-            <NavLink to="/runs" className={nav}>Workflows</NavLink>
-          </>
-        )}
+        <SidebarNav replyBadge={replyBadge} liBadge={liBadge} emailPicker={<EmailWorkspacePicker />} />
 
-        {ws.id === 'email' && (
-          <>
-            <EmailWorkspacePicker />
-            <NavLink to="/performance" className={nav}>Performance</NavLink>
-            <NavLink to="/campaigns" end className={nav}>Campaigns</NavLink>
-            <NavLink to="/sequences" className={nav}>Sequences</NavLink>
-            <NavLink to="/experiments" className={nav}>Experiments</NavLink>
-            <NavLink to="/inbox" className={nav}>
-              Inbox{replyBadge > 0 && <span className="nav-badge">{replyBadge > 99 ? '99+' : replyBadge}</span>}
-            </NavLink>
-            <NavLink to="/email/workspaces" className={nav}>Workspaces</NavLink>
-          </>
-        )}
-
-        {ws.id === 'linkedin' && (
-          <>
-            <NavLink to="/linkedin" end className={nav}>Overview</NavLink>
-            <NavLink to="/linkedin/campaigns" className={nav}>Campaigns</NavLink>
-            <NavLink to="/linkedin/inbox" className={nav}>
-              Inbox{liBadge > 0 && <span className="nav-badge">{liBadge > 99 ? '99+' : liBadge}</span>}
-            </NavLink>
-          </>
-        )}
-
-        {/* Global zone — same in every workspace: system health + account-wide settings.
-            HubSpot has a dedicated connector detail page reached from Settings; keep its route
-            highlighted here when you're on it or on a sync. */}
+        {/* Global zone — system health + account-wide settings, pinned below the engines.
+            HubSpot's connector detail page lives under Settings; keep it highlighted on those routes. */}
         <div className="nav-global">
           <NavLink to="/logs" className={nav}>Logs &amp; Health</NavLink>
           <NavLink

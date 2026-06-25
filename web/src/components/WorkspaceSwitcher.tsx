@@ -1,14 +1,9 @@
 /**
- * Top-left workspace switcher — toggles between the two GTM workspaces:
- *   • GTM Data Engine  — the CRM / data warehouse (companies, contacts, hygiene, classify…)
- *   • GTM Outbound Engine — campaign orchestration (Email Bison cold email lives here)
- *
- * Each workspace owns a set of nav routes (see WORKSPACES). Switching navigates to the
- * workspace's home route; the sidebar then renders only that workspace's links.
+ * Workspace (engine) model — the source of truth for the three engines and route→engine inference.
+ * The unified sidebar (SidebarNav) renders all three at once; this module just describes them.
+ * "Engine" is the top level (Data / Email / LinkedIn). Naming note: the Email persona picker keeps
+ * the term "Workspace" because it mirrors Email Bison's own vocabulary.
  */
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 export type WorkspaceId = 'data' | 'email' | 'linkedin';
 
 export interface Workspace {
@@ -53,50 +48,4 @@ export const WORKSPACES: Workspace[] = [
 export function workspaceForPath(pathname: string): Workspace {
   const match = (w: Workspace) => w.routes.some((r) => r === pathname || (r !== '/' && pathname.startsWith(r)));
   return WORKSPACES.find((w) => w.id !== 'data' && match(w)) ?? WORKSPACES[0];
-}
-
-export function WorkspaceSwitcher({ active }: { active: Workspace }) {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
-
-  return (
-    <div className="ws-switcher" ref={ref}>
-      <div className="ws-eyebrow">Workspace</div>
-      <button className="ws-current" data-ws={active.id} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="ws-badge" data-ws={active.id}>{active.name.charAt(0)}</span>
-        <span className="ws-current-text">
-          <span className="ws-name">{active.name}</span>
-          <span className="ws-tagline">{active.tagline}</span>
-        </span>
-        <span className="ws-caret">{open ? '▴' : '▾'}</span>
-      </button>
-      {open && (
-        <div className="ws-menu" role="menu">
-          <div className="ws-menu-label">Switch workspace</div>
-          {WORKSPACES.map((w) => (
-            <button
-              key={w.id}
-              className={'ws-option' + (w.id === active.id ? ' active' : '')}
-              role="menuitem"
-              onClick={() => { setOpen(false); navigate(w.home); }}
-            >
-              <span className="ws-dot" data-ws={w.id} />
-              <span className="ws-current-text">
-                <span className="ws-name">{w.name}</span>
-                <span className="ws-tagline">{w.tagline}</span>
-              </span>
-              {w.id === active.id && <span className="ws-check">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
