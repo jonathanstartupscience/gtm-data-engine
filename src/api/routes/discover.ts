@@ -3,7 +3,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { suggestSeeds } from '../../engine/stages/discover.js';
 import { selectCompaniesForContactSearch } from '../../engine/stages/findContacts.js';
-import { runDiscoverLookalikes, runFindContacts } from '../../engine/recipes.js';
+import { discoverContactsScope, selectContactsNeedingEmail, type DiscoverPeopleFilters } from '../../engine/stages/discoverContacts.js';
+import { runDiscoverLookalikes, runFindContacts, runDiscoverContacts, runFindEmailsForContacts } from '../../engine/recipes.js';
 import { costs } from '../../lib/config.js';
 import { asyncHandler } from '../middleware.js';
 import { rateLimit, validateBody } from '../validate.js';
@@ -93,6 +94,119 @@ discoverRouter.post('/find-contacts', rateLimit(5, 60_000), validateBody(findCon
   } catch (err) {
     console.error('[find-contacts] error:', (err as Error).stack ?? err);
     send('error', { message: 'Find contacts failed — see server logs' });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
+});
+
+// ─── Discover Contacts: people-FIRST net-new sourcing (Airscale), split discover → find-emails ───
+
+/** Parse the people filters from a request (query or body). */
+function peopleFilters(src: Record<string, unknown>): DiscoverPeopleFilters {
+  const arr = (v: unknown) => Array.isArray(v) ? v.map((s) => String(s).slice(0, 120)).filter(Boolean)
+    : (typeof v === 'string' && v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined);
+  return {
+    titlesInclude: arr(src.titlesInclude), titlesExclude: arr(src.titlesExclude),
+    locations: arr(src.locations), keyword: src.keyword ? String(src.keyword).slice(0, 200) : undefined,
+    persona: src.persona ? String(src.persona).slice(0, 64) : undefined,
+  };
+}
+
+/** Scope for Discover Contacts: how many people match + est. Airscale listing cost. */
+discoverRouter.get('/discover-contacts/scope', rateLimit(30, 60_000), asyncHandler(async (req, res) => {
+  const f = peopleFilters(req.query as Record<string, unknown>);
+  const maxLeads = Math.min(Math.max(Number(req.query.maxLeads) || 1000, 1), 5000);
+  if (!f.titlesInclude?.length && !f.keyword) { res.status(400).json({ error: 'Give at least one job title or a keyword' }); return; }
+  const scope = await discoverContactsScope(f, maxLeads, costs.airscaleFindPersonPerLead);
+  res.json({ ...scope, vendor: 'Airscale', unit: 'people',
+    what: `Listing up to ${scope.estLeads.toLocaleString()} of ${scope.total.toLocaleString()} matching people. Emails are found separately.` });
+}));
+
+const discoverContactsSchema = z.object({
+  confirm: z.literal(true),
+  titlesInclude: z.array(z.string().max(120)).max(50).optional(),
+  titlesExclude: z.array(z.string().max(120)).max(50).optional(),
+  locations: z.array(z.string().max(120)).max(50).optional(),
+  keyword: z.string().max(200).optional(),
+  persona: z.string().max(64).optional(),
+  maxLeads: z.number().int().min(1).max(5000).optional(),
+  expectedCostUsd: z.number().nonnegative().optional(),
+}).refine((b) => b.titlesInclude?.length || b.keyword, { message: 'Give at least one job title or a keyword' });
+
+/** Run Discover Contacts (SSE). Requires confirm (spends Airscale listing credits). */
+discoverRouter.post('/discover-contacts', rateLimit(5, 60_000), validateBody(discoverContactsSchema), async (req, res) => {
+  const body = req.body as z.infer<typeof discoverContactsSchema>;
+  const maxLeads = body.maxLeads ?? 1000;
+  if (body.expectedCostUsd != null) {
+    const scope = await discoverContactsScope(body, maxLeads, costs.airscaleFindPersonPerLead);
+    if (scope.estCostUsd > body.expectedCostUsd * 1.2 + 0.01) {
+      return res.status(409).json({ error: 'cost_changed',
+        message: `The search now costs ~$${scope.estCostUsd.toFixed(2)}, more than the ~$${body.expectedCostUsd.toFixed(2)} previewed. Re-check the scope and confirm again.`,
+        expectedCostUsd: body.expectedCostUsd, liveCostUsd: scope.estCostUsd });
+    }
+  }
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+  const send = (event: string, data: unknown) => {
+    if (aborted || res.writableEnded) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  try {
+    const result = await runDiscoverContacts({ ...body, maxLeads }, (m) => send('log', { message: m }));
+    send('done', result);
+  } catch (err) {
+    console.error('[discover-contacts] error:', (err as Error).stack ?? err);
+    send('error', { message: 'Discover contacts failed — see server logs' });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
+});
+
+const idsBodySchema = z.object({ ids: z.array(z.number().int().positive()).min(1).max(5000) });
+
+/** Cost preview for finding emails on selected contacts (only those lacking an email are billable). */
+discoverRouter.post('/discover-contacts/find-emails/scope', rateLimit(30, 60_000), validateBody(idsBodySchema), asyncHandler(async (req, res) => {
+  const { ids } = req.body as z.infer<typeof idsBodySchema>;
+  const need = await selectContactsNeedingEmail(ids);
+  const billable = need.filter((r) => (r.domain ?? '').trim()).length;
+  res.json({ selected: ids.length, billable, skipped: ids.length - billable, vendor: 'Airscale', unit: 'email',
+    estCostUsd: +(billable * costs.airscaleEmailPerLookup).toFixed(4) });
+}));
+
+const findEmailsRunSchema = z.object({ confirm: z.literal(true), ids: z.array(z.number().int().positive()).min(1).max(5000), expectedCostUsd: z.number().nonnegative().optional() });
+
+/** Run email-finding (SSE) for selected contacts. Requires confirm (spends Airscale email credits). */
+discoverRouter.post('/discover-contacts/find-emails', rateLimit(5, 60_000), validateBody(findEmailsRunSchema), async (req, res) => {
+  const body = req.body as z.infer<typeof findEmailsRunSchema>;
+  if (body.expectedCostUsd != null) {
+    const need = await selectContactsNeedingEmail(body.ids);
+    const liveCost = need.filter((r) => (r.domain ?? '').trim()).length * costs.airscaleEmailPerLookup;
+    if (liveCost > body.expectedCostUsd * 1.2 + 0.01) {
+      return res.status(409).json({ error: 'cost_changed',
+        message: `Finding emails now costs ~$${liveCost.toFixed(2)}, more than the ~$${body.expectedCostUsd.toFixed(2)} previewed. Re-check and confirm again.`,
+        expectedCostUsd: body.expectedCostUsd, liveCostUsd: liveCost });
+    }
+  }
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+  const send = (event: string, data: unknown) => {
+    if (aborted || res.writableEnded) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  try {
+    const result = await runFindEmailsForContacts(body.ids, (m) => send('log', { message: m }));
+    send('done', result);
+  } catch (err) {
+    console.error('[find-emails] error:', (err as Error).stack ?? err);
+    send('error', { message: 'Find emails failed — see server logs' });
   } finally {
     if (!res.writableEnded) res.end();
   }

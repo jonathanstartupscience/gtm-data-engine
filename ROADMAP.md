@@ -3,7 +3,7 @@
 Internal planning doc: what's shipped, what's queued, and what we deliberately deferred or dropped.
 Not user-facing (that's the in-app knowledge base). Keep this current as decisions change.
 
-_Last updated: 2026-06-25_
+_Last updated: 2026-06-25 (visual design pass shipped, PR #11)_
 
 ---
 
@@ -22,15 +22,33 @@ _Last updated: 2026-06-25_
 - **Comprehensive audit batch** — referral double-create race fixed; vendor cost re-check at confirm;
   accessibility (focus rings, keyboard-sortable tables, HelpDrawer modal); route code-splitting
   (main bundle ~507KB → ~75KB). See PRs #8, #9.
+- **Visual design pass** (PR #11) — pure visual quality on the clean foundation; brand tokens unchanged.
+  A shared CSS layer in `styles.css` carries it so the rollout was class-adoption, not per-page restyles:
+  `.data-grid` (bordered card, zebra, denser operational row rhythm), `.num` (right-aligned tabular
+  figures), `.cell-primary` (one ink-weight primary link per row), the `.toolbar` grouped **filter rail**
+  (`.filter-sep` / `.toolbar.bare`), the count-first `.page-sub.metric` line, pager reorder helpers, an
+  accent-tinted active sort head, and tighter indigo-biased depth tokens (`--shadow-sm`, `--row-alt`,
+  `--row-hover`). Piloted on Companies (rendered before/after sign-off), then fanned out across every
+  list/detail/builder page. Bespoke surfaces (Sequences cards, Settings rows, Inbox triage, drawers) were
+  intentionally left structural — only genuine record tables became grids. No business logic touched.
 
 ---
 
 ## Now / next
 
-- **Visual design pass** — pure design quality on top of the now-clean, consistent foundation.
-  Started as a separate Claude Code session to keep context focused. The frontend-design plugin is
-  the tool; brand tokens (warm off-white, indigo #4d4d9d, green #65c238, DM Serif Display / DM Sans)
-  stay fixed. Goal: elevate hierarchy, spacing rhythm, and polish — not a bold restyle.
+- **Surface-specific visual polish** — the systemic pass (PR #11) is done; what remains is per-surface
+  craft that a shared class can't carry, each a small standalone change:
+  - **Charts** (Dashboard bar panels, Performance) — the bars are flat fills. Give them the same care as
+    type per the design principle: a faint baseline grid, an emphasized endpoint/value label, and align
+    them to the data-grid's numeric rhythm. The Dashboard "red bars = gaps" coral treatment stays.
+  - **Inbox triage cards** — the highest-value daily surface and still the most ad-hoc (inline-styled
+    `ReplyCard`, hand-rolled flex stack). Worth a dedicated hierarchy pass: claim/reply state encoded in
+    form (a status stripe/chip), the positive-first ordering made visually obvious, the reply composer
+    given calmer structure.
+  - **CompanyDetail / CampaignDetail depth** — detail pages got spacing + grids but not a hierarchy pass;
+    overlaps with the long-standing "detail-page depth" item below (drill-downs), so consider together.
+  - **Empty/loading states** — `.loading` is a bare centered line; a calmer skeleton or branded spinner on
+    the heavy list pages would round off the finish. Lowest priority (it's a calm tool, not a showcase).
 
 ---
 

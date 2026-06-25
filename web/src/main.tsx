@@ -17,6 +17,7 @@ const Runs = lazy(() => import('./pages/Runs.js').then((m) => ({ default: m.Runs
 const Import = lazy(() => import('./pages/Import.js').then((m) => ({ default: m.Import })));
 const Discover = lazy(() => import('./pages/Discover.js').then((m) => ({ default: m.Discover })));
 const FindContacts = lazy(() => import('./pages/FindContacts.js').then((m) => ({ default: m.FindContacts })));
+const DiscoverContacts = lazy(() => import('./pages/DiscoverContacts.js').then((m) => ({ default: m.DiscoverContacts })));
 const Logs = lazy(() => import('./pages/Logs.js').then((m) => ({ default: m.Logs })));
 const Sync = lazy(() => import('./pages/Sync.js').then((m) => ({ default: m.Sync })));
 const Campaigns = lazy(() => import('./pages/Campaigns.js').then((m) => ({ default: m.Campaigns })));
@@ -57,6 +58,7 @@ const router = createBrowserRouter([
       { path: 'import', element: page(<Import />) },
       { path: 'discover', element: page(<Discover />) },
       { path: 'find-contacts', element: page(<FindContacts />) },
+      { path: 'discover-contacts', element: page(<DiscoverContacts />) },
       { path: 'logs', element: page(<Logs />) },
       { path: 'sync', element: page(<Sync />) },
       { path: 'campaigns', element: page(<Campaigns />) },

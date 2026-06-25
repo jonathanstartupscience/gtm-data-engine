@@ -30,6 +30,7 @@ export function SidebarNav({ replyBadge, liBadge, emailPicker }: {
       { to: '/', label: 'Dashboard', end: true },
       { to: '/discover', label: 'Find Companies' },
       { to: '/find-contacts', label: 'Find Contacts' },
+      { to: '/discover-contacts', label: 'Discover Contacts' },
       { to: '/import', label: 'Import' },
       { to: '/companies', label: 'Companies' },
       { to: '/contacts', label: 'Contacts' },
