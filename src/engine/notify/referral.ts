@@ -7,7 +7,7 @@
  * Idempotent on the reply: if a referral lead was already created for this reply (referralLeadId set),
  * we don't create a second one on a redelivery.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { bisonReplies } from '../../db/schema.js';
 import { bisonClientFor, type BisonLead } from '../adapters/emailbison.js';
@@ -27,6 +27,19 @@ export interface ReferralResult {
  */
 export async function captureReferral(reply: ReplyRow, referral: ReferralContact): Promise<ReferralResult> {
   if (reply.referralLeadId) return { leadId: reply.referralLeadId }; // already captured (redelivery)
+
+  // Atomically CLAIM this reply before creating, so two concurrent calls (webhook redelivery racing a
+  // manual retry) can't both create a lead and leave an orphan in Bison. The claim flips
+  // referralStatus null → 'creating' guarded by isNull — only one caller wins; the rest bail.
+  const claimed = await db.update(bisonReplies)
+    .set({ referralStatus: 'creating' })
+    .where(and(eq(bisonReplies.id, reply.id), isNull(bisonReplies.referralStatus)))
+    .returning({ id: bisonReplies.id });
+  if (!claimed.length) {
+    // Someone else is creating (or already did). Read back the resolved lead id, if any.
+    const [row] = await db.select({ leadId: bisonReplies.referralLeadId }).from(bisonReplies).where(eq(bisonReplies.id, reply.id));
+    return { leadId: row?.leadId ?? null };
+  }
 
   const [firstName, ...rest] = (referral.name ?? '').split(/\s+/).filter(Boolean);
   const lead: BisonLead = {
@@ -52,8 +65,10 @@ export async function captureReferral(reply: ReplyRow, referral: ReferralContact
     console.error('[referral] create lead failed', e);
   }
 
+  // Resolve the claim: record the lead id and move to pending_confirm. If the create failed (no id),
+  // release the claim back to null so a later retry can attempt it again rather than getting stuck.
   await db.update(bisonReplies)
-    .set({ referralLeadId: leadId, referralStatus: 'pending_confirm' })
+    .set({ referralLeadId: leadId, referralStatus: leadId ? 'pending_confirm' : null })
     .where(eq(bisonReplies.id, reply.id));
 
   return { leadId, error };

@@ -35,7 +35,9 @@ export async function pickRep(opts: { workspaceId?: number | null; campaignId?: 
     .set({ rrCursor: sql`${notifyRoutes.rrCursor} + 1`, updatedAt: new Date() })
     .where(eq(notifyRoutes.id, route.id))
     .returning({ rrCursor: notifyRoutes.rrCursor });
-  const idx = ((updated?.rrCursor ?? 1) - 1) % reps.length; // -1: use the pre-bump index
+  // RETURNING gives the POST-bump cursor; subtract 1 to get the index we just consumed. The bump is
+  // atomic in SQL, so concurrent webhooks each get a distinct cursor → distinct rep (no collision).
+  const idx = ((updated?.rrCursor ?? 1) - 1) % reps.length;
   return { rep: reps[idx], webhookUrl };
 }
 

@@ -29,10 +29,12 @@ export async function verifySingle(email: string, timeout = 15): Promise<Bouncer
 }
 
 async function batchCreate(emails: string[]): Promise<string> {
-  const j = await requestJson<{ batchId: string }>(`${BASE}/v1.1/email/verify/batch`, {
+  const j = await requestJson<{ batchId?: string }>(`${BASE}/v1.1/email/verify/batch`, {
     method: 'POST', headers: headers(), limiter,
     body: JSON.stringify(emails.map((e) => ({ email: e }))),
   });
+  // Guard a malformed-but-OK response: without a batchId the poll loop would spin until timeout.
+  if (!j.batchId) throw new Error('Bouncer batch create returned no batchId');
   return j.batchId;
 }
 

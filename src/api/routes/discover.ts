@@ -45,12 +45,38 @@ const findContactsSchema = z.object({
   locations: z.array(z.string().max(120)).max(50).optional(),
   keyword: z.string().max(200).optional(),
   limitCompanies: z.number().int().min(1).max(100000).optional(),
+  // The cost the UI previewed (from /find-contacts/scope) and showed the user. The server re-checks
+  // the live scope against this so a filter that widened between preview and confirm can't quietly
+  // spend more than the user agreed to.
+  expectedCostUsd: z.number().nonnegative().optional(),
 }).refine((b) => b.persona || b.titlesInclude?.length || b.keyword, {
   message: 'Give at least a persona, one job title, or a keyword',
 });
 
+/** Recompute the Airscale scope+cost server-side, matching /find-contacts/scope's formula. */
+async function findContactsCost(b: z.infer<typeof findContactsSchema>): Promise<number> {
+  const matched = await selectCompaniesForContactSearch({
+    type: b.type, subType: b.subType, country: b.country, persona: b.persona,
+    onlyMissingPersona: !!b.onlyMissingPersona && !!b.persona,
+  }, b.limitCompanies ?? 100000);
+  return matched.length * 2 * 0.1 * costs.airscaleEmailPerLookup;
+}
+
 /** Run Find Contacts (SSE). Requires confirm (spends Airscale). */
 discoverRouter.post('/find-contacts', rateLimit(5, 60_000), validateBody(findContactsSchema), async (req, res) => {
+  const body = req.body as z.infer<typeof findContactsSchema>;
+  // Cost re-check BEFORE opening the SSE stream — a plain 409 the UI can show and re-preview.
+  if (body.expectedCostUsd != null) {
+    const liveCost = await findContactsCost(body);
+    // Allow a 20% drift (data changes between preview and confirm); block a real jump.
+    if (liveCost > body.expectedCostUsd * 1.2 + 0.01) {
+      return res.status(409).json({
+        error: 'cost_changed',
+        message: `The selection now costs ~$${liveCost.toFixed(2)}, more than the ~$${body.expectedCostUsd.toFixed(2)} previewed. Re-check the scope and confirm again.`,
+        expectedCostUsd: body.expectedCostUsd, liveCostUsd: liveCost,
+      });
+    }
+  }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');

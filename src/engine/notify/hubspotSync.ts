@@ -52,7 +52,10 @@ export async function syncReplyToHubspot(reply: ReplyForSync): Promise<void> {
       const again = await searchContactByEmail(email);
       if (again?.id) { await patchContact(again.id, props); hubspotId = again.id; }
     } else {
-      throw new Error(`HubSpot createContact failed (${resp.status})`);
+      // Surface the status + body so a transient failure is diagnosable in logs (the caller catches
+      // and logs this — the reply notification still succeeds; only the CRM promotion is skipped).
+      const body = await resp.text().catch(() => '');
+      throw new Error(`HubSpot createContact failed (${resp.status})${body ? `: ${body.slice(0, 200)}` : ''}`);
     }
   }
 
