@@ -68,8 +68,9 @@ export function WorkspaceSwitcher({ active }: { active: Workspace }) {
 
   return (
     <div className="ws-switcher" ref={ref}>
-      <button className="ws-current" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="ws-dot" data-ws={active.id} />
+      <div className="ws-eyebrow">Workspace</div>
+      <button className="ws-current" data-ws={active.id} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <span className="ws-badge" data-ws={active.id}>{active.name.charAt(0)}</span>
         <span className="ws-current-text">
           <span className="ws-name">{active.name}</span>
           <span className="ws-tagline">{active.tagline}</span>

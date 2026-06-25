@@ -93,7 +93,30 @@ body {
   color: var(--text-on-dark); padding: 10px 12px; border-radius: var(--radius-sm);
   cursor: pointer; font: 500 14px 'DM Sans', sans-serif;
 }
-.ws-current:hover, .ws-option:hover { background: rgba(255,255,255,0.1); }
+.ws-option:hover { background: rgba(255,255,255,0.1); }
+/* Current workspace = the top-level context switch. It carries its engine's color as a tinted
+   fill + matching left edge, so which of the three engines you're in reads instantly, and a glyph
+   badge makes it feel like switching apps, not picking a list item. */
+.ws-current {
+  border-width: 1px; border-left-width: 4px; padding: 11px 12px;
+  transition: filter 0.12s ease;
+}
+.ws-current:hover { filter: brightness(1.12); }
+.ws-current[data-ws="data"]    { background: rgba(101,194,56,0.16);  border-color: rgba(101,194,56,0.35);  border-left-color: var(--green); }
+.ws-current[data-ws="email"]   { background: rgba(77,77,157,0.22);   border-color: rgba(77,77,157,0.45);   border-left-color: var(--accent); }
+.ws-current[data-ws="linkedin"]{ background: rgba(10,102,194,0.20);  border-color: rgba(10,102,194,0.4);   border-left-color: #0a66c2; }
+.ws-eyebrow {
+  font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: rgba(247,246,242,0.4); margin: 0 0 6px 2px;
+}
+/* Engine glyph badge — a filled square in the engine color, larger than the old faint dot. */
+.ws-badge {
+  width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto;
+  display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff;
+}
+.ws-badge[data-ws="data"]     { background: var(--green); color: var(--dark); }
+.ws-badge[data-ws="email"]    { background: var(--accent); }
+.ws-badge[data-ws="linkedin"] { background: #0a66c2; }
 .ws-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
 .ws-dot[data-ws="data"] { background: var(--green); }
 .ws-dot[data-ws="email"] { background: var(--accent); }
@@ -304,8 +327,11 @@ td a:hover { text-decoration: underline; }
 }
 .btn:hover:not(:disabled) { border-color: var(--accent); }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary {
+  background: var(--accent); border-color: var(--accent); color: #fff; padding: 8px 18px;
+  box-shadow: 0 1px 2px rgba(77,77,157,0.25); transition: filter 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 2px 8px rgba(77,77,157,0.3); }
 .btn-green { background: var(--green); border-color: var(--green); color: var(--dark); }
 
 .muted { color: var(--text-muted); }
@@ -380,6 +406,21 @@ td a:hover { text-decoration: underline; }
 /* Sub-section inside a panel: a labelled block separated by a hairline rule. */
 .subsection { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .subsection-title { font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px; }
+
+/* ---- Page header: title + purpose left, single primary action right ----
+   Baseline-aligned so the action sits ON the title's line, not floating above it. */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.page-header .page-title { margin-bottom: 0; }
+.page-header .page-sub { margin-top: 4px; }
+.page-header-text { min-width: 0; }
+.page-header-action { flex: none; }
+@media (max-width: 600px) {
+  .page-header { flex-direction: column; align-items: stretch; gap: 14px; }
+}
+
+/* ---- Empty state: calm "nothing yet" + the one action that fixes it ---- */
+.empty-state { text-align: center; padding: 40px 24px; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text); }
 
 /* ---- Settings: unified connector rows + credit balances ---- */
 .section-title { font-size: 18px; margin: 8px 0 4px; }
