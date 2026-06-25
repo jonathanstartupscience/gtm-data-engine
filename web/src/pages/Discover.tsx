@@ -141,6 +141,7 @@ export function Discover() {
             <>
               <p className="muted mt-2">Search your companies (filtered to the sub-type above) and check the ones to use as seeds.</p>
               <input className="input" style={{ width: '100%', marginBottom: 10 }} placeholder="Search name or domain…"
+                aria-label="Search companies by name or domain"
                 value={pq} onChange={(e) => setPq(e.target.value)} />
               <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
                 <table>
@@ -148,7 +149,7 @@ export function Discover() {
                   <tbody>
                     {pickerRows.map((c) => (
                       <tr key={c.id}>
-                        <td><input type="checkbox" disabled={!c.domain} checked={!!c.domain && chosen.has(c.domain)} onChange={() => pickSeed(c)} /></td>
+                        <td><input type="checkbox" disabled={!c.domain} checked={!!c.domain && chosen.has(c.domain)} onChange={() => pickSeed(c)} aria-label={`Use ${c.name ?? c.domain ?? 'company'} as a seed`} /></td>
                         <td>{c.name ?? '—'}</td>
                         <td><DomainLink domain={c.domain} /></td>
                         <td>{c.subType && <span className="tag persona">{c.subType}</span>}</td>
@@ -184,7 +185,7 @@ export function Discover() {
               ⚠️ {String(result?.message ?? '')}
             </div>
           )}
-          <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto' }}>
+          <div className="codeblock" style={{ maxHeight: 180 }}>
             {log.map((l, i) => <div key={i}>{l}</div>)}
           </div>
           {result && !planGated && (

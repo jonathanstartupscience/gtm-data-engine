@@ -35,7 +35,7 @@ export function LinkedInCampaigns() {
       const r = await api.liSync();
       if ('configured' in r && r.configured === false) setNote(r.message);
       else { const rr = r as { synced: number; added: number; updated: number }; setNote(`Synced ${rr.synced} campaigns (${rr.added} new).`); load(); }
-    } catch (e) { setNote('Sync failed: ' + String(e)); }
+    } catch { setNote('Couldn’t sync from HeyReach — check the HeyReach key in Settings, then try again.'); }
     setSyncing(false);
   }
 
@@ -49,7 +49,7 @@ export function LinkedInCampaigns() {
         else if (ev === 'done') { const d = data as Record<string, number>; setPushMsg(`Done — ${d.added} added, ${d.updated} updated, ${d.failed} failed.`); }
         else if (ev === 'error') setPushMsg('✗ ' + (data as { message: string }).message);
       });
-    } catch (e) { setPushMsg('✗ ' + String(e)); }
+    } catch { setPushMsg('✗ Couldn’t push to HeyReach — make sure the campaign is active, then try again.'); }
     setPushing(false);
   }
 
@@ -82,7 +82,7 @@ export function LinkedInCampaigns() {
               <tbody>
                 {campaigns.map((c) => (
                   <tr key={c.id}>
-                    <td><input type="radio" name="licamp" checked={sel === c.id} onChange={() => setSel(c.id)} /></td>
+                    <td><input type="radio" name="licamp" aria-label={`Select ${c.name}`} checked={sel === c.id} onChange={() => setSel(c.id)} /></td>
                     <td>{c.name}</td>
                     <td><span className={'tag ' + (STATUS_TAG[c.status ?? ''] ?? 'unknown')}>{c.status ?? '—'}</span></td>
                     <td className="muted">#{c.heyreachCampaignId}</td>
@@ -96,7 +96,7 @@ export function LinkedInCampaigns() {
           <div className="panel">
             <h3>Push a segment {sel != null ? '' : '— select a campaign above'}</h3>
             <div className="toolbar mb-2">
-              <select className="select" value={persona} onChange={(e) => setPersona(e.target.value)}>
+              <select className="select" aria-label="Filter segment by persona" value={persona} onChange={(e) => setPersona(e.target.value)}>
                 {PERSONAS.map((p) => <option key={p} value={p}>{p || 'All personas'}</option>)}
               </select>
             </div>

@@ -43,7 +43,7 @@ export function Dashboard() {
   const [err, setErr] = useState('');
   useEffect(() => { api.stats().then(setStats).catch((e) => setErr(String(e))); }, []);
 
-  if (err) return <div className="loading">Error: {err}</div>;
+  if (err) return <div className="error-state">Couldn’t load data health — refresh the page, and check the HubSpot connection if it persists.</div>;
   if (!stats) return <div className="loading">Loading…</div>;
 
   const deliverable = stats.byEmailStatus.find((s) => s.key === 'deliverable')?.n ?? 0;

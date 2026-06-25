@@ -29,8 +29,8 @@ export function LinkedInOverview() {
         </div>
       )}
       {configured && keyValid === false && (
-        <div className="panel text-error mb-4">
-          HeyReach key is set but didn’t validate. Check it in Railway.
+        <div className="callout callout-error mb-4">
+          HeyReach key is set but didn’t validate — re-check the key in <Link to="/settings">Settings</Link>.
         </div>
       )}
 

@@ -56,8 +56,8 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
     try {
       const r = await api.setSecret(secretKey, value);
       setStatus({ set: r.set, source: r.source, masked: r.masked });
-      setDraft(''); setMsg('Saved ✓'); onKeyChange();
-    } catch (e) { setMsg(String(e)); }
+      setDraft(''); setMsg('Bison key saved.'); onKeyChange();
+    } catch { setMsg('Couldn’t save the key — check it’s the right Email Bison API key, then try again.'); }
     setBusy(false);
   }
 
@@ -67,8 +67,8 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
     try {
       const r = await api.clearSecret(secretKey);
       setStatus({ set: r.set, source: r.source, masked: r.masked });
-      setMsg('Removed'); onKeyChange();
-    } catch (e) { setMsg(String(e)); }
+      setMsg('Bison key removed.'); onKeyChange();
+    } catch { setMsg('Couldn’t remove the key — try again.'); }
     setBusy(false);
   }
 
@@ -85,7 +85,7 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
             title={ws.sending
               ? `${ws.activeCampaigns} active campaign${ws.activeCampaigns === 1 ? '' : 's'} sending`
               : 'No active campaigns'}>
-            <span className="ws-status-dot" /> {ws.sending ? 'sending' : 'idle'}
+            <span className="ws-status-dot" aria-hidden="true" /> {ws.sending ? 'sending' : 'idle'}
           </span>
         </h3>
         {keyTag(ws, status)}
@@ -97,7 +97,7 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
       </p>
 
       <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
-        <input className="input" type="password"
+        <input className="input" type="password" aria-label="Email Bison API key"
           placeholder={keySet ? 'Enter a new key to replace…' : 'Paste API key…'}
           value={draft} onChange={(e) => setDraft(e.target.value)} style={{ minWidth: 280 }} />
         <button className="btn btn-primary" disabled={busy || !draft.trim()} onClick={save}>
@@ -138,8 +138,8 @@ function WorkspaceScope({ ws, onSaved }: { ws: EmailWorkspace; onSaved: () => vo
     setBusy(true); setMsg('');
     try {
       await api.outboundWorkspaceSettings(ws.slug, { personaMatch: scope.trim() || null });
-      setMsg('Saved ✓'); onSaved();
-    } catch (e) { setMsg(String(e)); }
+      setMsg('Persona scope saved.'); onSaved();
+    } catch { setMsg('Couldn’t save the persona scope — try again.'); }
     setBusy(false);
   }
 
@@ -161,7 +161,7 @@ function WorkspaceScope({ ws, onSaved }: { ws: EmailWorkspace; onSaved: () => vo
         picks the workspace.
       </p>
       <div className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
-        <input className="input" placeholder="e.g. ESO % (blank = exact persona)"
+        <input className="input" aria-label="Persona scope pattern" placeholder="e.g. ESO % (blank = exact persona)"
           value={scope} onChange={(e) => setScope(e.target.value)} style={{ minWidth: 320 }} />
       </div>
 

@@ -71,6 +71,9 @@ export function FindContacts() {
       titlesExclude: titlesExclude.length ? titlesExclude : undefined,
       locations: locations.length ? locations : undefined,
       keyword: keyword.trim() || undefined,
+      // The cost we just showed the user — the server re-checks and 409s if the live scope now costs
+      // materially more, so a filter that widened since the preview can't quietly overspend.
+      expectedCostUsd: scope?.estCostUsd,
     }, (ev, data) => {
       if (ev === 'log') setLog((l) => [...l, (data as { message: string }).message]);
       else if (ev === 'done') { setResult((data as { stats: Record<string, unknown> }).stats); refresh(); }
@@ -136,7 +139,7 @@ export function FindContacts() {
           </div>
           <div>
             <label className="muted text-sm">Keyword (searches title, bio, skills, education)</label>
-            <input className="input mt-1" style={{ width: '100%' }} value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. fintech, climate, B2B SaaS" />
+            <input className="input mt-1" style={{ width: '100%' }} value={keyword} onChange={(e) => setKeyword(e.target.value)} aria-label="Keyword filter" placeholder="e.g. fintech, climate, B2B SaaS" />
           </div>
         </div>
       </div>
@@ -176,7 +179,7 @@ export function FindContacts() {
             </div>
           )}
           <details open><summary className="muted">Activity</summary>
-            <div className="mt-2" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 180, overflow: 'auto' }}>
+            <div className="codeblock mt-2">
               {log.map((l, i) => <div key={i}>{l}</div>)}
             </div>
           </details>

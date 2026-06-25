@@ -13,7 +13,7 @@ export function Sync() {
   async function runPreview() {
     setLoading(true); setErr(''); setResult(null); setPreview(null);
     try { setPreview(await api.pushPreview(5000)); }
-    catch (e) { setErr(String(e)); }
+    catch { setErr('Couldn’t build the preview — check the HubSpot connection, then try again.'); }
     setLoading(false);
   }
 
@@ -98,7 +98,7 @@ export function Sync() {
       {pushing && log.length > 0 && (
         <div className="panel mt-4">
           <details open><summary className="muted">Live activity</summary>
-            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, lineHeight: 1.7, maxHeight: 200, overflow: 'auto', marginTop: 8 }}>
+            <div className="codeblock mt-2" style={{ maxHeight: 200 }}>
               {log.map((l, i) => <div key={i}>{l}</div>)}
             </div>
           </details>

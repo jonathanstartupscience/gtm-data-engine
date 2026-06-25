@@ -7,5 +7,16 @@ export default defineConfig({
     port: 5173,
     proxy: { '/api': 'http://localhost:3000' }, // dev: proxy API to the Express server
   },
-  build: { outDir: 'dist' },
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Big, rarely-changing deps in their own long-cacheable chunks.
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-clerk': ['@clerk/clerk-react'],
+        },
+      },
+    },
+  },
 });
