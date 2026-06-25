@@ -19,9 +19,8 @@ export function Performance() {
     <>
       <h1 className="page-title">Email <em>Engine</em></h1>
       <p className="page-sub">
-        Design, launch, and compare cold-email campaigns on top of the clean, segmented data from the
-        Data Engine. Below is how every campaign is performing — refresh a campaign’s stats from its
-        detail page; positive replies are counted from the Inbox.
+        Cold-email campaigns on top of the clean, segmented data from the Data Engine, side by side.
+        Refresh a campaign’s stats from its detail page; positive replies are counted from the Inbox.
       </p>
 
       <div className="toolbar">

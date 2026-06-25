@@ -71,7 +71,7 @@ export function Discover() {
   return (
     <>
       <h1 className="page-title">Find more <em>companies</em></h1>
-      <p className="page-sub">Pick a type and sub-type, choose examples you like, and Ocean finds similar companies to add to your targets — deduped against what you already have.</p>
+      <p className="page-sub">Pick a sub-type, choose example companies, and Ocean finds lookalikes — deduped against what you already have.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>1 · Choose a sub-type</h3>
@@ -98,9 +98,9 @@ export function Discover() {
               <>New companies tagged <span className="tag persona">{typeLabel}</span>{' '}
                 <span className="tag persona">{subType}</span> — ready to sync to HubSpot.</>
             ) : (
-              <>New companies tagged <span className="tag persona">{subType}</span>. Heads-up: existing{' '}
+              <>New companies tagged <span className="tag persona">{subType}</span>. Existing{' '}
                 <strong>{subType}</strong> companies have no <em>Type</em> set — run the “Pair Type &amp; Sub-type”
-                hygiene task so they’re classified (e.g. this sub-type → its parent Type) before syncing.</>
+                hygiene task to classify them before syncing.</>
             )}
           </p>
         )}
@@ -120,7 +120,7 @@ export function Discover() {
 
           {!pickerOpen ? (
             <>
-              <p className="muted" style={{ marginTop: 8 }}>A spread of your existing {subType} companies. Uncheck any you don't want — or “Pick exact companies” to search your full list.</p>
+              <p className="muted" style={{ marginTop: 8 }}>A spread of your existing {subType} companies. Uncheck any you don’t want, or pick exact ones from your full list.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {seeds.map((s) => (
                   <label key={s.domain} style={{
@@ -136,7 +136,7 @@ export function Discover() {
             </>
           ) : (
             <>
-              <p className="muted" style={{ marginTop: 8 }}>Search your companies (filtered to the type/sub-type above) and check exactly the ones to use as seeds.</p>
+              <p className="muted" style={{ marginTop: 8 }}>Search your companies (filtered to the sub-type above) and check the ones to use as seeds.</p>
               <input className="input" style={{ width: '100%', marginBottom: 10 }} placeholder="Search name or domain…"
                 value={pq} onChange={(e) => setPq(e.target.value)} />
               <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>

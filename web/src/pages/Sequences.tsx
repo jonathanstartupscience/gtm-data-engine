@@ -54,8 +54,8 @@ export function Sequences() {
     <>
       <h1 className="page-title">Sequences</h1>
       <p className="page-sub">
-        Reusable message sequences you can build once and attach to any campaign. Create variations to
-        A/B test messaging across segments — a campaign gets its own copy, so editing it never changes the template.
+        Reusable message sequences — build once, attach to any campaign. Make variations to A/B test
+        across segments. A campaign gets its own copy, so editing it never changes the template.
       </p>
 
       <div className="toolbar">

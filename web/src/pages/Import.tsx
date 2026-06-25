@@ -46,7 +46,7 @@ export function Import() {
     <>
       <div className="eyebrow">Import</div>
       <h1 className="page-title">Bring in a <em>list</em></h1>
-      <p className="page-sub">Upload a CSV of companies or people. The engine dedupes it against the store and creates clean records — nothing is duplicated.</p>
+      <p className="page-sub">Upload a CSV of companies or people. Rows are deduped against the store — existing records update, new ones are created.</p>
 
       {/* Step 1 — type + file */}
       <div className="panel" style={{ marginBottom: 16 }}>
@@ -79,7 +79,7 @@ export function Import() {
         return (
           <div className="panel" style={{ marginBottom: 16 }}>
             <h3>2 · Match your columns to fields</h3>
-            <p className="muted" style={{ marginTop: -8 }}>We auto-matched by header name. Adjust any that look wrong; “skip” ignores a field. Each engine field on the left can be filled from one of your CSV columns on the right.</p>
+            <p className="muted" style={{ marginTop: -8 }}>Auto-matched by header name. Adjust any that look wrong; “skip” ignores a field.</p>
             <table>
               <thead><tr><th>Engine field</th><th>Your CSV column</th><th>Sample value</th></tr></thead>
               <tbody>
@@ -113,7 +113,7 @@ export function Import() {
             )}
             {!hasKey && (
               <p style={{ color: 'var(--coral)', fontSize: 13, marginTop: 10 }}>
-                Map at least one key field ({entityType === 'company' ? 'name or domain' : 'email or a name'}) so records can be matched/deduped.
+                Map at least one key field ({entityType === 'company' ? 'name or domain' : 'email or a name'}) so rows can be matched and deduped.
               </p>
             )}
             <div style={{ marginTop: 16 }}>
@@ -141,8 +141,8 @@ export function Import() {
                 <div className="card"><div className="num">{String(result.errors ?? 0)}</div><div className="label">Skipped (missing fields)</div></div>
               </div>
               <p className="muted" style={{ marginTop: 14 }}>
-                Records were deduped against the store — existing ones updated, new ones created.
-                {runId != null && <> <Link to="/runs">View the full step-by-step breakdown →</Link></>}
+                Deduped against the store — existing records updated, new ones created.
+                {runId != null && <> <Link to="/runs">View the step-by-step breakdown →</Link></>}
               </p>
             </>
           )}

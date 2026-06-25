@@ -5,7 +5,7 @@ import { useTaxonomy } from '../hooks/useTaxonomy.js';
 import { CostBadge } from '../components/CostBadge.js';
 import { ChipInput } from '../components/ChipInput.js';
 
-// Optional quick-fills — pre-load common title sets. Not required; you can type any titles.
+// Quick-fills — pre-load common title sets. Optional; you can type any titles.
 const PERSONA_PRESETS: Record<string, string[]> = {
   'ESO Leadership': ['Executive Director', 'CEO', 'President', 'Managing Director'],
   'ESO Program': ['Program Director', 'Program Manager', 'Accelerator Director', 'Incubator Director'],
@@ -83,7 +83,7 @@ export function FindContacts() {
   return (
     <>
       <h1 className="page-title">Find more <em>contacts</em></h1>
-      <p className="page-sub">Pick the companies, then search people with the same precision as Airscale — job titles, exclusions, location, and keywords. Airscale sources the contacts and we verify their emails.</p>
+      <p className="page-sub">Pick companies, then filter people by title, exclusions, location, and keyword. Airscale sources the contacts; we verify their emails.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>1 · Which companies?</h3>
@@ -103,13 +103,13 @@ export function FindContacts() {
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} disabled={!persona} />
-          <span className={persona ? '' : 'muted'}>Only companies that don’t already have the selected persona {!persona && '(pick a persona to enable)'}</span>
+          <span className={persona ? '' : 'muted'}>Only companies missing this persona {!persona && '(pick a persona to enable)'}</span>
         </label>
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>2 · Who are you looking for?</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Search by job title and more — no persona required. Optionally pick a preset to pre-fill common titles, then edit freely.</p>
+        <p className="muted" style={{ marginTop: -8 }}>No persona required. A preset pre-fills common titles; edit them freely.</p>
 
         <div style={{ display: 'grid', gap: 12 }}>
           <div>
@@ -121,7 +121,7 @@ export function FindContacts() {
           </div>
           <div>
             <label className="muted" style={{ fontSize: 13 }}>Job titles to include</label>
-            <div style={{ marginTop: 4 }}><ChipInput values={titlesInclude} onChange={setTitlesInclude} placeholder="e.g. Director of Partnerships, VP Sales — Enter or comma to add" /></div>
+            <div style={{ marginTop: 4 }}><ChipInput values={titlesInclude} onChange={setTitlesInclude} placeholder="e.g. Director of Partnerships, VP Sales" /></div>
           </div>
           <div>
             <label className="muted" style={{ fontSize: 13 }}>Job titles to exclude</label>
@@ -156,7 +156,7 @@ export function FindContacts() {
                 <button className="btn btn-primary" disabled={running || scope.candidates === 0} onClick={run}>
                   {running ? 'Finding…' : `Find contacts · ~$${cost < 1 ? cost.toFixed(2) : Math.round(cost)}`}
                 </button>
-                {running && <span className="muted" style={{ marginLeft: 10 }}><span className="spinner" /> Safe to leave — runs on the server.</span>}
+                {running && <span className="muted" style={{ marginLeft: 10 }}><span className="spinner" /> Runs on the server — safe to leave.</span>}
               </div>
             </>
           )}

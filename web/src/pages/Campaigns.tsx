@@ -43,7 +43,7 @@ export function Campaigns() {
   return (
     <>
       <h1 className="page-title">Campaigns</h1>
-      <p className="page-sub">Your cold-email campaigns. Build a new one, or sync the existing campaigns from Email Bison to mirror and track them here.</p>
+      <p className="page-sub">Your cold-email campaigns. Build one, or sync from Email Bison to track existing campaigns here.</p>
 
       <div className="toolbar">
         <Link to="/campaigns/new" className="btn btn-primary">+ New campaign</Link>

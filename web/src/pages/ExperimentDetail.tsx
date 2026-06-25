@@ -84,7 +84,7 @@ export function ExperimentDetail() {
           <button className="btn" onClick={archiveToggle} style={{ padding: '4px 10px' }}>{exp.status === 'archived' ? 'Reactivate' : 'Archive'}</button>
         </div>
         <p className="muted" style={{ fontSize: 13, margin: '6px 0 12px' }}>
-          Weight = share of <em>new</em> contacts. Set to <strong>0</strong> to pause an arm (it keeps the leads it already has; no new ones flow). Raise a winner to send it more.
+          Weight sets each arm's share of <em>new</em> contacts. <strong>0</strong> pauses an arm — it keeps the leads it already has, none new flow. Raise a winner to send it more.
         </p>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -126,7 +126,7 @@ export function ExperimentDetail() {
         {dirty && (
           <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
             <button className="btn btn-primary" disabled={savingW} onClick={saveWeights}>{savingW ? 'Saving…' : 'Save weights'}</button>
-            <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Changes only affect future traffic; assigned contacts never move.</span>
+            <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Affects future traffic only — assigned contacts never move.</span>
           </div>
         )}
       </div>
@@ -135,8 +135,8 @@ export function ExperimentDetail() {
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Distribute &amp; push</h3>
         <p className="muted" style={{ fontSize: 13, marginTop: -4 }}>
-          Assigns any unassigned contacts to arms (by weight), then pushes each arm’s not-yet-sent contacts
-          into its Bison campaign. Re-running only flows new contacts. Only deliverable / risky-catch-all addresses are included.
+          Assigns unassigned contacts to arms by weight, then pushes each arm’s unsent contacts into its
+          Bison campaign. Re-running only flows new contacts. Deliverable and risky catch-all addresses only.
         </p>
         {preview && preview.unassigned > 0 && (
           <p style={{ fontSize: 14 }}><strong>{preview.unassigned.toLocaleString()}</strong> new contact(s) would be distributed: {preview.newByArm.filter((n) => n.count > 0).map((n) => `${n.label ?? 'arm ' + n.armId} +${n.count}`).join(', ') || '—'}</p>

@@ -31,7 +31,7 @@ export function LinkedInInbox() {
   return (
     <>
       <h1 className="page-title">LinkedIn Inbox</h1>
-      <p className="page-sub">Replies and conversations from your HeyReach campaigns. Jump on warm replies fast — open the thread in LinkedIn to respond.</p>
+      <p className="page-sub">Conversations from your HeyReach campaigns. Open the thread in LinkedIn to respond.</p>
 
       <div className="toolbar" style={{ alignItems: 'center' }}>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync conversations'}</button>
@@ -48,7 +48,7 @@ export function LinkedInInbox() {
       )}
 
       {loading ? <div className="loading">Loading…</div> : replies.length === 0 ? (
-        <div className="panel"><p className="muted">No conversations yet. Click “Sync conversations” to pull from HeyReach.</p></div>
+        <div className="panel"><p className="muted">No conversations yet. Sync conversations to pull from HeyReach.</p></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {replies.map((r) => (

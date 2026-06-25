@@ -49,7 +49,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
         )}
 
         <h4>Step-by-step</h4>
-        {steps.length === 0 && <p className="muted">No step detail recorded for this run (older run).</p>}
+        {steps.length === 0 && <p className="muted">No step detail recorded — this is an older run.</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {steps.map((s, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 0', borderBottom: '1px solid var(--border)', alignItems: 'flex-start' }}>
@@ -99,8 +99,8 @@ function ScopeDialog({ scope, onCancel, onConfirm }:
             <div className="label">{scope.free ? 'No vendor cost' : `Est. cost · ${scope.vendor}`}</div>
           </div>
         </div>
-        {big && <p style={{ color: 'var(--coral)', fontSize: 13 }}>This is a larger spend — double-check before confirming.</p>}
-        {scope.candidates === 0 && <p className="muted">Nothing to do — everything is already up to date.</p>}
+        {big && <p style={{ color: 'var(--coral)', fontSize: 13 }}>Larger spend — double-check before confirming.</p>}
+        {scope.candidates === 0 && <p className="muted">Nothing to do — everything is up to date.</p>}
         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
           <button className="btn btn-primary" disabled={scope.candidates === 0} onClick={onConfirm}>
             {scope.free ? 'Run' : `Confirm & spend ~$${scope.free ? 0 : (cost < 1 ? cost.toFixed(2) : Math.round(cost))}`}
@@ -117,36 +117,36 @@ interface RecipeGroup { title: string; blurb: string; recipes: Recipe[]; }
 const GROUPS: RecipeGroup[] = [
   {
     title: 'Import from HubSpot',
-    blurb: 'Free — pulls data IN from HubSpot. No vendor credits.',
+    blurb: 'Free — pulls data in from HubSpot. No vendor credits.',
     recipes: [
       {
         id: 'pull-hubspot-companies',
         name: 'Import companies from HubSpot',
-        desc: 'Pulls companies IN from HubSpot across all types and sub-types, deduplicated against existing records. (To push back out, use Connectors → Sync to HubSpot.) Run a test batch first, then the full import.',
+        desc: 'Pulls companies in from HubSpot across all types and sub-types, deduplicated against existing records. To push back out, use Connectors → Sync to HubSpot. Run a test batch first, then the full import.',
         testLimit: 500, testLabel: 'Test 500',
       },
       {
         id: 'pull-hubspot-contacts',
         name: 'Import contacts from HubSpot',
-        desc: 'Pulls people IN from HubSpot and links them to their companies, deduplicated by email. Run the company import first.',
+        desc: 'Pulls people in from HubSpot and links them to their companies, deduplicated by email. Run the company import first.',
         testLimit: 500, testLabel: 'Test 500',
       },
     ],
   },
   {
     title: 'Bulk enrichment & verification (paid)',
-    blurb: 'These spend vendor credits across ALL matching records. For a controlled spend, select specific rows on the Companies or Contacts tab and use the action bar there instead.',
+    blurb: 'Spends vendor credits across all matching records. For a controlled spend, select specific rows on the Companies or Contacts tab and use the action bar there instead.',
     recipes: [
       {
         id: 'verify-stale',
-        name: 'Verify ALL stale emails',
-        desc: 'Re-checks every email that is unverified or older than 90 days through Bouncer. Fresh results are skipped. Shows a cost preview before spending.',
+        name: 'Verify all stale emails',
+        desc: 'Re-checks every email that is unverified or older than 90 days through Bouncer; fresh results are skipped. Shows a cost preview before spending.',
         paid: true,
       },
       {
         id: 'enrich-companies',
-        name: 'Enrich ALL incomplete companies',
-        desc: 'Fills missing firmographics for every company with incomplete data, via Ocean.io. Existing values are never overwritten. Shows a cost preview first.',
+        name: 'Enrich all incomplete companies',
+        desc: 'Fills missing firmographics for every company with incomplete data, via Ocean.io; existing values are never overwritten. Shows a cost preview before spending.',
         paid: true,
       },
     ],
@@ -221,7 +221,7 @@ export function Runs() {
   return (
     <>
       <h1 className="page-title">Workflows</h1>
-      <p className="page-sub">Bulk data operations. Free imports are grouped at the top; paid bulk operations below show a cost preview before spending. For a precise spend, select rows on Companies/Contacts and use the action bar there.</p>
+      <p className="page-sub">Bulk data operations. Free imports up top; paid bulk operations below show a cost preview before spending. For a precise spend, select rows on Companies/Contacts and use the action bar there.</p>
 
       {GROUPS.map((g) => (
         <div key={g.title} style={{ marginBottom: 28 }}>
@@ -272,7 +272,7 @@ export function Runs() {
           <div className="muted" style={{ marginTop: 4 }}>{runErr}</div>
           {/401|Authentication|credentials/i.test(runErr) && (
             <div className="muted" style={{ marginTop: 8 }}>
-              Looks like a HubSpot auth problem — check the HubSpot token &amp; scopes on the{' '}
+              Looks like a HubSpot auth problem — check the token &amp; scopes on the{' '}
               <a href="/connectors/hubspot">HubSpot connector</a> page.
             </div>
           )}
@@ -283,8 +283,8 @@ export function Runs() {
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--accent)' }}>
           <strong>Live view disconnected</strong>
           <div className="muted" style={{ marginTop: 4 }}>
-            That’s expected on long runs — the workflow keeps running on the server. Its result will
-            appear under <strong>Recent activity</strong> below (and in Logs &amp; Health) when it finishes.
+            Expected on long runs — the workflow keeps running on the server. Its result appears under
+            <strong> Recent activity</strong> below (and in Logs &amp; Health) when it finishes.
             <button className="btn" style={{ marginLeft: 10, padding: '4px 10px' }} onClick={() => loadHistory()}>Refresh</button>
           </div>
         </div>
@@ -294,8 +294,8 @@ export function Runs() {
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="spinner" /> <strong>Working…</strong>
-            <span className="muted">This runs on the server — you can safely leave this page or close the tab.
-              When you come back, find it under Recent activity below (or in Logs &amp; Health).</span>
+            <span className="muted">Runs on the server — safe to leave this page or close the tab.
+              Find it under Recent activity below (or in Logs &amp; Health) when you’re back.</span>
           </div>
         </div>
       )}
@@ -327,7 +327,7 @@ export function Runs() {
 
       <div className="panel">
         <h3>Recent activity</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Select any run to see a detailed breakdown.</p>
+        <p className="muted" style={{ marginTop: -8 }}>Select any run for a step-by-step breakdown.</p>
         <table>
           <thead><tr><th>Workflow</th><th>Status</th><th>When</th><th>Result</th></tr></thead>
           <tbody>

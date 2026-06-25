@@ -62,7 +62,7 @@ export function Classify() {
   return (
     <>
       <h1 className="page-title">Classify <em>review</em></h1>
-      <p className="page-sub">AI-proposed type &amp; sub-type for companies missing them. Review and approve — nothing is applied until you confirm. Approving writes the classification to this store <strong>and back to HubSpot</strong> (for companies linked to a HubSpot record), so your CRM gets cleaned too.</p>
+      <p className="page-sub">AI-proposed type &amp; sub-type for companies missing them. Nothing applies until you approve. Approving writes to this store <strong>and back to HubSpot</strong> for any linked record, so the CRM gets cleaned too.</p>
 
       {audit && (
         <div className="cards">
@@ -76,12 +76,12 @@ export function Classify() {
         <h3>Generate proposals</h3>
         {audit && !audit.canRunInApp ? (
           <p className="muted">
-            To run the AI classifier from here, add an <code>ANTHROPIC_API_KEY</code> in <Link to="/settings">Settings</Link>.
-            (Or run <code>npm run classify</code> locally — that uses Claude Code at no API cost.)
+            To run the classifier here, add an <code>ANTHROPIC_API_KEY</code> in <Link to="/settings">Settings</Link>.
+            Or run <code>npm run classify</code> locally — Claude Code, no API cost.
           </p>
         ) : (
           <>
-            <p className="muted" style={{ marginTop: -4 }}>Reads each company’s homepage and proposes a Type/Sub-type from the ICP taxonomy. Proposals land below for your review — nothing is applied automatically.</p>
+            <p className="muted" style={{ marginTop: -4 }}>Reads each company’s homepage and proposes a Type/Sub-type from the ICP taxonomy. Proposals land below for review — nothing applies automatically.</p>
             <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
               <label className="muted">How many:
                 <select className="select" value={runLimit} onChange={(e) => setRunLimit(Number(e.target.value))} style={{ marginLeft: 6 }}>
@@ -90,7 +90,7 @@ export function Classify() {
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <input type="checkbox" checked={useOcean} onChange={(e) => setUseOcean(e.target.checked)} />
-                <span className="muted">Use Ocean when a homepage is thin (costs credits)</span>
+                <span className="muted">Fall back to Ocean for thin homepages — spends credits</span>
               </label>
               <button className="btn btn-primary" disabled={runningClassify} onClick={runClassifier}>
                 {runningClassify ? <><span className="spinner" /> Classifying…</> : 'Run classifier'}
@@ -118,7 +118,7 @@ export function Classify() {
       {msg && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--green)' }}>{msg}</div>}
 
       {proposals.length === 0 ? (
-        <div className="loading">No pending proposals yet. Use “Generate proposals” above to create some.</div>
+        <div className="loading">No pending proposals. Use “Generate proposals” above to create some.</div>
       ) : (
         <table>
           <thead><tr>

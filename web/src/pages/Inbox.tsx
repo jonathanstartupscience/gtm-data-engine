@@ -42,7 +42,7 @@ export function Inbox() {
   return (
     <>
       <h1 className="page-title">Inbox</h1>
-      <p className="page-sub">Replies from your campaigns. Positive and interested replies are surfaced first — claim one and reply fast while the intent is warm.</p>
+      <p className="page-sub">Replies from your campaigns, positive and interested ones first — claim one and reply while the intent is warm.</p>
 
       <div className="toolbar" style={{ alignItems: 'center' }}>
         <button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync replies'}</button>
@@ -53,7 +53,7 @@ export function Inbox() {
       </div>
 
       {loading ? <div className="loading">Loading…</div> : replies.length === 0 ? (
-        <div className="panel"><p className="muted">No {positiveOnly ? 'positive ' : ''}replies yet. Replies arrive via the Bison webhook, or click “Sync replies” to pull the latest.</p></div>
+        <div className="panel"><p className="muted">No {positiveOnly ? 'positive ' : ''}replies yet. Replies arrive via the Bison webhook, or Sync replies to pull the latest.</p></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {replies.map((r) => (
@@ -170,8 +170,8 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
             {r.referral.inferredName && 'Name inferred from email. '}
-            {r.referral.sameDomain ? 'Same company domain.' : 'Different domain — sanity-check before adding.'}
-            {r.referralLeadId ? ' Lead created in Bison; not yet in the campaign.' : ' Lead not auto-created — add manually in Bison.'}
+            {r.referral.sameDomain ? 'Same company domain.' : 'Different domain — check before adding.'}
+            {r.referralLeadId ? ' Lead created in Bison, not yet in the campaign.' : ' Lead not auto-created — add manually in Bison.'}
           </div>
           <div className="toolbar" style={{ marginTop: 8, marginBottom: 0, gap: 8 }}>
             {refStatus === 'added' ? (
@@ -227,7 +227,7 @@ function ReplyCard({ reply: r, senders, focused, onChanged, onAct, clearFocus }:
               </div>
             </>
           ) : (
-            <p className="muted">This reply has no Bison thread id, so it can’t be answered from here. Open it in the Bison master inbox to respond.</p>
+            <p className="muted">No Bison thread id — open it in the Bison master inbox to respond.</p>
           )}
           {err && <p className="muted" style={{ color: 'var(--red, #d33)' }}>{err}</p>}
         </div>

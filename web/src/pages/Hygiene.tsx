@@ -6,13 +6,13 @@ import { CostBadge } from '../components/CostBadge.js';
 interface Task { id: string; name: string; desc: string; key: string; }
 const TASKS: Task[] = [
   { id: 'pairing', key: 'pairing', name: 'Pair Type from Sub-type',
-    desc: 'When a company has a Sub-type (ICP) but no Type, sets the Type from the canonical taxonomy (University → ESO, PE → Investor, Software → Provider…) and writes it back to HubSpot. Companies missing both go to AI Classify.' },
+    desc: 'For companies with a Sub-type (ICP) but no Type, sets the Type from the canonical taxonomy (University → ESO, PE → Investor, Software → Provider…) and writes it back to HubSpot. Companies missing both go to AI Classify.' },
   { id: 'association-repair', key: 'associationRepair', name: 'Repair contact → company links',
-    desc: 'Links orphaned contacts to a company by matching their email domain to a company you already have. Makes contacts usable by company and type.' },
+    desc: 'Links orphaned contacts to a company you already have by matching email domain. Makes them usable by company and type.' },
   { id: 'persona-backfill', key: 'personaBackfill', name: 'Backfill personas',
-    desc: 'Tags contacts that have a job title but no persona, using the built-in title classifier. Instantly improves segmentation.' },
+    desc: 'Tags contacts that have a job title but no persona, via the built-in title classifier.' },
   { id: 'normalize', key: 'normalize', name: 'Normalize country values',
-    desc: 'Canonicalizes inconsistent country values (US / USA / United States → United States) so filters and segments are reliable.' },
+    desc: 'Canonicalizes inconsistent country values (US / USA / United States → United States) so filters and segments stay reliable.' },
 ];
 
 function HealthBar({ label, have, total }: { label: string; have: number; total: number }) {
@@ -51,7 +51,7 @@ export function Hygiene() {
   return (
     <>
       <h1 className="page-title">Data <em>hygiene</em></h1>
-      <p className="page-sub">Clean and complete your CRM data. The tasks below are <strong>free</strong> — they work on data you already have, with no vendor cost. Each shows how many records it will affect before you run it.</p>
+      <p className="page-sub">Clean and complete your CRM data. Every task here is <strong>free</strong> — it works on data you already have, no vendor cost — and shows how many records it will touch before you run it.</p>
 
       {a && (
         <div className="grid2" style={{ marginBottom: 16 }}>
