@@ -20,11 +20,11 @@ export function Logs() {
   return (
     <>
       <h1 className="page-title">Logs &amp; <em>health</em></h1>
-      <p className="page-sub">Recent activity and system status — check here first when something doesn’t work.</p>
+      <p className="page-sub">Recent activity and system status — check here first when something breaks.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>Integrations</h3>
-        <p className="muted" style={{ marginTop: -8 }}>Which external tools have a key configured on the server. If one is off, its features won’t run.</p>
+        <p className="muted" style={{ marginTop: -8 }}>External tools with a key configured on the server. If one is off, its features won’t run.</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {Object.entries(INTEGRATION_LABELS).map(([k, label]) => (
             <span key={k} style={{

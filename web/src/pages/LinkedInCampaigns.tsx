@@ -55,19 +55,19 @@ export function LinkedInCampaigns() {
   return (
     <>
       <h1 className="page-title">LinkedIn Campaigns</h1>
-      <p className="page-sub">Campaigns mirrored from HeyReach. Push a LinkedIn-ready segment into an active campaign, and pause/resume from here.</p>
+      <p className="page-sub">Campaigns mirrored from HeyReach. Push a LinkedIn-ready segment into an active campaign.</p>
 
       <div className="toolbar"><button className="btn" onClick={sync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync from HeyReach'}</button></div>
       {note && <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--accent)' }}>{note}</div>}
 
       {!configured && (
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
-          HeyReach isn’t connected. Add <code>HEYREACH_API_KEY</code> in Railway to enable syncing and pushing.
+          HeyReach isn’t connected. Add <code>HEYREACH_API_KEY</code> in Railway to sync and push.
         </div>
       )}
 
       {loading ? <div className="loading">Loading…</div> : campaigns.length === 0 ? (
-        <div className="panel"><p className="muted">No campaigns yet. Build one in HeyReach, then click “Sync from HeyReach”.</p></div>
+        <div className="panel"><p className="muted">No campaigns yet. Build one in HeyReach, then Sync from HeyReach.</p></div>
       ) : (
         <>
           <div className="panel" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
@@ -101,7 +101,7 @@ export function LinkedInCampaigns() {
               {pushing ? <><span className="spinner" /> Pushing…</> : `Push ${count?.toLocaleString() ?? ''} to HeyReach`}
             </button>
             {pushMsg && <p className="muted" style={{ marginTop: 10 }}>{pushMsg}</p>}
-            <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>Note: HeyReach only accepts leads into an <strong>active</strong> campaign.</p>
+            <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>HeyReach only accepts leads into an <strong>active</strong> campaign.</p>
           </div>
         </>
       )}

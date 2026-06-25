@@ -20,11 +20,9 @@ export function Workspaces() {
     <>
       <h1 className="page-title">{active.name} — settings</h1>
       <p className="page-sub">
-        Settings for the <strong>{active.name}</strong> workspace — the one selected in the Email Engine
-        nav. Each workspace has its own Email Bison API key, so every campaign, sequence and experiment
-        is attributed to the right persona. To configure another persona, switch workspace in the nav
-        selector. (The encryption key that protects these, <code>APP_ENCRYPTION_KEY</code>, is set once
-        in Railway; other vendor keys live on <strong>Settings</strong>.)
+        Each workspace has its own Email Bison key, so campaigns, sequences and experiments are
+        attributed to the right persona. Switch workspace in the nav to configure another. Other
+        vendor keys live on <strong>Settings</strong>.
       </p>
 
       <WorkspaceCard ws={active} onKeyChange={reload} />
@@ -94,8 +92,8 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
       </div>
 
       <p className="muted" style={{ margin: '6px 0 12px' }}>
-        Email Bison → switch into the {ws.name} workspace → API → copy the key. Paste it here.
-        {!keySet && ' Until a key is set, this workspace can’t send.'}
+        Find it in Email Bison: {ws.name} workspace → API → copy the key.
+        {!keySet && ' Without a key, this workspace can’t send.'}
       </p>
 
       <div className="toolbar" style={{ marginBottom: 0, alignItems: 'center' }}>
@@ -114,8 +112,8 @@ function WorkspaceCard({ ws, onKeyChange }: { ws: EmailWorkspace; onKeyChange: (
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>
         <strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>Reply routing</strong>
         <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
-          When a prospect replies, we post an alert to Google Chat and tag the next rep in this roster
-          (round-robin). Reps claim the reply in the Inbox and respond from there.
+          On a reply, we post a Google Chat alert and tag the next rep in this roster (round-robin).
+          Reps claim and respond in the Inbox.
         </p>
         <ReplyRouting reloadKey={ws.slug} />
       </div>
@@ -157,10 +155,10 @@ function WorkspaceScope({ ws, onSaved }: { ws: EmailWorkspace; onSaved: () => vo
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border, #e5e5e5)' }}>
       <strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>Persona scope &amp; connection</strong>
       <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
-        Persona scope — a pattern that maps this workspace to a set of contact personas. Use
-        <code> ESO %</code> to match every <code>ESO …</code> persona, or leave blank to use the
-        workspace’s exact persona (<code>{ws.persona ?? '—'}</code>). The Bison instance URL is shared
-        across all workspaces (set on <strong>Settings</strong>) — a workspace is chosen by its key.
+        Pattern matching this workspace’s personas — e.g. <code>ESO %</code> matches every
+        <code> ESO …</code> persona. Blank = exact persona (<code>{ws.persona ?? '—'}</code>).
+        The Bison instance URL is shared across workspaces (on <strong>Settings</strong>); the key
+        picks the workspace.
       </p>
       <div className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
         <input className="input" placeholder="e.g. ESO % (blank = exact persona)"

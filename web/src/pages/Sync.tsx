@@ -31,12 +31,12 @@ export function Sync() {
   return (
     <>
       <h1 className="page-title">Sync to HubSpot</h1>
-      <p className="page-sub">Push your cleaned company data to HubSpot. Always review the change preview before anything is written — HubSpot is your system of record.</p>
+      <p className="page-sub">Push cleaned company data to HubSpot. Review the change preview before anything is written — HubSpot is your system of record.</p>
 
       {!preview && !result && (
         <div className="panel">
           <h3>Review pending changes</h3>
-          <p className="muted" style={{ marginTop: -8 }}>This checks each company against HubSpot and shows exactly what would change. Nothing is written until you confirm.</p>
+          <p className="muted" style={{ marginTop: -8 }}>Checks each company against HubSpot and shows exactly what would change. Nothing is written until you confirm.</p>
           <button className="btn btn-primary" disabled={loading} onClick={runPreview}>
             {loading ? 'Analyzing…' : 'Preview changes'}
           </button>

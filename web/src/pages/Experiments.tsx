@@ -96,9 +96,9 @@ export function Experiments() {
     <>
       <h1 className="page-title">Experiments</h1>
       <p className="page-sub">
-        Run multiple sequences head-to-head against one audience. Each arm is a campaign with a weight;
-        contacts are split evenly (or by weight) and pinned, so you can pause losers and scale winners
-        without reshuffling anyone already in flight.
+        Run sequences head-to-head against one audience. Each arm is a campaign with a weight; contacts
+        are split by weight and <strong>pinned</strong> to their arm, so pausing a loser or scaling a
+        winner never reshuffles anyone already in flight — the comparison stays clean.
       </p>
 
       <div className="toolbar">
@@ -109,11 +109,11 @@ export function Experiments() {
 
       {showBuild && (
         <div className="panel" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Build an experiment from sequences</h3>
+          <h3 style={{ marginTop: 0 }}>Build from sequences</h3>
           <p className="muted" style={{ fontSize: 13, marginTop: -4, marginBottom: 8 }}>
-            Pick a sequence per arm. We create one Bison campaign per sequence, attach its senders, and wire
-            the experiment — ready to preview &amp; push. Partition senders so each arm has its own inboxes
-            (shared inboxes pool the daily quota and break per-arm isolation).
+            One sequence per arm. Creates a Bison campaign per sequence, attaches its senders, and wires the
+            experiment — ready to preview &amp; push. Give each arm its own inboxes; shared inboxes pool the
+            daily quota and break per-arm isolation.
           </p>
           <input className="input" style={{ width: '100%', marginBottom: 8 }} placeholder="Name — e.g. ESO Core · 6-style head-to-head"
             value={name} onChange={(e) => setName(e.target.value)} />
@@ -162,7 +162,7 @@ export function Experiments() {
           {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
           <div className="toolbar" style={{ marginBottom: 0 }}>
             <button className="btn btn-primary" disabled={!canBuild} onClick={build}>{creating ? 'Building…' : 'Build experiment'}</button>
-            {!canBuild && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Name + at least one arm with a sequence required.</span>}
+            {!canBuild && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Needs a name and at least one arm with a sequence.</span>}
           </div>
         </div>
       )}
@@ -179,8 +179,8 @@ export function Experiments() {
             <input className="input" placeholder="Sub-type (optional)" value={subType} onChange={(e) => setSubType(e.target.value)} style={{ width: 200 }} />
           </div>
 
-          <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Arms — one campaign each. Weight sets share of new contacts (equal = even split; 0 = paused).</p>
-          {campaigns.length === 0 && <p style={{ color: 'var(--coral)' }}>No campaigns yet. <Link to="/campaigns/new">Build campaigns</Link> first (one per sequence you want to test).</p>}
+          <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>One campaign per arm. Weight sets each arm's share of new contacts (equal = even split; 0 = paused).</p>
+          {campaigns.length === 0 && <p style={{ color: 'var(--coral)' }}>No campaigns yet. <Link to="/campaigns/new">Build campaigns</Link> first — one per sequence you want to test.</p>}
           {arms.map((a, i) => (
             <div key={i} className="toolbar" style={{ marginBottom: 8, alignItems: 'center' }}>
               <select className="select" value={a.campaignId} onChange={(e) => setArm(i, { campaignId: e.target.value ? Number(e.target.value) : '' })} style={{ minWidth: 220 }}>
@@ -203,13 +203,13 @@ export function Experiments() {
           {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
           <div className="toolbar" style={{ marginBottom: 0 }}>
             <button className="btn btn-primary" disabled={!canCreate} onClick={create}>{creating ? 'Creating…' : 'Create experiment'}</button>
-            {!canCreate && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Name + at least one arm with a campaign required.</span>}
+            {!canCreate && !creating && <span className="muted" style={{ alignSelf: 'center', fontSize: 13 }}>Needs a name and at least one arm with a campaign.</span>}
           </div>
         </div>
       )}
 
       {loading ? <div className="loading">Loading…</div> : exps.length === 0 ? (
-        <div className="panel"><p className="muted">No experiments yet. Create one to split an audience across multiple sequences and compare them.</p></div>
+        <div className="panel"><p className="muted">No experiments yet. Create one to split an audience across sequences and compare them.</p></div>
       ) : (
         <div className="cards">
           {exps.map((e) => (

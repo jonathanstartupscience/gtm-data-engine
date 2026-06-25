@@ -30,7 +30,7 @@ export function HubspotConnector() {
     <>
       <p style={{ margin: '0 0 8px' }}><Link to="/settings" className="muted">← Settings · Connectors</Link></p>
       <h1 className="page-title">HubSpot</h1>
-      <p className="page-sub">Your system of record. The engine syncs companies and contacts in both directions.</p>
+      <p className="page-sub">Your system of record. The engine syncs companies and contacts both ways.</p>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>Connection</h3>
@@ -62,7 +62,7 @@ export function HubspotConnector() {
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>What’s in the engine vs HubSpot</h3>
-        <p className="muted" style={{ marginTop: -8 }}>“Linked” = the record exists in both. A record here but not in HubSpot can be pushed; one in HubSpot but not here can be pulled.</p>
+        <p className="muted" style={{ marginTop: -8 }}>“Linked” = the record exists in both. One here but not in HubSpot can be pushed; one in HubSpot but not here can be pulled.</p>
         <CoverageBar label="Companies" {...data.companies} />
         <CoverageBar label="Contacts" {...data.contacts} />
         {(() => {
@@ -73,7 +73,7 @@ export function HubspotConnector() {
             <div style={{ borderLeft: '3px solid var(--amber)', paddingLeft: 12, marginTop: 6 }}>
               <p style={{ margin: '0 0 8px' }}>
                 <strong>{coNotInHs.toLocaleString()}</strong> companies and <strong>{ctNotInHs.toLocaleString()}</strong> contacts here are
-                <strong> not yet in HubSpot</strong>. Push them to clean up your CRM (you’ll preview every change first).
+                <strong> not yet in HubSpot</strong>. Push them to clean up your CRM — you’ll preview every change first.
               </p>
               <Link to="/sync" className="btn btn-primary">Review &amp; push to HubSpot →</Link>
             </div>

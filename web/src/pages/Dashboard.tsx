@@ -52,7 +52,7 @@ export function Dashboard() {
   return (
     <>
       <h1 className="page-title">Data <em>health</em></h1>
-      <p className="page-sub">Your canonical store and how clean it is. The point of this engine is keeping these fields complete — here and in HubSpot. Red bars are the gaps to close.</p>
+      <p className="page-sub">Your canonical store and how complete it is — here and in HubSpot. Red bars are the gaps to close.</p>
 
       <div className="cards">
         <div className="card"><div className="num">{stats.companies.toLocaleString()}</div><div className="label">Companies</div></div>

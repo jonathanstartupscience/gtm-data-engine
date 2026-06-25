@@ -17,24 +17,23 @@ export function LinkedInOverview() {
     <>
       <h1 className="page-title">LinkedIn <em>Engine</em></h1>
       <p className="page-sub">
-        LinkedIn outreach powered by HeyReach. Campaigns are built in HeyReach; here you mirror them,
-        push clean LinkedIn segments from the Data Engine into active campaigns, and track replies + performance.
+        LinkedIn outreach via HeyReach. Build campaigns in HeyReach; mirror them here, push clean
+        LinkedIn segments into active campaigns, and track replies and performance.
       </p>
 
       {configured === false && (
         <div className="panel" style={{ marginBottom: 16, borderLeft: '3px solid var(--amber)' }}>
           <h3 style={{ marginTop: 0 }}>Not connected yet</h3>
           <p style={{ lineHeight: 1.7 }}>
-            This engine is fully built and ready. To turn it on, add your HeyReach API key in
-            <Link to="/settings"> Settings</Link> (get it from HeyReach → Settings → API). It takes effect
-            immediately — no redeploy. Everything below activates automatically once the key is set.
+            Add your HeyReach API key in <Link to="/settings">Settings</Link> to turn this engine on
+            (HeyReach → Settings → API). Takes effect immediately — no redeploy.
           </p>
           <Link to="/settings" className="btn btn-primary">Add HeyReach key</Link>
         </div>
       )}
       {configured && keyValid === false && (
         <div className="panel" style={{ marginBottom: 16, color: 'var(--coral)' }}>
-          A HeyReach key is set but it didn’t validate. Check the key in Railway.
+          HeyReach key is set but didn’t validate. Check it in Railway.
         </div>
       )}
 
@@ -51,8 +50,8 @@ export function LinkedInOverview() {
           <Link to="/linkedin/inbox" className="btn">Inbox</Link>
         </div>
         <p className="muted" style={{ marginTop: 14, lineHeight: 1.7 }}>
-          Build the campaign + sequence in HeyReach, then come here to <strong>Sync</strong> it, push a
-          LinkedIn-ready segment (contacts that have a LinkedIn profile URL), and monitor conversations.
+          Build the campaign and sequence in HeyReach, then <strong>Sync</strong> it here, push a
+          LinkedIn-ready segment (contacts with a LinkedIn profile URL), and monitor conversations.
         </p>
       </div>
     </>

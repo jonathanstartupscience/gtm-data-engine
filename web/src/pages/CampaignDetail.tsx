@@ -73,7 +73,7 @@ export function CampaignDetail() {
       {/* Audience push */}
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>Audience</h3>
-        {!inBison ? <p className="muted">This campaign isn’t created in Bison yet — can’t push leads.</p> : (
+        {!inBison ? <p className="muted">Not created in Bison yet — can’t push leads.</p> : (
           <>
             <p style={{ fontSize: 15 }}>
               {segCount === null ? 'Counting…' : <><strong>{segCount.toLocaleString()}</strong> deliverable contacts match this campaign’s segment.</>}

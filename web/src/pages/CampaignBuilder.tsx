@@ -82,7 +82,7 @@ export function CampaignBuilder() {
   return (
     <>
       <h1 className="page-title">Build a campaign</h1>
-      <p className="page-sub">Define it here, create it in Email Bison, then push the audience and launch — all with a preview before anything sends.</p>
+      <p className="page-sub">Define it, create it in Email Bison, then push the audience and launch. Preview before anything sends.</p>
 
       {/* 1 · Name */}
       <div className="panel" style={{ marginBottom: 16 }}>
@@ -105,7 +105,7 @@ export function CampaignBuilder() {
         </div>
         <p style={{ marginTop: 14, fontSize: 15 }}>
           {count === null ? <span className="muted">Counting deliverable contacts…</span>
-            : <><strong>{count.toLocaleString()}</strong> campaign-ready contacts match. <span className="muted">Only deliverable & risky-catch-all addresses are included — role-based, undeliverable, and unverified are excluded automatically.</span></>}
+            : <><strong>{count.toLocaleString()}</strong> campaign-ready contacts match. <span className="muted">Only deliverable & risky-catch-all addresses are included; role-based, undeliverable, and unverified are excluded.</span></>}
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export function CampaignBuilder() {
       <div className="panel" style={{ marginBottom: 16 }}>
         <h3>4 · Sender inboxes</h3>
         {sendersErr ? <p style={{ color: 'var(--coral)' }}>Couldn’t load senders: {sendersErr}</p>
-          : senders.length === 0 ? <p className="muted">No sender inboxes found in this workspace. You can add them in Bison, or attach later.</p>
+          : senders.length === 0 ? <p className="muted">No sender inboxes in this workspace. Add them in Bison, or attach later.</p>
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {senders.map((s) => (
@@ -156,7 +156,7 @@ export function CampaignBuilder() {
           </select>
           <Link to="/sequences/new" className="muted" style={{ fontSize: 13 }}>+ manage sequences</Link>
         </div>
-        {attachedSeqId !== '' && <p className="muted" style={{ marginTop: -4, marginBottom: 10 }}>Copied from the template — edits here won’t change the saved sequence.</p>}
+        {attachedSeqId !== '' && <p className="muted" style={{ marginTop: -4, marginBottom: 10 }}>Copied from the template — edits here don’t change it.</p>}
         <SequenceStepsEditor steps={steps} onChange={setSteps} />
       </div>
 
@@ -164,8 +164,8 @@ export function CampaignBuilder() {
       <div className="panel">
         <h3>6 · Create in Email Bison</h3>
         <p className="muted" style={{ marginTop: -4, marginBottom: 12 }}>
-          This creates the campaign + sequence + schedule in Bison and saves the definition here. It does
-          <strong> not </strong> send anything yet — you’ll push the {count?.toLocaleString() ?? ''} contacts and launch from the campaign page.
+          Creates the campaign, sequence and schedule in Bison and saves the definition here. Sends
+          <strong> nothing </strong> yet — push the {count?.toLocaleString() ?? ''} contacts and launch from the campaign page.
         </p>
         {error && <p style={{ color: 'var(--coral)' }}>{error}</p>}
         {!stepsValid && <p className="muted">Every step needs a subject and body.</p>}

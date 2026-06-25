@@ -112,7 +112,7 @@ export function SequenceGenerator({
         <CostBadge paid />
       </div>
       <p className="muted" style={{ marginTop: 4, marginBottom: 14 }}>
-        Pick a proven cold-email style and a persona. Claude drafts the full sequence in Gregory Shepard's voice — then edit it below and save.
+        Pick a style and persona. Claude drafts the sequence in Gregory Shepard's voice — edit below and save.
       </p>
 
       {loadErr && <p style={{ color: 'var(--coral)' }}>Couldn’t load the style library: {loadErr}</p>}
