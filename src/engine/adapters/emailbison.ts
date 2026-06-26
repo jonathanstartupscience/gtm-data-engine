@@ -259,6 +259,10 @@ export function bisonClient(ctx: BisonCtx) {
   /** TEMP DIAGNOSTIC — probe where stats actually live on this Bison instance. Remove after use. */
   async function statsProbe(id: number): Promise<Record<string, unknown>> {
     const out: Record<string, unknown> = {};
+    // What base/key is this client actually using? (key shown only as length + last 4, never in full)
+    out.base = BASE;
+    out.key_len = ctx.key?.length ?? 0;
+    out.key_tail = ctx.key ? `…${ctx.key.slice(-4)}` : '(none)';
     // 1) the raw single-campaign object — does it carry stat fields inline?
     try {
       const r = await request(`${BASE}/campaigns/${id}`, { headers: headers(), limiter });
