@@ -3,7 +3,7 @@
 Internal planning doc: what's shipped, what's queued, and what we deliberately deferred or dropped.
 Not user-facing (that's the in-app knowledge base). Keep this current as decisions change.
 
-_Last updated: 2026-06-25 (visual design pass shipped, PR #11)_
+_Last updated: 2026-06-26 (Workflows/Hygiene compression + stats/inbox fixes shipped; Bison 401 blocker open)_
 
 ---
 
@@ -31,10 +31,49 @@ _Last updated: 2026-06-25 (visual design pass shipped, PR #11)_
   `--row-hover`). Piloted on Companies (rendered before/after sign-off), then fanned out across every
   list/detail/builder page. Bespoke surfaces (Sequences cards, Settings rows, Inbox triage, drawers) were
   intentionally left structural — only genuine record tables became grids. No business logic touched.
+- **Workflows + Data Hygiene compression** (PR #14) — both pages were a wall of large, equal-weight
+  verbose cards. Compressed to a scannable task list: a count-first `.task-count` chip ("N to fix" /
+  "all clean ✓") leads each row, descriptions demote to one muted truncated line (full text on hover),
+  and the two big health-bar panels collapse into one compact `.health-strip`. New shared CSS only.
+- **Email-stats auto-refresh + Inbox clarity** (PR #15) — campaign stats now auto-refresh from Bison on
+  open (new `POST /campaigns/refresh-all-stats`, resilient per-campaign; Performance refreshes the whole
+  workspace, CampaignDetail refreshes itself). Inbox "Positive only" (default on) now shows a hidden-count
+  + "Show all" so an actionable-only view doesn't read as broken. **NOTE:** the stats fix is correct but
+  currently produces zeros in prod because of the Bison 401 below — once auth is restored, numbers flow.
 
 ---
 
+## 🔴 Active blocker — Email Engine can't authenticate to Bison (stats show 0)
+
+The Email Engine reads campaigns from the DB (last good sync) but **every LIVE Bison call 401s** right
+now, so stats never refresh and Performance/CampaignDetail show zeros. Diagnosed 2026-06-26:
+- App base URL is correct: `https://send.visitstartupscience.com/api` (the `/api` suffix is required —
+  confirmed against docs.emailbison.com; auth is `Authorization: Bearer <key>`).
+- All 6 workspaces have a key stored (`keyConfigured: true`), but the ESO key (50 chars, ends `…a650`)
+  is rejected: `401 "a key that exists for the URL"`. `test-connection` fails on `GET /sender-emails`.
+- Ruled out: URL/path/header/code. **It's the key value** — stale/rotated/revoked, or belongs to a
+  different Bison account than this host. Keys live in the DB secret layer (`EMAILBISON_API_KEY__<slug>`),
+  set via Email Engine → Workspaces (NOT `.env`).
+- **Resume step:** user generates a fresh key in Bison (Settings → Developer API), we test the raw key
+  against the host first (planned: a `BISON_TEST_KEY` in `.env` + a throwaway scratch script, never
+  committed), then paste the working key into each workspace in the app. Confirm via `test-connection`.
+- Open question: does this Bison issue ONE account-wide key or one per workspace? Resolve when testing
+  the first good key — if one key, the same value goes into all 6 workspaces.
+
 ## Now / next
+
+- **Remove the two crowdfunding campaigns from the ESO view** — `eq_crowdfunding_campaign_1_C` and
+  `_2_C` are residual rows mis-homed to the ESOs workspace (persona blank). They sent volume historically
+  but aren't used in this system. Fix: delete via the Campaigns page Delete button (far-right column;
+  removes the app's local copy only, never touches Bison). Blocked only by the user finding the button
+  (it exists on `main`; if it looked missing it was a stale cached bundle — hard-refresh).
+- **Find Contacts → full Airscale-parity rebuild** (functional, its own project — user chose this scope).
+  The Airscale `searchPeople` adapter already supports a rich query the UI hides: firstname/lastname/
+  JobTitle/companyDomain/companyLinkedinUrl/location each with include+exclude, plus keyword. Rebuild the
+  page as a real people-search console (all filters, live result preview, pagination) so it's worth using
+  over MCP-in-Claude-Code. NOT started — needs a scoping plan + sign-off before code. See
+  `src/engine/adapters/airscale.ts` (`PeopleQuery`, `searchPeople`).
+- **Surface-specific visual polish** — the systemic pass (PR #11) is done; what remains is per-surface
 
 - **Surface-specific visual polish** — the systemic pass (PR #11) is done; what remains is per-surface
   craft that a shared class can't carry, each a small standalone change:

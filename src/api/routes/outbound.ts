@@ -340,18 +340,6 @@ outboundRouter.post('/campaigns/refresh-all-stats', rateLimit(10, 60_000), async
   res.json({ refreshed, failed: failed.length });
 }));
 
-/** TEMP DIAGNOSTIC — inspect where Bison stats live for this workspace. Remove after use. */
-outboundRouter.get('/_diag/stats', asyncHandler(async (req, res) => {
-  const ws = await resolveWorkspace(req);
-  if (!ws) return err(res, 400, 'unknown workspace');
-  const [c] = await db.select().from(bisonCampaigns)
-    .where(and(eq(bisonCampaigns.workspaceId, ws.id), isNotNull(bisonCampaigns.bisonCampaignId)));
-  if (!c?.bisonCampaignId) return res.json({ note: 'no created campaign in this workspace' });
-  const bison = await bisonClientFor(ws.id);
-  const probe = await bison.statsProbe(c.bisonCampaignId);
-  res.json({ campaignId: c.id, bisonCampaignId: c.bisonCampaignId, probe });
-}));
-
 // ----------------------------------------------------------------- push segment
 const pushSchema = z.object({
   confirm: z.literal(true),
